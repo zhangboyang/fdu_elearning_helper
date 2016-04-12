@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<?xml-stylesheet href="chrome://global/skin" type="text/css"?>
+
+<window title="HelloWorld" xmlns:html="http://www.w3.org/1999/xhtml"
+    xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+    width="800px"
+    height="500px">
+    
+    
+    <script type="application/javascript" src="chrome://elearninghelper/content/xulmain.js"/>
+
+    <caption label="Hello World"/>
+    <separator/>
+    <browser src="chrome://elearninghelper/content/html/main.html" flex="1"/>
+
+</window>
+
