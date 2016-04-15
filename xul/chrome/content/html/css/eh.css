@@ -33,27 +33,12 @@ body {
     /*overflow: hidden;*/
 }
 
-.eh_page {
+
+
+.eh_full_w {
     width: 100%;
-    height: 100%;
-    position: absolute;
 }
 
-.eh_page_header {
-    margin: 0px;
-}
-
-.eh_page_content {
-    display: -moz-box;
-    -moz-box-pack: center;
-    -moz-box-align: center;
-    height: 100%;
-    font-size: 28;
-}
-
-.eh_page_backbtn {
-    width: 60px;
-}
 
 .eh_scroll_none {
     overflow: hidden;
@@ -67,3 +52,133 @@ body {
 }
 
 
+
+
+
+
+
+
+
+
+.eh_page {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+}
+
+
+.eh_page_content {
+    display: flex;
+    flex-flow: row;
+}
+
+
+.eh_page_main {
+    
+}
+
+.eh_page_column {
+    display: flex;
+    flex-flow: column;
+}
+
+
+
+
+
+
+.eh_header {
+    margin: 0px;
+}
+
+.eh_header_content {
+    display: -moz-box;
+    -moz-box-align: center;
+    height: 100%;
+    font-size: 28;
+}
+
+.eh_header_backbtn {
+    margin-left: 15px;
+    width: 40px;
+}
+
+.eh_header_title {
+    margin-left: 15px;
+    float: left;
+}
+
+
+
+
+
+
+
+
+
+.eh_sidebar {
+    display: flex;
+    flex-flow: column;
+    width: 100%;
+}
+
+.eh_sidebar_title {
+    padding: 1px 5px;
+    font-size: 15;
+    font-weight: bold;
+    height: 25px;
+    line-height: 25px;
+}
+
+
+
+.eh_toolbar {
+    padding: 8px 6px;
+}
+
+.eh_toolbar_button {
+    width: 35px;
+    height: 35px;
+    margin: 3px 3px;
+    padding: 0px;
+}
+
+.eh_toolbar_button_small {
+    width: 28px;
+    height: 28px;
+    margin: 2px 2px;
+    padding: 0px;
+    line-height: 28px;
+}
+
+
+.eh_colorbox {
+    float: left;
+    width: 29px;
+    height: 29px;
+    padding: 6px;
+    border: 1px solid;
+}
+
+.eh_colorbox_sample {
+    background-color: black;
+    width: 15px;
+    height: 15px;
+}
+
+
+.eh_thicknessbox {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    float: left;
+    width: 50%;
+    height: 29px;
+    padding: 6px;
+    border: 1px solid;
+}
+
+.eh_thicknessbox_sample {
+    background-color: black;
+    width: 100%;
+}

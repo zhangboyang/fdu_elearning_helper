@@ -14,33 +14,94 @@
 
 <div id="main_page" class="eh_page">
 
-    <div id="main_header" class="row eh_page_header"><div class="eh_page_content">
-        <div class="col blue-text text-darken-4">欢迎使用 eLearning 助手</div>
+    <div id="main_header" class="eh_header"><div class="eh_header_content">
+        <div class="eh_header_title blue-text text-darken-4">欢迎使用 eLearning 助手</div>
     </div></div>
     
-    <div id="main_content" class="row">
+    <div id="main_content" class="eh_page_content">
         <div id="main_left" style="display: none;"></div>
-        <div id="main_mid" class="col"><a class="btn waves-effect waves-light" onclick="show_page('calendar')">HAHAHAHAHA</a></div>
+        <div id="main_mid" class="eh_page_main">
+            <a class="btn" onclick="show_page('calendar')">CALENDAR</a>
+            <a class="btn" onclick="show_page('viewfile')">VIEWFILE</a>
+        </div>
         <div id="main_right" style="display: none;"></div>
     </div>
-    
 </div>
 
 
 <div id="calendar_page" class="eh_page">
-    <div id="calendar_header" class="row eh_page_header"><div class="eh_page_content">
-        <div class="col eh_page_backbtn"><a class="btn-floating btn blue darken-3 z-depth-0" onclick="show_page('main')"><i class="material-icons">arrow_back</i></a></div>
-        <div class="col">日程列表</div>
+    <div id="calendar_header" class="eh_header"><div class="eh_header_content">
+        <div class="eh_header_backbtn"><a class="btn-floating btn blue darken-3 z-depth-0" onclick="go_back()"><i class="material-icons">arrow_back</i></a></div>
+        <div class="eh_header_title">日程</div>
     </div></div>
-    <div id="calendar_content" class="row">
-        <div id="calendar_left" class="col eh_scroll_none">A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br></div>
-        <div id="calendar_mid" class="col eh_scroll_ud">haha</div>
-        <div id="calendar_right" class="col eh_scroll_ud">
+    <div id="calendar_content" class="eh_page_content">
+        <div id="calendar_left" class="eh_page_column">A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br></div>
+        <div id="calendar_mid" class="eh_page_main">haha</div>
+        <div id="calendar_right" class="eh_page_column">
             <ul class="pagination"><li>haha</li>
-            <li>hehe</li></ul>  
+            <li>hehe</li></ul>
         </div>
     </div>
-    
+</div>
+
+<div id="viewfile_page" class="eh_page">
+    <div id="viewfile_header" class="eh_header"><div class="eh_header_content">
+        <div class="eh_header_backbtn"><a class="btn-floating btn blue darken-3 z-depth-0" onclick="go_back()"><i class="material-icons">arrow_back</i></a></div>
+        <div class="eh_header_title">PPT</div>
+    </div></div>
+    <div id="viewfile_content" class="eh_page_content">
+        <div id="viewfile_left" class="eh_page_column">A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br></div>
+        <div id="viewfile_mid" class="eh_page_main">haha</div>
+        <div id="viewfile_right" class="eh_page_column">
+<div class="orange eh_sidebar" style="flex: 0 1 auto;">
+	<div class="eh_sidebar_title">绘图</div>
+	<div class="eh_toolbar orange lighten-3">
+    	<a class="orange waves-effect waves-light btn darken-3 z-depth-0 eh_toolbar_button" onclick=""><i class="material-icons">add</i></a>
+    	<a class="orange waves-effect waves-light btn darken-3 z-depth-0 eh_toolbar_button" onclick=""><i class="material-icons">add</i></a>
+    	<a class="orange waves-effect waves-light btn darken-3 z-depth-0 eh_toolbar_button" onclick=""><i class="material-icons">add</i></a>
+    	<a class="orange waves-effect waves-light btn darken-3 z-depth-0 eh_toolbar_button" onclick=""><i class="material-icons">add</i></a>
+    	<a class="orange waves-effect waves-light btn darken-3 z-depth-0 eh_toolbar_button" onclick=""><i class="material-icons">add</i></a>
+    </div>
+	<div class="row orange lighten-4" style="margin: 0px">
+		<div class="col s6 orange lighten-4" style="padding: 4px">
+		    <div id="viewfile_colorbox_selected_style" class="orange lighten-4" style="display: none;"></div>
+			<div id="viewfile_colorbox1" class="eh_colorbox" onclick="select_color(1)"><div id="viewfile_colorbox_sample1" class="eh_colorbox_sample"></div></div>
+			<div id="viewfile_colorbox2" class="eh_colorbox" onclick="select_color(2)"><div id="viewfile_colorbox_sample2" class="eh_colorbox_sample"></div></div>
+			<div id="viewfile_colorbox3" class="eh_colorbox" onclick="select_color(3)"><div id="viewfile_colorbox_sample3" class="eh_colorbox_sample"></div></div>
+			<div id="viewfile_colorbox4" class="eh_colorbox" onclick="select_color(4)"><div id="viewfile_colorbox_sample4" class="eh_colorbox_sample"></div></div>
+			<div id="viewfile_colorbox5" class="eh_colorbox" onclick="select_color(5)"><div id="viewfile_colorbox_sample5" class="eh_colorbox_sample"></div></div>
+			<div id="viewfile_colorbox6" class="eh_colorbox" onclick="select_color(6)"><div id="viewfile_colorbox_sample6" class="eh_colorbox_sample"></div></div>
+			<div id="viewfile_colorbox7" class="eh_colorbox" onclick="select_color(7)"><div id="viewfile_colorbox_sample7" class="eh_colorbox_sample"></div></div>
+			<div id="viewfile_colorbox8" class="eh_colorbox" onclick="select_color(8)"><div id="viewfile_colorbox_sample8" class="eh_colorbox_sample"></div></div>
+		</div>
+		<div class="col s6 orange lighten-4" style="padding: 4px">
+		    <div id="viewfile_thicknessbox_selected_style" class="orange lighten-4" style="display: none;"></div>
+			<div id="viewfile_thicknessbox1" class="eh_thicknessbox" onclick="select_thickness(1)"><div id="viewfile_thicknessbox_sample1" class="eh_thicknessbox_sample" style="height: 7px;"></div></div>
+			<div id="viewfile_thicknessbox2" class="eh_thicknessbox" onclick="select_thickness(2)"><div id="viewfile_thicknessbox_sample2" class="eh_thicknessbox_sample" style="height: 7px;"></div></div>
+			<div id="viewfile_thicknessbox3" class="eh_thicknessbox" onclick="select_thickness(3)"><div id="viewfile_thicknessbox_sample3" class="eh_thicknessbox_sample" style="height: 7px;"></div></div>
+			<div id="viewfile_thicknessbox4" class="eh_thicknessbox" onclick="select_thickness(4)"><div id="viewfile_thicknessbox_sample4" class="eh_thicknessbox_sample" style="height: 7px;"></div></div>
+		</div>
+	</div>
+</div>
+<div class="light-green eh_sidebar" style="flex: 1 1 auto;">
+    <div class="eh_sidebar_title">笔记</div>
+	<div class="eh_toolbar light-green lighten-3">
+    	<a class="light-green waves-effect waves-light btn darken-3 z-depth-0 eh_toolbar_button_small" onclick=""><i class="material-icons">format_bold</i></a>
+    	<a class="light-green waves-effect waves-light btn darken-3 z-depth-0 eh_toolbar_button_small" onclick=""><i class="material-icons">format_italic</i></a>
+    	<a class="light-green waves-effect waves-light btn darken-3 z-depth-0 eh_toolbar_button_small" onclick=""><i class="material-icons">format_underlined</i></a>
+    	<a class="light-green waves-effect waves-light btn darken-3 z-depth-0 eh_toolbar_button_small" onclick=""><i class="material-icons">delete_forever</i></a>
+    </div>
+	<div class="light-green lighten-4" style="flex: 1 1 auto; height: 0px;">
+		<div style="overflow-y: auto; flex: 1 1 auto; height: 100%">
+			<p>1. 额隔热iv热ivb热ivb热iv南瑞v您的双方都四地市的范德萨附近的口舌王师傅比赛的防晒霜束带结发</p>
+			<p>2. 你看 能翻到款的说法独守空房军绿色的付款就org江东父老干掉家里的事快放假都是偶尔放第三方第三方都是都是第三方是</p>
+			<p>2. 你看 能翻到款的说法独守空房军绿色的付款就org江东父老干掉家里的事快放假都是偶尔放第三方第三方都是都是第三方是</p>
+			<p>2. 你看 能翻到款的说法独守空房军绿色的付款就org江东父老干掉家里的事快放假都是偶尔放第三方第三方都是都是第三方是</p>
+		</div>
+	</div>
+</div>
+        </div>
+    </div>
 </div>
 
 

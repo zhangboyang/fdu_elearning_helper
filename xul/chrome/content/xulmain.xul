@@ -4,16 +4,16 @@
 <window title="HelloWorld"
     xmlns:html="http://www.w3.org/1999/xhtml"
     xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
-    width="800px"
-    height="500px">
+    width="1200px"
+    height="700px">
     
     
     <script type="application/javascript" src="chrome://elearninghelper/content/xulmain.js"/>
 
-    <caption label="Hello World"/>
+    <!--<caption label="Hello World"/>
     <button label="Console" oncommand="window.open('chrome://global/content/console.xul', '_blank',
     'chrome,extrachrome,menubar,resizable,scrollbars,status,toolbar');"/>
-    <separator/>
+    <separator/>-->
     <browser src="chrome://elearninghelper/content/html/main.html" flex="1"/>
 
     
