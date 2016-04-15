@@ -1,37 +1,49 @@
 <html>
 <head>
     <meta http-equiv="content-type" content="text/html; charset=UTF-8">
-    <style type="text/css">
-        body {
-            font-family: serif;
-            -moz-text-size-adjust: none; 
-            -webkit-text-size-adjust: none; 
-            -ms-text-size-adjust: none;
-            background-color: white;
-            overflow: hidden;
-        }
-    </style>
     
     <link href="materialize/css/materialize.min.css" rel="stylesheet">
     <script src="js/jquery-2.1.1.min.js"></script>
     <script src="materialize/js/materialize.min.js"></script>
+
+    <link href="css/eh.css" rel="stylesheet">
+    <script src="js/eh.js"></script>
 </head>
 
 <body>
-<div style="width: 100%; height: 100%; border: 10px">
-    <div class="green" style="height: 30px">
-            <a href="javascript:alert('hahaha');window.parent.helloworld();">OPEN CALC</a>
+
+<div id="main_page" class="eh_page">
+
+    <div id="main_header" class="row eh_page_header"><div class="eh_page_content">
+        <div class="col blue-text text-darken-4">欢迎使用 eLearning 助手</div>
+    </div></div>
+    
+    <div id="main_content" class="row">
+        <div id="main_left" style="display: none;"></div>
+        <div id="main_mid" class="col"><a class="btn waves-effect waves-light" onclick="show_page('calendar')">HAHAHAHAHA</a></div>
+        <div id="main_right" style="display: none;"></div>
     </div>
-    <div class="row" style="height: calc(100% - 30px)">
-        <div class="orange col" style="width: 150px; height: 100%; overflow-y: scroll; overflow-x: hidden;">A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br></div>
-        <div class="red col" style="width: calc(100% - 250px)">haha</div>
-        
-        <div class="blue col" style="width: 100px; height: 100%">
+    
+</div>
+
+
+<div id="calendar_page" class="eh_page">
+    <div id="calendar_header" class="row eh_page_header"><div class="eh_page_content">
+        <div class="col eh_page_backbtn"><a class="btn-floating btn blue darken-3 z-depth-0" onclick="show_page('main')"><i class="material-icons">arrow_back</i></a></div>
+        <div class="col">日程列表</div>
+    </div></div>
+    <div id="calendar_content" class="row">
+        <div id="calendar_left" class="col eh_scroll_none">A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br>A<br></div>
+        <div id="calendar_mid" class="col eh_scroll_ud">haha</div>
+        <div id="calendar_right" class="col eh_scroll_ud">
             <ul class="pagination"><li>haha</li>
             <li>hehe</li></ul>  
         </div>
     </div>
+    
 </div>
+
+
 </body>
 </html>
 
