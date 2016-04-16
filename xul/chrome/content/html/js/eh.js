@@ -261,6 +261,11 @@ function init_canvas()
 function clear_canvas()
 {
     
+    if (parseInt($("#myImage").css("width")) == 0) {
+        setTimeout("clear_canvas()", 10); // ugly hack
+        return;
+    }
+    
     clickX.length = 0;
     clickY.length = 0;
     clickDrag.length = 0;
@@ -269,12 +274,24 @@ function clear_canvas()
     var canvas = document.getElementById("myCanvas");
     canvas.getContext("2d").clearRect(0, 0, context.canvas.width, context.canvas.height); // Clears the canvas
     
+    //canvas.setAttribute('width', $("#myImage")[0].naturalWidth);
+    //canvas.setAttribute('height', $("#myImage")[0].naturalHeight);
+    
+    
+    //$("#myCanvas").css("width", $("#myImage").css("width"));
+    //$("#myCanvas").css("height", $("#myImage").css("height"));
+    
+    
     canvas.setAttribute('width', $("#myImage").css("width"));
     canvas.setAttribute('height', $("#myImage").css("height"));
+    
+    Materialize.toast($("#myImage").css("width"), 4000);
+    
+    
     var x = $("#myImage").offset();
     canvas_offset_X = x.left;
     canvas_offset_Y = x.top;
-    last_redraw_count = 0;	
+    last_redraw_count = 0;
 }
 
 

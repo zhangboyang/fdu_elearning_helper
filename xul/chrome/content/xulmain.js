@@ -17,7 +17,7 @@ function mylog(s)
 {
     var console;
     console = Components.classes["@mozilla.org/consoleservice;1"].getService(Components.interfaces.nsIConsoleService);
-    console.logStringMessage(s);
+    console.logStringMessage("[MYLOG] " + s);
 }
 
 function helloworld()
