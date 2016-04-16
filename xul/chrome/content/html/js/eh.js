@@ -19,37 +19,25 @@ function set_page_color(page_name)
     $("#" + page_name + "_right").addClass("black");
 }
 
-function set_page_layout(page_name, header_height, left_width, right_width)
+function set_page_layout(page_name, min_left_width, left_width, max_left_width, min_right_width, right_width, max_right_width)
 {
-    $("#" + page_name + "_header").css({
-        "height": header_height,
-    });
-    
-    $("#" + page_name + "_content").css({
-        "height": "calc(100% - " + header_height + ")",
-        "width": "100%",
-    });
-    
     $("#" + page_name + "_left").css({
         "width": left_width,
-        "height": "100%",
-    });
-    
-    $("#" + page_name + "_mid").css({
-        "width": "calc(100% - " + left_width + " - " + right_width + ")",
-        "height": "100%",
+        "min-width": min_left_width,
+        "max-width": max_left_width,
     });
 
     $("#" + page_name + "_right").css({
         "width": right_width,
-        "height": "100%",
+        "min-width": min_right_width,
+        "max-width": max_right_width,
     });
 }
 
-function show_page_with_width(page_name, header_height, left_width, right_width)
+function show_page_with_width(page_name, min_left_width, left_width, max_left_width, min_right_width, right_width, max_right_width)
 {
     set_page_color(page_name);
-    set_page_layout(page_name, header_height, left_width, right_width);
+    set_page_layout(page_name, min_left_width, left_width, max_left_width, min_right_width, right_width, max_right_width);
     $("#" + page_name + "_page").show();
 }
 
@@ -57,11 +45,11 @@ function show_page(page_name)
 {
     hide_all_pages();
     if (page_name == "main") {
-        show_page_with_width("main", "60px", "0px", "0px");
+        show_page_with_width("main", "0px", "0px", "0px", "0px", "0px", "0px");
     } else if (page_name == "calendar") {
-        show_page_with_width("calendar", "60px", "15%", "20%");
+        show_page_with_width("calendar", "200px", "200px", "200px", "0px", "20%", "100%");
     } else if (page_name == "viewfile") {
-        show_page_with_width("viewfile", "60px", "15%", "20%");
+        show_page_with_width("viewfile", "200px", "200px", "200px", "250px", "20%", "100%");
     } else {
         show_error("unknown page_name");
     }

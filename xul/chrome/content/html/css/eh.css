@@ -59,25 +59,35 @@ body {
 
 
 
+.eh_flexbox_fill_remaining_wrapper_ud {
+    flex: 1 1 auto;
+    height: 0px;
+}
+
+.eh_flexbox_fill_remaining_wrapper_lr {
+    flex: 1 1 auto;
+    width: 0px;
+}
+
+
 
 .eh_page {
     width: 100%;
     height: 100%;
     position: absolute;
+    display: flex;
+    flex-direction: column;
 }
 
-
 .eh_page_content {
+    height: 100%;
     display: flex;
     flex-flow: row;
 }
 
-
-.eh_page_main {
-    
-}
-
 .eh_page_column {
+    flex: 0 1 auto;
+    height: 100%;
     display: flex;
     flex-flow: column;
 }
@@ -89,6 +99,8 @@ body {
 
 .eh_header {
     margin: 0px;
+    height: 60px;
+    flex: 0 1 auto;
 }
 
 .eh_header_content {
