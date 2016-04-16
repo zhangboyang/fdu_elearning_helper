@@ -310,8 +310,9 @@ $("document").ready( function () {
     init_colorbox();
     init_thicknessbox();
     init_canvas();
-    
-    show_page("viewfile");
+  
+    show_page("main");
+//    show_page("viewfile");
     
     Materialize.toast("INIT OK!", 4000);
     //alert("ok");

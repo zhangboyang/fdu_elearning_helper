@@ -118,8 +118,8 @@ body {
 
 
 
-
-
+.eh_coursetable {
+}
 .eh_coursetable .Content {
 	background-color:#ffffff;
 }
@@ -146,13 +146,16 @@ body {
 	border-collapse:collapse;
 }
 .eh_coursetable font {
-	size:2px;
+	font-size: 15px;
 }
 .eh_coursetable div {
 	border:1px solid black;
 	width:768px;
 	padding:2px;
 }
+
+
+
 
 
 		
