@@ -326,6 +326,10 @@ $("document").ready( function () {
 
 
 
+function should_popupmenu(element)
+{
+    return $(element).hasClass("eh_xul_popupmenu");
+}
 
 function cut_to_clipboard(element)
 {

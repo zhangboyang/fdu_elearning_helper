@@ -41,9 +41,7 @@ function mymenu_popupshowing(event)
 {
     var element = event.target.triggerNode;
     //var isTextArea = element instanceof HTMLTextAreaElement;
-    var isTextArea = true;
-    //alert(isTextArea);
-    if (!isTextArea) {
+    if (!document.getElementById("mybrowser").contentWindow.should_popupmenu(element)) {
         event.preventDefault();
     }
 }

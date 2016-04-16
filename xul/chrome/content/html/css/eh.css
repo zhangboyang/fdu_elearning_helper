@@ -34,6 +34,8 @@ body {
 }
 
 
+.eh_xul_popupmenu {
+}
 
 .eh_full_w {
     width: 100%;
@@ -59,6 +61,13 @@ body {
 
 
 
+
+
+
+
+
+
+
 .eh_flexbox_fill_remaining_wrapper_ud {
     flex: 1 1 auto;
     height: 0px;
@@ -68,6 +77,12 @@ body {
     flex: 1 1 auto;
     width: 0px;
 }
+
+
+
+
+
+
 
 
 
@@ -96,6 +111,51 @@ body {
     height: 100%;
 }
 
+
+
+
+
+
+
+
+
+
+.eh_coursetable .Content {
+	background-color:#ffffff;
+}
+.eh_coursetable .Morning {
+	background-color:#eeff00;
+}
+.eh_coursetable .Afternoon {
+	background-color:#33cc00;
+}
+.eh_coursetable .Evening {
+	background-color:#ffbbff;
+}
+.eh_coursetable td {
+	padding:5px;
+	border:1px solid black;
+}
+.eh_coursetableth {
+	background-color:#deedf7;
+	border:1px solid black;
+}
+.eh_coursetable table {
+	text-align:center;
+	width:768px;
+	border-collapse:collapse;
+}
+.eh_coursetable font {
+	size:2px;
+}
+.eh_coursetable div {
+	border:1px solid black;
+	width:768px;
+	padding:2px;
+}
+
+
+		
 
 
 
@@ -160,7 +220,7 @@ body {
 .eh_toolbar_button_small {
     width: 28px;
     height: 28px;
-    margin: 2px 2px;
+    margin: 2px 3px;
     padding: 0px;
     line-height: 28px;
 }
@@ -195,4 +255,17 @@ body {
 .eh_thicknessbox_sample {
     background-color: black;
     width: 100%;
+}
+
+
+.eh_notebox {
+    outline: 0px solid transparent;
+    height: 100%;
+    width: 100%;
+    border-style: none;
+    resize: none;
+}
+
+.eh_notebox:focus {
+    outline: 0px solid transparent;
 }
