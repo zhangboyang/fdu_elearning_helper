@@ -120,45 +120,75 @@ body {
 
 .eh_coursetable {
 }
-.eh_coursetable .Content {
-	background-color:#ffffff;
+
+.eh_coursetable th {
+    font-size: 15px;
+    text-align: center;
+    
+    border-radius: 0px;
+    
+	background-color: #aed581;
+	height: 22px;
+	overflow: hidden;
+	padding: 0px;
 }
-.eh_coursetable .Morning {
-	background-color:#eeff00;
+.eh_coursetable th:nth-child(1) {
+    background-color: transparent;
+    width: 30px;
 }
-.eh_coursetable .Afternoon {
-	background-color:#33cc00;
-}
-.eh_coursetable .Evening {
-	background-color:#ffbbff;
-}
+
+
 .eh_coursetable td {
-	padding:5px;
-	border:1px solid black;
+    font-size: 15px;
+    text-align: center;
+    
+    border-radius: 0px;
+    
+	background-color: #dcedc8;
+	overflow: hidden;
+	padding: 0px;
 }
-.eh_coursetableth {
-	background-color:#deedf7;
-	border:1px solid black;
+
+
+.eh_coursetable tr:nth-child(n+7):nth-child(-n+11) td {
+    /* color blender: http://meyerweb.com/eric/tools/color-blend */
+    background-color: #CDE5B2;
 }
+
+.eh_coursetable td:nth-child(1) {
+    background-color: #aed581 !important;
+}
+
+
 .eh_coursetable table {
-	text-align:center;
-	width:768px;
-	border-collapse:collapse;
+	text-align: center;
+	table-layout: fixed;
+	border-collapse: separate;
+	border-spacing: 2px;
+	height: 100%;
+	width: 100%;
 }
-.eh_coursetable font {
-	font-size: 15px;
-}
+
 .eh_coursetable div {
-	border:1px solid black;
-	width:768px;
-	padding:2px;
+    height: 100%;
+    width: 100%;
+    background-color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    border: 2px solid #689f38;
+    overflow: hidden;
+}
+
+.eh_coursetable span {
+    flex: 0 1 auto;
+    display: inline-block;
+    vertical-align: middle;
+    color: black;
+    font-weight: bold;
 }
 
 
-
-
-
-		
 
 
 

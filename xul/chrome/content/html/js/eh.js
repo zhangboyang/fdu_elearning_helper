@@ -285,7 +285,7 @@ function clear_canvas()
     canvas.setAttribute('width', $("#myImage").css("width"));
     canvas.setAttribute('height', $("#myImage").css("height"));
     
-    Materialize.toast($("#myImage").css("width"), 4000);
+    //Materialize.toast($("#myImage").css("width"), 4000);
     
     
     var x = $("#myImage").offset();
