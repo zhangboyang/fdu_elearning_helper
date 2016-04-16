@@ -24,6 +24,7 @@
         <div class="eh_flexbox_fill_remaining_wrapper_lr"><div id="main_mid" class="eh_page_main">
             <a class="btn" onclick="show_page('calendar')">CALENDAR</a>
             <a class="btn" onclick="show_page('viewfile')">VIEWFILE</a>
+            <a class="btn" onclick="window.parent.helloworld()">OPENCALC</a>
         </div></div>
         <div id="main_right" style="display: none;"></div>
     </div></div>
@@ -53,7 +54,7 @@
     <div class="eh_flexbox_fill_remaining_wrapper_ud"><div id="viewfile_content" class="eh_page_content">
         <div id="viewfile_left" class="eh_page_column">
 <div class="yellow eh_sidebar" style="flex: 1 1 auto;">
-    <div class="eh_sidebar_title">列表</div>
+    <div class="eh_sidebar_title">浏览</div>
 	<div class="yellow lighten-4" style="flex: 1 1 auto; height: 0px;">
 		<div style="overflow-y: auto; height: 100%; display: flex; flex-direction: column; text-align: center">
 		    <div style="flex: 0 1 auto"><img src="boot_001.png" style="width: calc(100% - 40px); margin: 20px"/></div>
@@ -64,7 +65,12 @@
 </div>
         </div>
         <div class="eh_flexbox_fill_remaining_wrapper_lr"><div id="viewfile_mid" class="eh_page_main">
-<img src="boot_001.png" style="max-width: calc(100% - 40px); max-height: calc(100% - 40px); margin: 20px"/>
+<div style="width: 100%; height: 100%; padding: 20px;">    
+<div style="position: relative; width: 100%; height: 100%;">
+<img id="myImage" src="boot_001.png" style="max-width: 100%; max-height: 100%; position: absolute;"/>
+<canvas id="myCanvas" style="position: absolute;"></canvas>
+</div>
+</div>
         </div></div>
         <div id="viewfile_right" class="eh_page_column">
 <div class="orange eh_sidebar" style="flex: 0 1 auto;">

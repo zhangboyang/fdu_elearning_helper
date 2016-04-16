@@ -50,6 +50,7 @@ function show_page(page_name)
         show_page_with_width("calendar", "200px", "200px", "200px", "0px", "20%", "100%");
     } else if (page_name == "viewfile") {
         show_page_with_width("viewfile", "200px", "200px", "200px", "250px", "20%", "100%");
+        clear_canvas();
     } else {
         show_error("unknown page_name");
     }
@@ -191,6 +192,94 @@ function select_thickness(id)
 
 
 
+var context;
+var clickX = new Array();
+var clickY = new Array();
+var clickDrag = new Array();
+var clickColor = new Array();
+var clickThickness = new Array();
+var paint;
+
+var canvas_offset_X;
+var canvas_offset_Y;
+
+var last_redraw_count;
+
+function addClick(x, y, dragging, color, thickness)
+{
+  clickX.push(x);
+  clickY.push(y);
+  clickDrag.push(dragging);
+  clickColor.push(color);
+  clickThickness.push(thickness);
+}
+
+function redraw(){
+  context.lineJoin = "round";
+
+  var i;
+  for(i = last_redraw_count; i < clickX.length; i++) {
+    context.strokeStyle = get_color(clickColor[i]);
+    context.lineWidth = parseInt(get_thickness(clickThickness[i]));
+    context.beginPath();
+    if(clickDrag[i] && i){
+      context.moveTo(clickX[i-1], clickY[i-1]);
+     }else{
+       context.moveTo(clickX[i]-1, clickY[i]);
+     }
+     context.lineTo(clickX[i], clickY[i]);
+     context.closePath();
+     context.stroke();
+  }
+  last_redraw_count = i;
+}
+    
+function init_canvas()
+{
+    context = document.getElementById("myCanvas").getContext("2d");
+    $('#myCanvas').mousedown(function(e){
+        var mouseX = e.pageX - canvas_offset_X;
+        var mouseY = e.pageY - canvas_offset_Y;
+        paint = true;
+        addClick(e.pageX - canvas_offset_X, e.pageY - canvas_offset_Y, false, color_selected, thickness_selected);
+        redraw();
+    });
+    $('#myCanvas').mousemove(function(e){
+        if(paint){
+            addClick(e.pageX - canvas_offset_X, e.pageY - canvas_offset_Y, true, color_selected, thickness_selected);
+            redraw();
+        }
+    });
+    $('#myCanvas').mouseup(function(e){
+        paint = false;
+    });
+    $('#myCanvas').mouseleave(function(e){
+        paint = false;
+    });
+}
+
+function clear_canvas()
+{
+    
+    clickX.length = 0;
+    clickY.length = 0;
+    clickDrag.length = 0;
+    clickColor.length = 0;
+    clickThickness.length = 0;
+    var canvas = document.getElementById("myCanvas");
+    canvas.getContext("2d").clearRect(0, 0, context.canvas.width, context.canvas.height); // Clears the canvas
+    
+    canvas.setAttribute('width', $("#myImage").css("width"));
+    canvas.setAttribute('height', $("#myImage").css("height"));
+    var x = $("#myImage").offset();
+    canvas_offset_X = x.left;
+    canvas_offset_Y = x.top;
+    last_redraw_count = 0;	
+}
+
+
+
+
 
 
 function go_back()
@@ -203,6 +292,8 @@ $("document").ready( function () {
     
     init_colorbox();
     init_thicknessbox();
+    init_canvas();
+    
     show_page("viewfile");
     
     Materialize.toast("INIT OK!", 4000);
