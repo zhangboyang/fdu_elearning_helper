@@ -10,12 +10,25 @@
     
     <script type="application/javascript" src="chrome://elearninghelper/content/xulmain.js"/>
 
-    <!--<caption label="Hello World"/>
+    <caption label="Hello World"/>
     <button label="Console" oncommand="window.open('chrome://global/content/console.xul', '_blank',
     'chrome,extrachrome,menubar,resizable,scrollbars,status,toolbar');"/>
-    <separator/>-->
-    <browser src="chrome://elearninghelper/content/html/main.html" flex="1"/>
+    <separator/>
+    <browser id="mybrowser" src="chrome://elearninghelper/content/html/main.html" flex="1" context="mymenu" />
 
-    
+    <menupopup id="mymenu" onpopupshowing="mymenu_popupshowing(event)">
+        <!-- how to write 'oncommand' : http://forums.mozillazine.org/viewtopic.php?f=19&t=2282747 -->
+        <menuitem label="剪切" oncommand="document.getElementById('mybrowser').contentWindow.cut_to_clipboard(document.popupNode)"/>
+        <menuitem label="复制" oncommand="document.getElementById('mybrowser').contentWindow.copy_to_clipboard(document.popupNode)"/>
+        <menuitem label="粘贴" oncommand="document.getElementById('mybrowser').contentWindow.paste_from_clipboard(document.popupNode)"/>
+        
+        
+        <menuseparator/>
+        
+        <menuitem label="Open"/>
+        <menuitem label="Save"/>
+        
+        <menuitem label="Exit"/>
+    </menupopup>
 </window>
 

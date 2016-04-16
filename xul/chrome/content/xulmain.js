@@ -25,6 +25,7 @@ function helloworld()
     alert("helloworld");
     open_calc();
     mylog("hello! logging");
+    document.getElementById("mybrowser").contentWindow.helloworld2();
 }
 
 function open_calc()
@@ -36,4 +37,49 @@ function open_calc()
     process.run(false, [], 0);
 }
 
+function mymenu_popupshowing(event)
+{
+    var element = event.target.triggerNode;
+    var isTextArea = element instanceof HTMLTextAreaElement;
+    //alert(isTextArea);
+    if (!isTextArea) {
+        event.preventDefault();
+    }
+}
 
+
+
+
+
+const gClipboardHelper = Components.classes["@mozilla.org/widget/clipboardhelper;1"]
+                                       .getService(Components.interfaces.nsIClipboardHelper);
+
+Components.utils.import('resource://gre/modules/Services.jsm');
+
+
+function set_clipboard_text(str)
+{
+    gClipboardHelper.copyString(str);
+}
+
+function get_clipboard_text(str)
+{
+    var trans = Components.classes["@mozilla.org/widget/transferable;1"].createInstance(Components.interfaces.nsITransferable);
+    trans.init(null)
+    trans.addDataFlavor("text/unicode");
+
+    Services.clipboard.getData(trans, Services.clipboard.kGlobalClipboard);
+
+    var str       = {};
+    var strLength = {};
+
+    trans.getTransferData("text/unicode", str, strLength);
+
+
+    if (str) {
+        var pastetext = str.value.QueryInterface(Components.interfaces.nsISupportsString).data;
+        return pastetext;
+    } else {
+        return "";
+    }
+}

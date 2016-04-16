@@ -56,6 +56,11 @@ function show_page(page_name)
 }
 
 
+function helloworld2()
+{
+    alert("hello from child!");
+}
+
 /* colorbox */
 var colorbox_boxbgcolor_selected, colorbox_boxbgcolor_hover;
 var color_count = 8;
@@ -203,4 +208,34 @@ $("document").ready( function () {
     Materialize.toast("INIT OK!", 4000);
     //alert("ok");
 });
+
+
+
+
+
+
+
+
+
+
+
+function cut_to_clipboard(element)
+{
+    window.parent.set_clipboard_text($(element).extractSelectedText());
+}
+
+function copy_to_clipboard(element)
+{
+    window.parent.set_clipboard_text($(element).getSelection().text);
+}
+
+function paste_from_clipboard(element)
+{
+    var text = window.parent.get_clipboard_text();
+    if (text != "") {
+        $(element).replaceSelectedText(text);
+    }
+}
+
+
 
