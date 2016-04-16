@@ -329,7 +329,11 @@ $("document").ready( function () {
 
 function should_popupmenu(element)
 {
-    return $(element).hasClass("eh_xul_popupmenu");
+    var a = $(".eh_xul_popupmenu");
+    for (var i = 0; i < a.length; i++)
+        if ($.contains(a[i], element) || a[i] == element)
+            return true;
+    return false;
 }
 
 function cut_to_clipboard(element)
