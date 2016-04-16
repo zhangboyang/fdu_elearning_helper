@@ -40,7 +40,8 @@ function open_calc()
 function mymenu_popupshowing(event)
 {
     var element = event.target.triggerNode;
-    var isTextArea = element instanceof HTMLTextAreaElement;
+    //var isTextArea = element instanceof HTMLTextAreaElement;
+    var isTextArea = true;
     //alert(isTextArea);
     if (!isTextArea) {
         event.preventDefault();

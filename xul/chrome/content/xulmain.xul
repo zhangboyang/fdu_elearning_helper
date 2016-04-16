@@ -10,10 +10,10 @@
     
     <script type="application/javascript" src="chrome://elearninghelper/content/xulmain.js"/>
 
-    <caption label="Hello World"/>
+    <!--<caption label="Hello World"/>
     <button label="Console" oncommand="window.open('chrome://global/content/console.xul', '_blank',
     'chrome,extrachrome,menubar,resizable,scrollbars,status,toolbar');"/>
-    <separator/>
+    <separator/>-->
     <browser id="mybrowser" src="chrome://elearninghelper/content/html/main.html" flex="1" context="mymenu" />
 
     <menupopup id="mymenu" onpopupshowing="mymenu_popupshowing(event)">

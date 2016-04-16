@@ -221,21 +221,23 @@ $("document").ready( function () {
 
 function cut_to_clipboard(element)
 {
-    window.parent.set_clipboard_text($(element).extractSelectedText());
+    document.execCommand('cut', false, undefined);
+    //window.parent.set_clipboard_text($(element).extractSelectedText());
 }
 
 function copy_to_clipboard(element)
 {
-    window.parent.set_clipboard_text($(element).getSelection().text);
+    document.execCommand('copy', false, undefined);
+    //window.parent.set_clipboard_text($(element).getSelection().text);
 }
 
 function paste_from_clipboard(element)
 {
-    var text = window.parent.get_clipboard_text();
+    /*var text = window.parent.get_clipboard_text();
     if (text != "") {
         $(element).replaceSelectedText(text);
-    }
+    }*/
+    document.execCommand('paste', false, undefined);
 }
-
 
 
