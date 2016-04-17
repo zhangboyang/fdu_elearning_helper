@@ -1,4 +1,4 @@
-<html>
+﻿<html>
 <head>
     <meta http-equiv="content-type" content="text/html; charset=UTF-8">
     
@@ -6,6 +6,7 @@
     <script src="js/jquery-2.1.1.min.js"></script>
     <script src="materialize/js/materialize.min.js"></script>
     <script src="js/rangyinputs-jquery.js"></script>
+    <script src="pdfjs/build/pdf.js"></script>
 
     <link href="css/eh.css" rel="stylesheet">
     <script src="js/eh.js"></script>
@@ -74,6 +75,9 @@
 <br><a class="btn" onclick="show_page('calendar')">CALENDAR</a><br>
 <br><a class="btn" onclick="show_page('viewfile')">VIEWFILE</a><br>
 <br><a class="btn" onclick="window.parent.helloworld()">OPENCALC</a><br>
+<br><a class="btn" onclick="show_pdf()">SHOWPDF</a><br>
+<canvas id="PDFcanvas"></canvas>
+
 		</div>
     </div>
 </div>
