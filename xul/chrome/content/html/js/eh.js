@@ -1,6 +1,9 @@
 var perfs; // it's a copy of window.parent.prefs
 
 
+var el_username; // elearning username
+var el_password; // elearning password
+
 function hide_all_pages()
 {
     $("#main_page").hide();
@@ -377,7 +380,13 @@ $("document").ready( function () {
     perfs = window.parent.prefs;
     if (typeof perfs !== 'undefined') {
         // in xulrunner
-        show_msg(perfs.getCharPref("hahaha"));
+
+        // get username and password from preferences
+        el_username = perfs.getCharPref("username");
+        el_password = perfs.getCharPref("password");
+
+        show_msg("USER: " + el_username);
+        //show_msg("PASS: " + el_password);
     } else {
         show_error("perfs is undefined");
     }
@@ -516,12 +525,6 @@ function show_pdf_jumpto(pdf, page_id)
         
         page.render(renderContext);
     });
-}
-
-
-function test_elearning()
-{
-
 }
 
 function test()
