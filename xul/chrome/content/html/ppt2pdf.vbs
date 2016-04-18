@@ -46,6 +46,11 @@ Const ppShowAll = 1             ' Show all.
 Const ppShowNamedSlideShow = 3  ' Show named slideshow.
 Const ppShowSlideRange = 2      ' Show slide range.
 
+Const ppWindowMaximized = 3
+Const ppWindowMinimized = 2
+Const ppWindowNormal = 1
+
+
 '
 ' This is the actual script
 '
@@ -91,6 +96,10 @@ WriteLine "正在创建 PowerPoint.Application 对象 ..."
 Set objPPT = CreateObject( "PowerPoint.Application" )
 
 objPPT.Visible = True
+
+' may cause PPT to crash
+'objPPT.WindowState = ppWindowMinimized
+
 
 WriteLine "正在执行打开命令 ..."
 objPPT.Presentations.Open inputFile
