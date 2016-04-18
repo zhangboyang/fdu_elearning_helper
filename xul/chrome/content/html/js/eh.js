@@ -55,8 +55,8 @@ function show_page(page_name)
         show_page_with_width("calendar", "200px", "200px", "200px", "0px", "20%", "100%");
     } else if (page_name == "viewfile") {
         show_page_with_width("viewfile", "200px", "200px", "200px", "250px", "20%", "100%");
-        init_pdf('multipages.pdf');
-        //init_pdf('dshu11nn.pdf');
+        //init_pdf('multipages.pdf');
+        init_pdf('../../../../../dshu13nn.pdf');
         clear_canvas();
     } else {
         show_error("unknown page_name");
@@ -438,7 +438,7 @@ function init_pdf(pdf_path)
                 var scale = 1.0;
                 var viewport = page.getViewport(scale);
 
-                var cur_canvas_width = parseInt($(cur_canvas).css("width"));
+                var cur_canvas_width = parseInt($(cur_canvas).css("width")) - 2;
                 
                 scale = cur_canvas_width / viewport.width;
                 viewport = page.getViewport(scale);
@@ -476,8 +476,8 @@ function show_pdf_jumpto(pdf, page_id)
         
         var scale = 1.0;
         var viewport = page.getViewport(scale);
-        var wrapper_width = parseInt($("#pdf_page_view_wrapper").css("width")) * (1.0 - space_ratio);
-        var wrapper_height = parseInt($("#pdf_page_view_wrapper").css("height")) * (1.0 - space_ratio);
+        var wrapper_width = Math.floor(parseInt($("#pdf_page_view_wrapper").css("width")) * (1.0 - space_ratio)) - 2;
+        var wrapper_height = Math.floor(parseInt($("#pdf_page_view_wrapper").css("height")) * (1.0 - space_ratio)) - 2;
         
         scale = Math.min(wrapper_width / viewport.width, wrapper_height / viewport.height);
         //show_msg(scale);
