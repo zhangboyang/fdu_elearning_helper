@@ -527,12 +527,43 @@ function show_pdf_jumpto(pdf, page_id)
     });
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function test()
 {
-    show_msg("val: " + window.parent.prefs.getCharPref("hahaha"));
-    window.parent.prefs.setCharPref("hahaha", "abcdefg");
-
-    show_msg("OK");
+    // send WebDAV PROPFIND request
+    $.ajax({
+        type: "PROPFIND",
+        url: "http://elearning.fudan.edu.cn/dav/0b63d236-4fe9-4fbd-9e6b-365a250eeb2c",
+        context: document.body,
+        username: el_username,
+        password: el_password,
+        success:    function (responseText, status) {
+                        show_msg("AJAX SUCCESS: " + status);
+                        $("#test").text((new XMLSerializer()).serializeToString(responseText));
+                    },
+        error:  function (xhr, textStatus, errorThrown) {
+                    show_error("AJAX: " + textStatus + ", " + errorThrown + ", " + xhr.status);
+                },
+    });
+    
+    show_msg("AJAX START OK");
 }
 
 
