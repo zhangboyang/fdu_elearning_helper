@@ -2,6 +2,9 @@
 // enable remote debugging
 
 Components.utils.import('resource://gre/modules/devtools/dbg-server.jsm');
+
+
+
 if (!DebuggerServer.initialized) {
     DebuggerServer.init();
     DebuggerServer.addBrowserActors();
@@ -11,6 +14,20 @@ if (!DebuggerServer.initialized) {
 let dbgListener=DebuggerServer.createListener();
 dbgListener.portOrPath=6000;
 dbgListener.open();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 function mylog(s)
@@ -51,11 +68,26 @@ function mymenu_popupshowing(event)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+    clipboard system:
+*/
 const gClipboardHelper = Components.classes["@mozilla.org/widget/clipboardhelper;1"]
                                        .getService(Components.interfaces.nsIClipboardHelper);
-
 Components.utils.import('resource://gre/modules/Services.jsm');
-
 
 function set_clipboard_text(str)
 {
@@ -83,3 +115,23 @@ function get_clipboard_text(str)
         return "";
     }
 }
+
+
+
+
+
+
+/*
+    preferences system:
+    
+    https://developer.mozilla.org/en-US/Add-ons/Code_snippets/Preferences
+
+    getBoolPref(), setBoolPref(), getCharPref(), setCharPref(), getIntPref(), setIntPref()
+
+    the data is saved at:
+
+    C:\Users\YOUR_USER_NAME\AppData\Roaming\elearninghelper\Profiles\SOME_UNIQUE_STRING.default
+*/
+
+const prefs = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefService).getBranch("elearninghelper.");
+

@@ -1,3 +1,6 @@
+var perfs; // it's a copy of window.parent.prefs
+
+
 function hide_all_pages()
 {
     $("#main_page").hide();
@@ -365,18 +368,34 @@ function go_back()
     show_page("main");
 }
 
+
+/* the global init function */
+
 $("document").ready( function () {
+
+    // test if we are running in xulrunner
+    perfs = window.parent.prefs;
+    if (typeof perfs !== 'undefined') {
+        // in xulrunner
+        show_msg(perfs.getCharPref("hahaha"));
+    } else {
+        show_error("perfs is undefined");
+    }
+    
     //alert("haha");
     
     init_colorbox();
     init_thicknessbox();
     init_canvas();
-  
+
+    
     show_page("main");
 //    show_page("viewfile");
     
-    Materialize.toast("INIT OK!", 4000);
+    show_msg("INIT OK!", 4000);
     //alert("ok");
+
+    
 });
 
 
@@ -505,7 +524,13 @@ function test_elearning()
 
 }
 
+function test()
+{
+    show_msg("val: " + window.parent.prefs.getCharPref("hahaha"));
+    window.parent.prefs.setCharPref("hahaha", "abcdefg");
 
+    show_msg("OK");
+}
 
 
 
