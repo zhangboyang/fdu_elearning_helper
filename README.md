@@ -1,5 +1,9 @@
-# eLearning 助手
+﻿# eLearning 助手
 人机交互课程大作业
+
+## 界面截图
+![screenshot1](/screenshot1.png?raw=true)
+![screenshot2](/screenshot2.png?raw=true)
 
 # XULRunner
 

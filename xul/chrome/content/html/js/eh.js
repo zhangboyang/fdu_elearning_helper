@@ -56,7 +56,7 @@ function show_page(page_name)
     } else if (page_name == "viewfile") {
         show_page_with_width("viewfile", "200px", "200px", "200px", "250px", "20%", "100%");
         //init_pdf('multipages.pdf');
-        init_pdf('../../../../../dshu13nn.pdf');
+        init_pdf('dshu13nn.pdf');
         clear_canvas();
     } else {
         show_error("unknown page_name");
