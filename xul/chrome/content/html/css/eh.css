@@ -302,3 +302,38 @@ body {
 .eh_notebox:focus {
     outline: 0px solid transparent;
 }
+
+
+.eh_pdf_list {
+    overflow-x: hidden;
+    overflow-y: auto;
+    height: 100%;
+    padding: 10px 0px;
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+}
+
+.eh_pdf_list_item {
+    flex: 0 1 auto;
+    display: flex;
+    flex-direction: row;
+    padding: 10px 15px;
+    padding-left: 0px;
+}
+
+.eh_pdf_list_item span {
+    padding: 8px;
+    padding-top: 5px;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+.eh_pdf_list_item canvas {
+    border: 1px solid black;
+    width: 100%;
+}
+
+.eh_pdf_list_item.eh_selected {
+    background-color: #FFEE58;
+}
