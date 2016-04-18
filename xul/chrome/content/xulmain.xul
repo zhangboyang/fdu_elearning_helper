@@ -14,8 +14,12 @@
     <button label="Console" oncommand="window.open('chrome://global/content/console.xul', '_blank',
     'chrome,extrachrome,menubar,resizable,scrollbars,status,toolbar');"/>
     <separator/>-->
+
+    
     <browser id="mybrowser" src="chrome://elearninghelper/content/html/main.html" flex="1" context="mymenu" />
 
+
+    <!-- the popup menu -->
     <menupopup id="mymenu" onpopupshowing="mymenu_popupshowing(event)">
         <!-- how to write 'oncommand' : http://forums.mozillazine.org/viewtopic.php?f=19&t=2282747 -->
         <menuitem label="剪切" oncommand="document.getElementById('mybrowser').contentWindow.cut_to_clipboard(document.popupNode)"/>

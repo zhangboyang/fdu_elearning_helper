@@ -1,16 +1,15 @@
-
-// enable remote debugging
-
+/*
+    enable remote debugging
+    note: this will no longer works when gecko version >= 44
+    
+    https://developer.mozilla.org/en-US/docs/Archive/Mozilla/XULRunner/Debugging_XULRunner_applications
+*/
 Components.utils.import('resource://gre/modules/devtools/dbg-server.jsm');
-
-
-
 if (!DebuggerServer.initialized) {
     DebuggerServer.init();
     DebuggerServer.addBrowserActors();
     DebuggerServer.allowChromeProcess = true;
 }
-
 let dbgListener=DebuggerServer.createListener();
 dbgListener.portOrPath=6000;
 dbgListener.open();
@@ -29,7 +28,7 @@ dbgListener.open();
 
 
 
-
+// log to js console
 function mylog(s)
 {
     var console;
@@ -37,6 +36,20 @@ function mylog(s)
     console.logStringMessage("[MYLOG] " + s);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+// sample function for calling functions from xul to html
 function helloworld()
 {
     alert("helloworld");
@@ -45,6 +58,7 @@ function helloworld()
     document.getElementById("mybrowser").contentWindow.helloworld2();
 }
 
+// sample function for running applications
 function open_calc()
 {
     var file = Components.classes["@mozilla.org/file/local;1"].createInstance(Components.interfaces["nsILocalFile"]);
@@ -54,15 +68,35 @@ function open_calc()
     process.run(false, [], 0);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+    test if we should display popup menu (right click)
+    used in 'xulmain.xul'
+*/
 function mymenu_popupshowing(event)
 {
-    var element = event.target.triggerNode;
+    var element = event.target.triggerNode; // get the clicked object
+    
     //var isTextArea = element instanceof HTMLTextAreaElement;
     if (!document.getElementById("mybrowser").contentWindow.should_popupmenu(element)) {
         //alert(element);
-        event.preventDefault();
+        event.preventDefault(); // prevent the menu from appearing
     }
 }
+
+
 
 
 
@@ -115,6 +149,16 @@ function get_clipboard_text(str)
         return "";
     }
 }
+
+
+
+
+
+
+
+
+
+
 
 
 

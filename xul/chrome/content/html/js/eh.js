@@ -1,15 +1,15 @@
+// ======================== global variables ===========================
+
+
 var prefs; // it's a copy of window.parent.prefs
 
 
 var el_username; // elearning username
 var el_password; // elearning password
 
-function hide_all_pages()
-{
-    $("#main_page").hide();
-    $("#calendar_page").hide();
-    $("#viewfile_page").hide();
-}
+
+
+// ======================== showing debug messages ===========================
 
 function show_error(error_text)
 {
@@ -20,6 +20,27 @@ function show_msg(str)
 {
     Materialize.toast("MSG: " + str, 10000);
 }
+
+
+
+
+
+
+// =============== page switching related functions ======================
+
+
+function hide_all_pages()
+{
+    $("#main_page").hide();
+    $("#calendar_page").hide();
+    $("#viewfile_page").hide();
+}
+
+function go_back()
+{
+    show_page("main");
+}
+
 
 function set_page_color(page_name)
 {
@@ -70,10 +91,6 @@ function show_page(page_name)
 }
 
 
-function helloworld2()
-{
-    alert("hello from child!");
-}
 
 
 
@@ -99,6 +116,7 @@ function helloworld2()
 
 
 
+// ========== color box and thickness box related functions (in the PDF viewer)
 
 /* colorbox */
 var colorbox_boxbgcolor_selected, colorbox_boxbgcolor_hover;
@@ -160,12 +178,6 @@ function select_color(id)
     redraw_colorbox();
     $("#viewfile_colorbox" + id).css("border-color", colorbox_boxbgcolor_hover);
 }
-
-
-
-
-
-
 
 /* thicknessbox */
 var thicknessbox_boxbgcolor_selected, thicknessbox_boxbgcolor_hover;
@@ -245,7 +257,7 @@ function select_thickness(id)
 
 
 
-
+// ============= drawing related functions  (in the PDF viewer) ==========
 
 var context;
 var clickX = new Array();
@@ -366,13 +378,15 @@ function clear_canvas()
 
 
 
-function go_back()
-{
-    show_page("main");
-}
 
 
-/* the global init function */
+
+
+
+
+
+
+// ====================== the global init function ======================
 
 $("document").ready( function () {
 
@@ -419,11 +433,18 @@ $("document").ready( function () {
 
 
 
-
+// ====================== PDF related functions =======================
 
 var pdf_thumbnail_div_list;
 var selected_pdf_page;
 
+
+/*
+    initialize pdf viewer
+
+    pdf_path: url of pdf file
+
+*/
 function init_pdf(pdf_path)
 {
     $('#pdf_page_list').empty();
@@ -493,7 +514,13 @@ function init_pdf(pdf_path)
 }
 
 
+/*
+    jump to a pdf page
 
+    pdf: the loaded pdf object
+    page_id: target page id, start from 1
+    
+*/
 function show_pdf_jumpto(pdf, page_id)
 {
     $(pdf_thumbnail_div_list[selected_pdf_page]).removeClass("eh_selected");
@@ -545,6 +572,19 @@ function show_pdf_jumpto(pdf, page_id)
 
 
 
+
+
+
+// this will be called in helloworld() in 'xulmain.js'
+
+function helloworld2()
+{
+    alert("hello from child!");
+}
+
+
+// temporary for testing purpose
+
 function test()
 {
     // send WebDAV PROPFIND request
@@ -575,13 +615,11 @@ function test()
 
 
 
+// ======================= XUL related functions =========================
 
 
-
-
-
-
-
+// check if we should popup menu when we clicked on 'element'
+// used in xulmain.js
 function should_popupmenu(element)
 {
     var a = $(".eh_xul_popupmenu");
@@ -591,18 +629,17 @@ function should_popupmenu(element)
     return false;
 }
 
+// clipboard related functions
 function cut_to_clipboard(element)
 {
     document.execCommand('cut', false, undefined);
     //window.parent.set_clipboard_text($(element).extractSelectedText());
 }
-
 function copy_to_clipboard(element)
 {
     document.execCommand('copy', false, undefined);
     //window.parent.set_clipboard_text($(element).getSelection().text);
 }
-
 function paste_from_clipboard(element)
 {
     /*var text = window.parent.get_clipboard_text();
