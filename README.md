@@ -15,3 +15,8 @@ http://ftp.mozilla.org/pub/xulrunner/releases/latest/runtimes/
 cd YOUR_PATH_TO_THIS_REPO/xul
 YOUR_PATH_TO_XULRUNNER/xulrunner application.ini
 ```
+## 调试方法
+下载安装 [Firefox 开发者版](https://www.mozilla.org/zh-CN/firefox/developer)
+按 F12 打开工具箱，点工具箱右上角“设置”图标，钩选上“高级设置”里的“启用远程调试”。
+程序运行后，点“工具”菜单——“Web 开发者”——“连接”。
+“连接到远程设备”界面中地址端口不用改变，直接点“连接”即可开始调试。
