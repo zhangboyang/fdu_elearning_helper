@@ -1,4 +1,4 @@
-var perfs; // it's a copy of window.parent.prefs
+var prefs; // it's a copy of window.parent.prefs
 
 
 var el_username; // elearning username
@@ -377,18 +377,18 @@ function go_back()
 $("document").ready( function () {
 
     // test if we are running in xulrunner
-    perfs = window.parent.prefs;
-    if (typeof perfs !== 'undefined') {
+    prefs = window.parent.prefs;
+    if (typeof prefs !== 'undefined') {
         // in xulrunner
 
         // get username and password from preferences
-        el_username = perfs.getCharPref("username");
-        el_password = perfs.getCharPref("password");
+        el_username = prefs.getCharPref("username");
+        el_password = prefs.getCharPref("password");
 
         show_msg("USER: " + el_username);
         //show_msg("PASS: " + el_password);
     } else {
-        show_error("perfs is undefined");
+        show_error("prefs is undefined");
     }
     
     //alert("haha");
