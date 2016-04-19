@@ -7,6 +7,11 @@ var prefs; // it's a copy of window.parent.prefs
 var el_username; // elearning username
 var el_password; // elearning password
 
+// generic ajax error handler
+var el_ajax_errfunc =   function (xhr, textStatus, errorThrown) {
+                            show_error("AJAX: " + textStatus + ", " + errorThrown + ", " + xhr.status);
+                        };
+
 
 
 // ======================== showing debug messages ===========================
@@ -573,6 +578,39 @@ function show_pdf_jumpto(pdf, page_id)
 
 
 
+// ====================== WebDAV related functions =============================
+
+function webdav_list_dir(dirurl)
+{
+    // send WebDAV PROPFIND request
+    
+    $.ajax({
+        type: "PROPFIND",
+        url: dirurl,
+        context: document.body,
+        username: el_username,
+        password: el_password,
+        dataType: "xml",
+        success:    function (xml, status) {
+                        show_msg("AJAX SUCCESS: " + status);
+                        console.log(xml);
+                        $("#test").text($(xml).text());
+                        $(xml).find("D\\:multistatus").find("D\\:response").each( function (index, element) {
+                            //alert("enum");
+                            show_msg($(element).text());
+                        });
+                    },
+        error:  el_ajax_errfunc,
+    });
+}
+
+
+
+
+
+
+
+
 
 
 // this will be called in helloworld() in 'xulmain.js'
@@ -587,22 +625,8 @@ function helloworld2()
 
 function test()
 {
-    // send WebDAV PROPFIND request
-    $.ajax({
-        type: "PROPFIND",
-        url: "http://elearning.fudan.edu.cn/dav/0b63d236-4fe9-4fbd-9e6b-365a250eeb2c",
-        context: document.body,
-        username: el_username,
-        password: el_password,
-        success:    function (responseText, status) {
-                        show_msg("AJAX SUCCESS: " + status);
-                        $("#test").text((new XMLSerializer()).serializeToString(responseText));
-                    },
-        error:  function (xhr, textStatus, errorThrown) {
-                    show_error("AJAX: " + textStatus + ", " + errorThrown + ", " + xhr.status);
-                },
-    });
-    
+//    webdav_list_dir("http://elearning.fudan.edu.cn/dav/0b63d236-4fe9-4fbd-9e6b-365a250eeb2c"); // li san shu xue
+    webdav_list_dir("http://elearning.fudan.edu.cn/dav/24ea24fd-0c39-49de-adbe-641d1cf4a499"); // shu ju ku
     show_msg("AJAX START OK");
 }
 
