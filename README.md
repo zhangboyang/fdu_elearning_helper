@@ -2,8 +2,8 @@
 人机交互课程大作业
 
 ## 界面截图
-![screenshot1](/screenshot1.png?raw=true)
-![screenshot2](/screenshot2.png?raw=true)
+![screenshot1](/screenshot1.png)
+![screenshot2](/screenshot2.png)
 
 # XULRunner
 
@@ -26,5 +26,5 @@ YOUR_PATH_TO_XULRUNNER/xulrunner application.ini
 用来把 PPT 转换为 PDF 的自动化脚本。
 在安装了 Powerpoint 的 Windows 下：
 ```
-ppt2pdf.vbs SRC_PPT_FILE DEST_PDF_FILE
+cscript ppt2pdf.vbs YOUR_SRC_PPT_FILE YOUR_DEST_PDF_FILE
 ```
