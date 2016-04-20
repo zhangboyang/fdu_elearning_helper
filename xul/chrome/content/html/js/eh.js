@@ -580,7 +580,71 @@ function show_pdf_jumpto(pdf, page_id)
 
 // ====================== WebDAV related functions =============================
 
-function webdav_list_dir(dirurl)
+/* 
+    href: start with /dav/someuuid/...
+    status: HTTP 200
+    contentlength: number
+    contenttype: string
+    is_dir: boolean
+    lastmodified: date-string
+    etag: string
+*/
+
+/*
+    parse relative path
+    note:
+        string length must >= 41
+            p.s. len("/dav/24ea24fd-0c39-49de-adbe-641d1cf4a499") == 41
+            
+    for example:
+        when type is file
+            "/dav/24ea24fd-0c39-49de-adbe-641d1cf4a499/foo/bar/abc.txt" ==> "/foo/bar/abc.txt"
+            "/dav/24ea24fd-0c39-49de-adbe-641d1cf4a499/abc.txt" ==> "/abc.txt"
+        when type is dir
+            "/dav/24ea24fd-0c39-49de-adbe-641d1cf4a499" ==> "/"
+            "/dav/24ea24fd-0c39-49de-adbe-641d1cf4a499/" ==> "/"
+            "/dav/24ea24fd-0c39-49de-adbe-641d1cf4a499/foo/bar" ==> "/foo/bar/"
+            "/dav/24ea24fd-0c39-49de-adbe-641d1cf4a499/foo/bar/" ==> "/foo/bar/"
+*/
+function webdav_parsepath(href, is_dir)
+{
+    if (href.length < 41) {
+        show_error("unexpected href: " + href);
+        return;
+    }
+    
+    if (is_dir) {
+        if (href.slice(-1) != "/")
+            href += "/"; // append slash if type is dir
+    }
+
+    return href.slice(41); // remove first 41 chars
+}
+
+
+/*
+    parse file/dir name from path
+    for example:
+        when type is file
+            "/foo/bar/abc.txt" ==> "abc.txt"
+            "/abc.txt" ==> "abc.txt"
+        when type is dir
+            "/" ==> ""
+            "/foo/bar/" ==> "bar"
+*/
+function webdav_parsename(path, is_dir)
+{
+    if (is_dir) {
+        if (path.slice(-1) == "/")
+            path = path.slice(0, -1); // remove last slash if type is dir
+    }
+    return path.split("/").pop();
+}
+
+
+
+       
+function webdav_listall(dirurl)
 {
     // send WebDAV PROPFIND request
     
@@ -591,14 +655,37 @@ function webdav_list_dir(dirurl)
         username: el_username,
         password: el_password,
         dataType: "xml",
+        headers: { "Depth": "infinity" },
         success:    function (xml, status) {
                         show_msg("AJAX SUCCESS: " + status);
-                        console.log(xml);
-                        $("#test").text($(xml).text());
+                        //console.log(xml);
+                        //$("#test").text($(xml).text());
+
+                        var file_list = new Array();
                         $(xml).find("D\\:multistatus").find("D\\:response").each( function (index, element) {
-                            //alert("enum");
-                            show_msg($(element).text());
+                            var href = decodeURIComponent($(element).find("D\\:href").text());
+                            var is_dir = ($(element).find("D\\:resourcetype").find("D\\:collection").length != 0);
+                            var path = webdav_parsepath(href, is_dir);
+                            var filename = webdav_parsename(path, is_dir);
+                            var cur = {
+                                href: href,
+                                path: path,
+                                filename: filename,
+                                status: $(element).find("D\\:status").text(),
+                                contentlength: parseInt($(element).find("D\\:getcontentlength").text()),
+                                contenttype: $(element).find("D\\:getcontenttype").text(),
+                                is_dir: is_dir,
+                                lastmodified: $(element).find("D\\:getlastmodified").text(),
+                                etag: $(element).find("D\\:getetag").text(),
+                            };
+                            if (cur.status != "HTTP/1.1 200 OK") { show_error("unknown status: " + status); return; }
+                            file_list.push(cur);
+                            //show_msg($(element).text());
+                            //show_msg("HERF=" + href + " ISDIR=" + is_dir + " LASTMOD=" + lastmodified);
                         });
+
+                        console.log(file_list);
+                        
                     },
         error:  el_ajax_errfunc,
     });
@@ -625,8 +712,8 @@ function helloworld2()
 
 function test()
 {
-//    webdav_list_dir("http://elearning.fudan.edu.cn/dav/0b63d236-4fe9-4fbd-9e6b-365a250eeb2c"); // li san shu xue
-    webdav_list_dir("http://elearning.fudan.edu.cn/dav/24ea24fd-0c39-49de-adbe-641d1cf4a499"); // shu ju ku
+//    webdav_listall("http://elearning.fudan.edu.cn/dav/0b63d236-4fe9-4fbd-9e6b-365a250eeb2c"); // li san shu xue
+    webdav_listall("http://elearning.fudan.edu.cn/dav/24ea24fd-0c39-49de-adbe-641d1cf4a499"); // shu ju ku
     show_msg("AJAX START OK");
 }
 

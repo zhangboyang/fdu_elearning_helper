@@ -16,6 +16,8 @@
     <separator/>-->
 
     
+    <button label="Reload" oncommand="document.getElementById('mybrowser').reload();"/>
+    
     <browser id="mybrowser" src="chrome://elearninghelper/content/html/main.html" flex="1" context="mymenu" />
 
 
