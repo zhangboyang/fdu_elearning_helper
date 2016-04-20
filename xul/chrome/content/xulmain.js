@@ -107,8 +107,10 @@ function mymenu_popupshowing(event)
 
 
 
-
-
+/*
+    file io system
+*/
+Components.utils.import("resource://gre/modules/osfile.jsm")
 
 
 

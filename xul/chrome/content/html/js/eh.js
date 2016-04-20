@@ -1,7 +1,8 @@
 // ======================== global variables ===========================
 
-
+var OS; // it's a copy of window.parent.OS
 var prefs; // it's a copy of window.parent.prefs
+
 
 
 var el_username; // elearning username
@@ -409,6 +410,11 @@ $("document").ready( function () {
     } else {
         show_error("prefs is undefined");
     }
+
+    OS = window.parent.OS;
+
+
+    
     
     //alert("haha");
     
@@ -581,13 +587,14 @@ function show_pdf_jumpto(pdf, page_id)
 // ====================== WebDAV related functions =============================
 
 /* 
-    href: start with /dav/someuuid/...
-    status: HTTP 200
-    contentlength: number
-    contenttype: string
-    is_dir: boolean
-    lastmodified: date-string
-    etag: string
+    dav_file_list:
+        href: start with /dav/someuuid/...
+        status: HTTP 200
+        contentlength: number
+        contenttype: string
+        is_dir: boolean
+        lastmodified: date-string
+        etag: string
 */
 
 /*
@@ -642,9 +649,13 @@ function webdav_parsename(path, is_dir)
 }
 
 
+/*
+    retrieve file list by given dirurl
 
-       
-function webdav_listall(dirurl)
+    dirurl: some string like "http://elearning.fudan.edu.cn/dav/24ea24fd-0c39-49de-adbe-641d1cf4a499"
+    success: callback function when success, for example: function (flist) { ... }
+*/ 
+function webdav_listall(dirurl, success)
 {
     // send WebDAV PROPFIND request
     
@@ -661,7 +672,7 @@ function webdav_listall(dirurl)
                         //console.log(xml);
                         //$("#test").text($(xml).text());
 
-                        var file_list = new Array();
+                        var flist = new Array();
                         $(xml).find("D\\:multistatus").find("D\\:response").each( function (index, element) {
                             var href = decodeURIComponent($(element).find("D\\:href").text());
                             var is_dir = ($(element).find("D\\:resourcetype").find("D\\:collection").length != 0);
@@ -679,16 +690,17 @@ function webdav_listall(dirurl)
                                 etag: $(element).find("D\\:getetag").text(),
                             };
                             if (cur.status != "HTTP/1.1 200 OK") { show_error("unknown status: " + status); return; }
-                            file_list.push(cur);
+                            flist.push(cur);
                             //show_msg($(element).text());
                             //show_msg("HERF=" + href + " ISDIR=" + is_dir + " LASTMOD=" + lastmodified);
                         });
 
-                        console.log(file_list);
-                        
+                        success(flist);
                     },
         error:  el_ajax_errfunc,
     });
+
+    show_msg("AJAX START OK");
 }
 
 
@@ -700,22 +712,38 @@ function webdav_listall(dirurl)
 
 
 
-// this will be called in helloworld() in 'xulmain.js'
 
-function helloworld2()
-{
-    alert("hello from child!");
-}
+
+
+
 
 
 // temporary for testing purpose
-
 function test()
 {
 //    webdav_listall("http://elearning.fudan.edu.cn/dav/0b63d236-4fe9-4fbd-9e6b-365a250eeb2c"); // li san shu xue
-    webdav_listall("http://elearning.fudan.edu.cn/dav/24ea24fd-0c39-49de-adbe-641d1cf4a499"); // shu ju ku
-    show_msg("AJAX START OK");
+//    webdav_listall("http://elearning.fudan.edu.cn/dav/24ea24fd-0c39-49de-adbe-641d1cf4a499"); // shu ju ku
+
+    var writePath = OS.Path.join(OS.Constants.Path.desktopDir, 'test.txt');
+    var promise = OS.File.writeAtomic(writePath, "abcdefg", { tmpPath: writePath + '.tmp' });
+    promise.then(
+        function(aVal) {
+            console.log('successfully saved image to disk');
+        },
+        function(aReason) {
+            console.log('writeAtomic failed for reason:', aReason);
+        }
+    );
 }
+
+
+// this will be called in helloworld() in 'xulmain.js'
+function helloworld2()
+{
+
+    alert("hello from child!");
+}
+
 
 
 
