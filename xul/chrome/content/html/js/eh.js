@@ -663,12 +663,11 @@ function webdav_listall(dirurl, success)
         type: "PROPFIND",
         url: dirurl,
         context: document.body,
-        username: el_username,
-        password: el_password,
         dataType: "xml",
-        headers: { "Depth": "infinity" },
+        headers: {  "Depth": "infinity",
+                    "Authorization": "Basic " + btoa(el_username + ":" + el_password),
+                 },
         success:    function (xml, status) {
-                        show_msg("AJAX SUCCESS: " + status);
                         //console.log(xml);
                         //$("#test").text($(xml).text());
 
@@ -699,8 +698,6 @@ function webdav_listall(dirurl, success)
                     },
         error:  el_ajax_errfunc,
     });
-
-    show_msg("AJAX START OK");
 }
 
 
@@ -712,7 +709,27 @@ function webdav_listall(dirurl, success)
 
 
 
-
+function webdav_sync(siteurl)
+{
+    show_msg("START AJAX");
+    
+    var localpath = "/home/zby/tmp/eh"
+    
+    
+    var uribase = OS.Path.toFileURI(localpath);
+    
+    
+    webdav_listall(siteurl, function (flist) {
+        show_msg("AJAX SUCCESS");
+        console.log(flist);
+        for (var i = 0; i < flist.length; i++) {
+            var cur = flist[i];
+            //show_msg("HERF=" + cur.href + " ISDIR=" + cur.is_dir + " LASTMOD=" + cur.lastmodified);
+            var fpath = OS.Path.fromFileURI(uribase + cur.path);
+            show_msg(fpath);
+        }
+    });
+}
 
 
 
@@ -722,9 +739,9 @@ function webdav_listall(dirurl, success)
 function test()
 {
 //    webdav_listall("http://elearning.fudan.edu.cn/dav/0b63d236-4fe9-4fbd-9e6b-365a250eeb2c"); // li san shu xue
-//    webdav_listall("http://elearning.fudan.edu.cn/dav/24ea24fd-0c39-49de-adbe-641d1cf4a499"); // shu ju ku
+    webdav_sync("http://elearning.fudan.edu.cn/dav/24ea24fd-0c39-49de-adbe-641d1cf4a499"); // shu ju ku
 
-    var writePath = OS.Path.join(OS.Constants.Path.desktopDir, 'test.txt');
+    /*var writePath = OS.Path.join(OS.Constants.Path.desktopDir, 'test.txt');
     var promise = OS.File.writeAtomic(writePath, "abcdefg", { tmpPath: writePath + '.tmp' });
     promise.then(
         function(aVal) {
@@ -733,7 +750,7 @@ function test()
         function(aReason) {
             console.log('writeAtomic failed for reason:', aReason);
         }
-    );
+    );*/
 }
 
 
