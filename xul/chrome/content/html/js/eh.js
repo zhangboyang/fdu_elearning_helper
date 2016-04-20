@@ -10,16 +10,16 @@ var el_password; // elearning password
 
 // generic ajax error handler
 var el_ajax_errfunc =   function (xhr, textStatus, errorThrown) {
-                            show_error("AJAX: " + textStatus + ", " + errorThrown + ", " + xhr.status);
+                            abort("AJAX: " + textStatus + ", " + errorThrown + ", " + xhr.status);
                         };
 
 
 
 // ======================== showing debug messages ===========================
 
-function show_error(error_text)
+function show_error(str)
 {
-    Materialize.toast("ERROR: " + error_text, 10000);
+    Materialize.toast("ERROR: " + str, 10000);
 }
 
 function show_msg(str)
@@ -27,7 +27,11 @@ function show_msg(str)
     Materialize.toast("MSG: " + str, 10000);
 }
 
-
+function abort(str)
+{
+    show_error(str);
+    throw str;
+}
 
 
 
@@ -92,7 +96,7 @@ function show_page(page_name)
         init_pdf('dshu13nn.pdf');
         clear_canvas();
     } else {
-        show_error("unknown page_name");
+        abort("unknown page_name");
     }
 }
 
@@ -408,7 +412,7 @@ $("document").ready( function () {
         show_msg("USER: " + el_username);
         //show_msg("PASS: " + el_password);
     } else {
-        show_error("prefs is undefined");
+        abort("prefs is undefined");
     }
 
     OS = window.parent.OS;
@@ -616,7 +620,7 @@ function show_pdf_jumpto(pdf, page_id)
 function webdav_parsepath(href, is_dir)
 {
     if (href.length < 41) {
-        show_error("unexpected href: " + href);
+        abort("unexpected href: " + href);
         return;
     }
     
@@ -653,7 +657,7 @@ function webdav_parsename(path, is_dir)
     retrieve file list by given dirurl
 
     dirurl: some string like "http://elearning.fudan.edu.cn/dav/24ea24fd-0c39-49de-adbe-641d1cf4a499"
-    success: callback function when success, for example: function (flist) { ... }
+    success: callback function when success, for example: function (dlist, flist) { ... }
 */ 
 function webdav_listall(dirurl, success)
 {
@@ -664,18 +668,22 @@ function webdav_listall(dirurl, success)
         url: dirurl,
         context: document.body,
         dataType: "xml",
+        username: el_username,
+        password: el_password,
         headers: {  "Depth": "infinity",
-                    "Authorization": "Basic " + btoa(el_username + ":" + el_password),
+                    //"Authorization": "Basic " + btoa(el_username + ":" + el_password), // sometimes fails
                  },
         success:    function (xml, status) {
                         //console.log(xml);
                         //$("#test").text($(xml).text());
 
+                        var dlist = new Array();
                         var flist = new Array();
+                        
                         $(xml).find("D\\:multistatus").find("D\\:response").each( function (index, element) {
-                            var href = decodeURIComponent($(element).find("D\\:href").text());
+                            var href = $(element).find("D\\:href").text();
                             var is_dir = ($(element).find("D\\:resourcetype").find("D\\:collection").length != 0);
-                            var path = webdav_parsepath(href, is_dir);
+                            var path = webdav_parsepath(decodeURIComponent(href), is_dir);
                             var filename = webdav_parsename(path, is_dir);
                             var cur = {
                                 href: href,
@@ -688,46 +696,164 @@ function webdav_listall(dirurl, success)
                                 lastmodified: $(element).find("D\\:getlastmodified").text(),
                                 etag: $(element).find("D\\:getetag").text(),
                             };
-                            if (cur.status != "HTTP/1.1 200 OK") { show_error("unknown status: " + status); return; }
-                            flist.push(cur);
+                            if (cur.status != "HTTP/1.1 200 OK") { abort("unknown status: " + status); return; }
+
+                            if (is_dir) {
+                                dlist.push(cur);
+                            } else {
+                                flist.push(cur);
+                            }
                             //show_msg($(element).text());
                             //show_msg("HERF=" + href + " ISDIR=" + is_dir + " LASTMOD=" + lastmodified);
                         });
 
-                        success(flist);
+                        success(dlist, flist);
                     },
         error:  el_ajax_errfunc,
     });
 }
 
 
+/*
+    get binary data using XMLHttpRequest
+    return value is a promise
+*/
+
+function webdav_binary_xhr(url)
+{
+    return new Promise( function (resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", url);
+        xhr.responseType = "arraybuffer";
+        
+        xhr.onload = function (event) {
+            var data = new Uint8Array(xhr.response);
+            if (xhr.status >= 200 && xhr.status < 300) {
+                resolve(data);
+            } else {
+                reject("onload() failed, status = " + xhr.status);
+            }
+        };
+
+        xhr.onerror = function () {
+            reject("onerror() is called");
+        };
+
+        // FIXME: we haven't send username and password!
+        
+        // note: elearning requests set user-agent to non-browser
+        xhr.setRequestHeader("Translate", "f"); // requested by webdav
+        xhr.send();
+    });
+}
 
 
 
 
+/*
+    create local path recursively
+    return value is a promise
+    for example:
+        webdav_create_localpath('file:///C:/aaa', '/bbb/ccc/')
+        will create c:\aaa\bbb and c:\aaa\bbb\ccc
+        and will not create c:\aaa
+*/
+function webdav_create_localpath(localbase, subpath)
+{
+    if (subpath == "/") return;
+
+    // FIXME: security risk, should check if subpath is legal
+    
+    var target_uri = localbase + subpath;
+    var target_native = OS.Path.fromFileURI(target_uri);
+    var base_native = OS.Path.fromFileURI(localbase);
+    //show_msg("base=" + base_native + " target=" + target_native);
+
+    return OS.File.makeDir(target_native, {
+        ignoreExisting: true,
+        from: base_native
+    });
+}
+
+/*
+    download single file
+    return value is a promise
+    for example:
+        webdav_create_localpath('file:///C:/aaa', '/bbb/ccc/')
+        will create c:\aaa\bbb and c:\aaa\bbb\ccc
+        and will not create c:\aaa
+*/
+function webdav_download_single(globalbase, href, localbase, fpath)
+{
+    // FIXME: security risk, should check if fpath is legal
+    
+
+    return new Promise( function (resolve, reject) {
+        var url = globalbase + href;
+        var target_uri = localbase + fpath;
+        var target_native = OS.Path.fromFileURI(target_uri);
+        
+        //show_msg("url=" + url + " file=" + target_native);
+
+        webdav_binary_xhr(url).then(function (data) { // onsuccess
+            OS.File.writeAtomic(target_native, data)
+                .then(function () {
+                    resolve();
+                }, function (reason) {
+                    reject(reason);
+                });
+        }, function (reason) { // onerror
+            reject(reason);
+        });
+        
+    });
+}
 
 
 
-
-function webdav_sync(siteurl)
+function webdav_sync(globalbase, siteurl)
 {
     show_msg("START AJAX");
     
-    var localpath = "/home/zby/tmp/eh"
+    //var localbase_native = "C:\\Users\\zby\\Desktop\\ELEARNING_HELPER\\ehdata\\";
     
+    var localbase_native = OS.Path.join(OS.Constants.Path.desktopDir, "ehdata");
+
     
-    var uribase = OS.Path.toFileURI(localpath);
+    var localbase = OS.Path.toFileURI(localbase_native);
     
-    
-    webdav_listall(siteurl, function (flist) {
+    webdav_listall(siteurl, function (dlist, flist) {
         show_msg("AJAX SUCCESS");
+
+        console.log(dlist);
         console.log(flist);
+        
+
+        Promise.all(dlist.map( function (ditem) { return webdav_create_localpath(localbase, ditem.path); } ))
+            .then( function () { // resolved
+                show_msg("Create all dirs finished");
+
+                // directory created, start downloading files
+                Promise.all(flist.map( function (fitem) { console.log(fitem); return webdav_download_single(globalbase, fitem.href, localbase, fitem.path); } ))
+                    .then( function () {
+                        show_msg("all download finished");
+                    }, function (reason) {
+                        abort("can't download file: " + reason);
+                    });
+            }, function (reason) { // rejected
+                abort("can't create directory: " + reason);
+            });
+
+        
+        /*console.log(flist);
         for (var i = 0; i < flist.length; i++) {
             var cur = flist[i];
             //show_msg("HERF=" + cur.href + " ISDIR=" + cur.is_dir + " LASTMOD=" + cur.lastmodified);
-            var fpath = OS.Path.fromFileURI(uribase + cur.path);
+            var fpath = OS.Path.fromFileURI(localbase + cur.path);
+            
             show_msg(fpath);
-        }
+            
+        }*/
     });
 }
 
@@ -738,8 +864,15 @@ function webdav_sync(siteurl)
 // temporary for testing purpose
 function test()
 {
-//    webdav_listall("http://elearning.fudan.edu.cn/dav/0b63d236-4fe9-4fbd-9e6b-365a250eeb2c"); // li san shu xue
-    webdav_sync("http://elearning.fudan.edu.cn/dav/24ea24fd-0c39-49de-adbe-641d1cf4a499"); // shu ju ku
+    //webdav_sync("http://elearning.fudan.edu.cn", "http://elearning.fudan.edu.cn/dav/0b63d236-4fe9-4fbd-9e6b-365a250eeb2c"); // li san shu xue
+    webdav_sync("http://elearning.fudan.edu.cn", "http://elearning.fudan.edu.cn/dav/24ea24fd-0c39-49de-adbe-641d1cf4a499"); // shu ju ku
+
+    /*webdav_binary_xhr("http://adfkljdsjkf.com/asdf").then(function (data) {
+        console.log(data.toString());
+        show_msg("OK");
+    }, function (reason) {
+        abort(reason);
+    });*/
 
     /*var writePath = OS.Path.join(OS.Constants.Path.desktopDir, 'test.txt');
     var promise = OS.File.writeAtomic(writePath, "abcdefg", { tmpPath: writePath + '.tmp' });
