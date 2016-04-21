@@ -810,7 +810,9 @@ function webdav_download_single(globalbase, href, localbase, fpath)
 }
 
 
-
+/*
+    sync a whole site
+*/
 function webdav_sync(globalbase, siteurl)
 {
     show_msg("START AJAX");
@@ -861,11 +863,90 @@ function webdav_sync(globalbase, siteurl)
 
 
 
+
+
+
+
+
+
+
+
+// ====================== eLearning related functions =============================
+
+
+
+
+/*
+    login to UIS
+    return value is a promise
+*/
+
+function uis_login()
+{
+    return new Promise( function (resolve, reject) {
+        $.post("https://uis2.fudan.edu.cn/amserver/UI/Login", {
+                    "IDToken0": "",
+                    "IDToken1": el_username,
+                    "IDToken2": el_password,
+                    "IDButton": "Submit",
+                    "goto": "",
+                    "encoded": "false",
+                    "inputCode": "",
+                    "gx_charset": "UTF-8",
+                }, null, "text").done( function (data, textStatus, jqXHR) {
+                    if (data.indexOf("Please Wait While Redirecting to console") > -1) {
+                        show_msg("Login to UIS - OK!");
+                        resolve();
+                    } else {
+                        reject("UIS login check failed");
+                    }
+                }).fail( function (xhr, textStatus, errorThrown) {
+                    reject("UIS login failed: " + textStatus + ", " + errorThrown);
+                });
+    });
+}
+
+
+/*
+    login to elearning
+    return value is a promise
+*/
+
+function elearning_login()
+{
+    return new Promise( function (resolve, reject) {
+        uis_login().then( function () {
+            $.get("http://elearning.fudan.edu.cn/portal/login", null, null, "text")
+                .done( function (data, textStatus, jqXHR) {
+                    //console.log(data);
+                    if (data.indexOf(el_username) > -1) {
+                        show_msg("Login to eLearning - OK!");
+                        resolve();
+                    } else {
+                        reject("eLearning login check failed");
+                    }
+                }).fail ( function (xhr, textStatus, errorThrown) {
+                    reject("eLearning login failed: " + textStatus + ", " + errorThrown);
+                });
+        }, function (reason) {
+            reject(reason);
+        });
+    });
+}
+
+
+
+
+
+
+
+
+
 // temporary for testing purpose
 function test()
 {
     //webdav_sync("http://elearning.fudan.edu.cn", "http://elearning.fudan.edu.cn/dav/0b63d236-4fe9-4fbd-9e6b-365a250eeb2c"); // li san shu xue
-    webdav_sync("http://elearning.fudan.edu.cn", "http://elearning.fudan.edu.cn/dav/24ea24fd-0c39-49de-adbe-641d1cf4a499"); // shu ju ku
+    //webdav_sync("http://elearning.fudan.edu.cn", "http://elearning.fudan.edu.cn/dav/24ea24fd-0c39-49de-adbe-641d1cf4a499"); // shu ju ku
 
     /*webdav_binary_xhr("http://adfkljdsjkf.com/asdf").then(function (data) {
         console.log(data.toString());
@@ -884,6 +965,13 @@ function test()
             console.log('writeAtomic failed for reason:', aReason);
         }
     );*/
+
+    elearning_login().then( function () {
+        show_msg("elearing login OK");
+    }, function (reason) {
+        abort("elearing login failed: " + reason);
+    });
+
 }
 
 
