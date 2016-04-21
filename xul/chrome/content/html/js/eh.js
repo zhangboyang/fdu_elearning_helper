@@ -1034,7 +1034,7 @@ function urp_fetch_coursetable(semester_id)
                 data = data.substring(st, ed);
 
                 // split each class into array (cstrlist = course string list)
-                cstrlist = data.split("new TaskActivity");
+                var cstrlist = data.split("new TaskActivity");
 
                 var clist = new Array();
                 cstrlist.forEach( function (element, index, array) {
@@ -1079,6 +1079,109 @@ function urp_fetch_coursetable(semester_id)
         });
     });
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// =========== course table on main screen related functions ================
+
+
+/*
+    draw course table using clist to main screen
+*/
+function draw_coursetable(clist)
+{
+    // construct ctable
+    // ctable[x][y]:  x -> weekday, y -> course sequence number
+    var maxx = 5;
+    var maxy = 14;
+    var ctable = new Array();
+    for (var i = 1; i <= maxx; i++) {
+        ctable[i] = new Array();
+        for (var j = 0; j <= maxy; j++) {
+            ctable[i][j] = -1;
+        }
+    }
+
+    // construct course table
+    clist.forEach( function (element, index, array) {
+        element.ctime.forEach( function (ct) {
+            ctable[ct[0]][ct[1]] = index;
+        });
+    });
+
+    var tobj = $("<table><tr><th></th><th>周一</th><th>周二</th><th>周三</th><th>周四</th><th>周五</th></tr></table>");
+    
+    for (var y = 1; y <= maxy; y++) {
+        var trobj = $(document.createElement('tr'));
+        $(document.createElement('td')).text(y.toString()).appendTo(trobj);
+        for (var x = 1; x <= maxx; x++) {
+            var cidx = ctable[x][y]; // course index in clist
+            if (cidx >= 0 && y > 1 && cidx == ctable[x][y - 1]) continue;
+            var tdobj = $(document.createElement('td'));
+            if (cidx >= 0) {
+                var y2;
+                for (y2 = y + 1; y2 <= maxy && ctable[x][y2] == cidx; y2++);
+                var tdrowspan = y2 - y;
+                if (tdrowspan > 1) {
+                    tdobj.attr("rowspan", tdrowspan);
+                }
+                let cidx_pass = cidx;
+                let cid_pass = clist[cidx].cid;
+                tdobj.click(function () { console.log(cid_pass, cidx_pass); });
+                $(document.createElement('div'))
+                    .append($(document.createElement('span')).text(clist[cidx].cname))
+                    .appendTo(tdobj);
+            }
+            tdobj.appendTo(trobj);
+        }
+        trobj.appendTo(tobj);
+    }
+
+    $("#main_coursetable").empty();
+    tobj.appendTo($("#main_coursetable"));
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // temporary for testing purpose
 function test()
 {
@@ -1125,14 +1228,11 @@ function test()
     remove_all_cookies();
 
 
-
     uis_login().then( function () {
-
-
         semester_id = "202";
-        
         urp_fetch_coursetable(semester_id).then( function (clist) {
             console.log(clist);
+            draw_coursetable(clist);
             show_msg("OK");
         })
     });

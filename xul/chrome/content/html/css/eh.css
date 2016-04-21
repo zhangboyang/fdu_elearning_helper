@@ -150,13 +150,16 @@ body {
 }
 
 
-.eh_coursetable tr:nth-child(n+7):nth-child(-n+11) td {
+.eh_coursetable tr:nth-child(n+7):nth-child(-n+11) td:nth-child(n+1) {
     /* color blender: http://meyerweb.com/eric/tools/color-blend */
     background-color: #CDE5B2;
 }
+.eh_coursetable tr:nth-child(n+7):nth-child(-n+11) td:nth-child(1) {
+    background-color: #8BC34A;
+}
 
 .eh_coursetable td:nth-child(1) {
-    background-color: #aed581 !important;
+    background-color: #aed581;
 }
 
 
