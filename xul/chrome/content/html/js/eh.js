@@ -17,16 +17,19 @@ var el_ajax_errfunc =   function (xhr, textStatus, errorThrown) {
 
 // ======================== showing debug messages ===========================
 
+function do_output(str)
+{
+    Materialize.toast(str, 10000);
+    console.log(str);
+}
 function show_error(str)
 {
-    Materialize.toast("ERROR: " + str, 10000);
+    do_output("ERROR: " + str);
 }
-
 function show_msg(str)
 {
-    Materialize.toast("MSG: " + str, 10000);
+    do_output("MSG: " + str);
 }
-
 function abort(str)
 {
     show_error(str);
@@ -942,8 +945,35 @@ function elearning_login()
 }
 
 
+/*
+    fetch site list from elearing (use mobile version elearning)
+    return value is a promise
+    before calling this function, elearing must be logged in
+*/
+function elearning_fetch_sitelist()
+{
+    return new Promise( function (resolve, reject) {
+        $.get("http://elearning.fudan.edu.cn/portal/pda", null, null, "html")
+            .done( function (data) {
+                var sitelist = new Array();
+                $(data).find("#pda-portlet-site-menu").children("li").each(function (index, element) {
+                    var sitelink = $(element).find("a");
+                    
+                    var sitename = sitelink.attr("title");
+                    var siteuuid = sitelink.attr("href").split("/").pop();
 
+                    sitelist.push({
+                        sitename: sitename,
+                        uuid: siteuuid,
+                    });
+                });
 
+                resolve(sitelist);
+            }).fail ( function (xhr, textStatus, errorThrown) {
+                reject("get portal failed: " + textStatus + ", " + errorThrown);
+            });
+    });
+}
 
 
 
@@ -953,7 +983,7 @@ function elearning_login()
 function test()
 {
     //webdav_sync("http://elearning.fudan.edu.cn", "http://elearning.fudan.edu.cn/dav/0b63d236-4fe9-4fbd-9e6b-365a250eeb2c"); // li san shu xue
-    webdav_sync("http://elearning.fudan.edu.cn", "http://elearning.fudan.edu.cn/dav/24ea24fd-0c39-49de-adbe-641d1cf4a499"); // shu ju ku
+    //webdav_sync("http://elearning.fudan.edu.cn", "http://elearning.fudan.edu.cn/dav/24ea24fd-0c39-49de-adbe-641d1cf4a499"); // shu ju ku
 
     /*webdav_binary_xhr("http://adfkljdsjkf.com/asdf").then(function (data) {
         console.log(data.toString());
@@ -974,19 +1004,19 @@ function test()
     );*/
 
 
-    return;
-
+    //return;
 
     elearning_login().then( function () {
         show_msg("elearing login OK");
-        $.get("http://elearning.fudan.edu.cn/portal/pda").done( function (data) {
-            console.log(data);
-        }).fail ( function (xhr, textStatus, errorThrown) {
-            abort("get portal failed: " + textStatus + ", " + errorThrown);
+        elearning_fetch_sitelist().then( function (sitelist) {
+            console.log(sitelist);
+        }, function (reason) {
+            abort("can't fetch sitelist: " + reason);
         });
     }, function (reason) {
         abort("elearing login failed: " + reason);
     });
+
 
 }
 
