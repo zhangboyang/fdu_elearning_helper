@@ -680,23 +680,27 @@ function webdav_listall(dirurl, success)
                         var dlist = new Array();
                         var flist = new Array();
                         
-                        $(xml).find("D\\:multistatus").find("D\\:response").each( function (index, element) {
-                            var href = $(element).find("D\\:href").text();
-                            var is_dir = ($(element).find("D\\:resourcetype").find("D\\:collection").length != 0);
+                        $(xml).children("D\\:multistatus").children("D\\:response").each( function (index, element) {
+                            //console.log(element);
+                            var prop = $(element).children("D\\:propstat").children("D\\:prop");
+                            var httpstatus = $(element).children("D\\:propstat").children("D\\:status").text();
+                            if (httpstatus != "HTTP/1.1 200 OK") { abort("unknown status: " + httpstatus); return; }
+                            
+                            var href = $(element).children("D\\:href").text();
+                            var is_dir = (prop.children("D\\:resourcetype").children("D\\:collection").length != 0);
                             var path = webdav_parsepath(decodeURIComponent(href), is_dir);
                             var filename = webdav_parsename(path, is_dir);
                             var cur = {
                                 href: href,
                                 path: path,
                                 filename: filename,
-                                status: $(element).find("D\\:status").text(),
-                                contentlength: parseInt($(element).find("D\\:getcontentlength").text()),
-                                contenttype: $(element).find("D\\:getcontenttype").text(),
+                                status: httpstatus,
+                                contentlength: parseInt(prop.children("D\\:getcontentlength").text()),
+                                contenttype: prop.children("D\\:getcontenttype").text(),
                                 is_dir: is_dir,
-                                lastmodified: $(element).find("D\\:getlastmodified").text(),
-                                etag: $(element).find("D\\:getetag").text(),
+                                lastmodified: prop.children("D\\:getlastmodified").text(),
+                                etag: prop.children("D\\:getetag").text(),
                             };
-                            if (cur.status != "HTTP/1.1 200 OK") { abort("unknown status: " + status); return; }
 
                             if (is_dir) {
                                 dlist.push(cur);
@@ -707,6 +711,9 @@ function webdav_listall(dirurl, success)
                             //show_msg("HERF=" + href + " ISDIR=" + is_dir + " LASTMOD=" + lastmodified);
                         });
 
+                        //console.log(dlist);
+                        //console.log(flist);
+                        
                         success(dlist, flist);
                     },
         error:  el_ajax_errfunc,
@@ -827,8 +834,8 @@ function webdav_sync(globalbase, siteurl)
     webdav_listall(siteurl, function (dlist, flist) {
         show_msg("AJAX SUCCESS");
 
-        console.log(dlist);
-        console.log(flist);
+        //console.log(dlist);
+        //console.log(flist);
         
 
         Promise.all(dlist.map( function (ditem) { return webdav_create_localpath(localbase, ditem.path); } ))
@@ -836,7 +843,7 @@ function webdav_sync(globalbase, siteurl)
                 show_msg("Create all dirs finished");
 
                 // directory created, start downloading files
-                Promise.all(flist.map( function (fitem) { console.log(fitem); return webdav_download_single(globalbase, fitem.href, localbase, fitem.path); } ))
+                Promise.all(flist.map( function (fitem) { return webdav_download_single(globalbase, fitem.href, localbase, fitem.path); } ))
                     .then( function () {
                         show_msg("all download finished");
                     }, function (reason) {
@@ -946,7 +953,7 @@ function elearning_login()
 function test()
 {
     //webdav_sync("http://elearning.fudan.edu.cn", "http://elearning.fudan.edu.cn/dav/0b63d236-4fe9-4fbd-9e6b-365a250eeb2c"); // li san shu xue
-    //webdav_sync("http://elearning.fudan.edu.cn", "http://elearning.fudan.edu.cn/dav/24ea24fd-0c39-49de-adbe-641d1cf4a499"); // shu ju ku
+    webdav_sync("http://elearning.fudan.edu.cn", "http://elearning.fudan.edu.cn/dav/24ea24fd-0c39-49de-adbe-641d1cf4a499"); // shu ju ku
 
     /*webdav_binary_xhr("http://adfkljdsjkf.com/asdf").then(function (data) {
         console.log(data.toString());
@@ -966,8 +973,17 @@ function test()
         }
     );*/
 
+
+    return;
+
+
     elearning_login().then( function () {
         show_msg("elearing login OK");
+        $.get("http://elearning.fudan.edu.cn/portal/pda").done( function (data) {
+            console.log(data);
+        }).fail ( function (xhr, textStatus, errorThrown) {
+            abort("get portal failed: " + textStatus + ", " + errorThrown);
+        });
     }, function (reason) {
         abort("elearing login failed: " + reason);
     });
