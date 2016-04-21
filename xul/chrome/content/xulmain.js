@@ -28,6 +28,9 @@ dbgListener.open();
 
 
 
+
+
+
 // log to js console
 function mylog(s)
 {
@@ -108,11 +111,18 @@ function mymenu_popupshowing(event)
 
 
 /*
+    import Services
+*/
+Components.utils.import('resource://gre/modules/Services.jsm');
+
+
+
+
+
+/*
     file io system
 */
 Components.utils.import("resource://gre/modules/osfile.jsm")
-
-
 
 
 
@@ -123,7 +133,6 @@ Components.utils.import("resource://gre/modules/osfile.jsm")
 */
 const gClipboardHelper = Components.classes["@mozilla.org/widget/clipboardhelper;1"]
                                        .getService(Components.interfaces.nsIClipboardHelper);
-Components.utils.import('resource://gre/modules/Services.jsm');
 
 function set_clipboard_text(str)
 {

@@ -1,12 +1,31 @@
 // ======================== global variables ===========================
 
 var OS; // it's a copy of window.parent.OS
+var Services; // it's a copy of window.parent.Services
 var prefs; // it's a copy of window.parent.prefs
 
 
 
 var el_username; // elearning username
 var el_password; // elearning password
+
+
+
+// remove all cookies
+function remove_all_cookies()
+{
+    Services.cookies.removeAll();
+}
+// dump cookie
+function dump_cookies(domain)
+{
+    let x = Services.cookies.getCookiesFromHost("domain");
+    while (x.hasMoreElements()) {
+        var cookie = x.getNext().QueryInterface(Components.interfaces.nsICookie2); 
+        console.log(cookie.host + ";" + cookie.name + "=" + cookie.value + "\n");
+    }
+}
+
 
 // generic ajax error handler
 var el_ajax_errfunc =   function (xhr, textStatus, errorThrown) {
@@ -419,6 +438,7 @@ $("document").ready( function () {
     }
 
     OS = window.parent.OS;
+    Services = window.parent.Services;
 
 
     
@@ -920,27 +940,24 @@ function uis_login()
 /*
     login to elearning
     return value is a promise
+    before calling this function, UIS must be logged in
 */
 
 function elearning_login()
 {
     return new Promise( function (resolve, reject) {
-        uis_login().then( function () {
-            $.get("http://elearning.fudan.edu.cn/portal/login", null, null, "text")
-                .done( function (data, textStatus, jqXHR) {
-                    //console.log(data);
-                    if (data.indexOf(el_username) > -1) {
-                        show_msg("Login to eLearning - OK!");
-                        resolve();
-                    } else {
-                        reject("eLearning login check failed");
-                    }
-                }).fail ( function (xhr, textStatus, errorThrown) {
-                    reject("eLearning login failed: " + textStatus + ", " + errorThrown);
-                });
-        }, function (reason) {
-            reject(reason);
-        });
+        $.get("http://elearning.fudan.edu.cn/portal/login", null, null, "text")
+            .done( function (data, textStatus, jqXHR) {
+                //console.log(data);
+                if (data.indexOf(el_username) > -1) {
+                    show_msg("Login to eLearning - OK!");
+                    resolve();
+                } else {
+                    reject("eLearning login check failed");
+                }
+            }).fail ( function (xhr, textStatus, errorThrown) {
+                reject("eLearning login failed: " + textStatus + ", " + errorThrown);
+            });
     });
 }
 
@@ -979,6 +996,89 @@ function elearning_fetch_sitelist()
 
 
 
+
+/*
+    fetch course table from fdu urp
+    return value is a promise
+    must logged in to uis before calling this function
+
+    clist is a associative array: cid => object
+        cid: course id (string)
+        cname: course name (string)
+        cclassroom: course classroom (string)
+        cteacher: course teacher name (string)
+        cavlweek: cavlweek (string, "001100..." means week 2-3 is avaliable)
+        ctime: course time in table (array, like [[1, 1], [1, 2]])
+
+    note: one courses may have multiple entries in clist with different ctime
+*/
+function urp_fetch_coursetable(semester_id)
+{
+    return new Promise( function (resolve, reject) {
+        Services.cookies.add("jwfw.fudan.edu.cn", "/eams", "semester.id", semester_id, false, true, false, 0x7fffffff);
+        $.get("http://jwfw.fudan.edu.cn/eams/courseTableForStd!index.action").done( function () {
+            $.post("http://jwfw.fudan.edu.cn/eams/courseTableForStd!courseTable.action", {
+                "ignoreHead": "1",
+                "setting.kind": "std",
+                "startWeek": "1",
+                "semester.id": semester_id,
+                "ids": "311358", // what's the magic number 311358 ?
+            }, null, "text").done( function (data, textStatus, jqXHR) {
+                // begin parse data
+
+                // find range and trim
+                var st = data.indexOf("// function CourseTable in TaskActivity.js");
+                if (st < 0) { reject("parse error: [// function CourseTable in TaskActivity.js] not found"); return; }
+                var ed = data.indexOf("</script>", st);
+                if (ed < 0) { reject("parse error: [</script>] not found"); return; }
+                data = data.substring(st, ed);
+
+                // split each class into array (cstrlist = course string list)
+                cstrlist = data.split("new TaskActivity");
+
+                var clist = new Array();
+                cstrlist.forEach( function (element, index, array) {
+                    if (index == 0) return; // drop first element (it's trash)
+                    var p = element.indexOf("\n");
+                    if (p < 0) { reject("parse error: [\\n] not found"); return; }
+                    
+                    // split course data
+                    var cdatajsonstr = "[" + element.substring(0, p).match(/\((.*)\)/)[1] + "]"; // get data in '(' and ')'
+                    var cdatajson = $.parseJSON(cdatajsonstr);
+
+                    var cid = cdatajson[2].match(/\((.*)\)/)[1];
+                    var cname = cdatajson[3].replace("(" + cid + ")", "");
+                    var cclassroom = cdatajson[5];
+                    var cteacher = cdatajson[1];
+                    var cavlweek = cdatajson[6];
+
+                    // split course time
+                    var ctime = element.substring(p + 1) // fetch the remaining string
+                        .match(/(index =\d+\*unitCount\+\d+;)/g) // match all string like "index =3*unitCount+7;"
+                        .map(function (str) { return str.match(/(\d+)/g); }) // parse string to array, like ["3", "7"]
+                        .map(function (tup) { return tup.map(function (x) { return parseInt(x) + 1; }); }); // convert to int and add one, like [4, 8]
+
+                    // append to array                    
+                    clist.push({
+                        cid: cid,
+                        cname: cname,
+                        cclassroom: cclassroom,
+                        cteacher: cteacher,
+                        cavlweek: cavlweek,
+                        ctime: ctime,
+                    });
+                });
+                
+                resolve(clist);
+                
+            }).fail( function (xhr, textStatus, errorThrown) {
+                reject("courseTableForStd!courseTable.action failed: " + textStatus + ", " + errorThrown);
+            });
+        }).fail( function (xhr, textStatus, errorThrown) {
+            reject("courseTableForStd!index.action failed: " + textStatus + ", " + errorThrown);
+        });
+    });
+}
 // temporary for testing purpose
 function test()
 {
@@ -1006,7 +1106,7 @@ function test()
 
     //return;
 
-    elearning_login().then( function () {
+    /*elearning_login().then( function () {
         show_msg("elearing login OK");
         elearning_fetch_sitelist().then( function (sitelist) {
             console.log(sitelist);
@@ -1015,8 +1115,27 @@ function test()
         });
     }, function (reason) {
         abort("elearing login failed: " + reason);
-    });
+    });*/
 
+    
+
+
+    
+
+    remove_all_cookies();
+
+
+
+    uis_login().then( function () {
+
+
+        semester_id = "202";
+        
+        urp_fetch_coursetable(semester_id).then( function (clist) {
+            console.log(clist);
+            show_msg("OK");
+        })
+    });
 
 }
 
