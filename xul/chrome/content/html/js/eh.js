@@ -915,6 +915,15 @@ function webdav_sync(globalbase, siteurl)
 // ====================== eLearning related functions =============================
 
 
+var slist;
+/* slist: global elearning sitelist
+    {
+        sname: site name
+        uuid: site uuid
+    }
+*/
+
+
 
 
 /*
@@ -983,20 +992,20 @@ function elearning_fetch_sitelist()
     return new Promise( function (resolve, reject) {
         $.get("http://elearning.fudan.edu.cn/portal/pda", null, null, "html")
             .done( function (data) {
-                var sitelist = new Array();
+                var slist = new Array();
                 $(data).find("#pda-portlet-site-menu").children("li").each(function (index, element) {
-                    var sitelink = $(element).find("a");
+                    var slink = $(element).find("a");
                     
-                    var sitename = sitelink.attr("title");
-                    var siteuuid = sitelink.attr("href").split("/").pop();
+                    var sname = slink.attr("title");
+                    var suuid = slink.attr("href").split("/").pop();
 
-                    sitelist.push({
-                        sitename: sitename,
-                        uuid: siteuuid,
+                    slist.push({
+                        sname: sname,
+                        uuid: suuid,
                     });
                 });
 
-                resolve(sitelist);
+                resolve(slist);
             }).fail ( function (xhr, textStatus, errorThrown) {
                 reject("get portal failed: " + textStatus + ", " + errorThrown);
             });
@@ -1114,7 +1123,7 @@ function urp_fetch_semesterdata()
                 "dataType": "semesterCalendar",
             }, null, "text").done( function (data, textStatus, jqXHR) {
                 // althogh we can use eval() to parse, but using eval() is NOT SAFE!!!
-                var slist = new Array();
+                var semesterlist = new Array();
                 var sarr = data.match(/(\{id:\d+,schoolYear:"\d+-\d+",name:".+?"\})/g);
                 sarr.forEach(function (element, index, array) {
                     var spart = element.match(/\{id:(\d+),schoolYear:"(\d+-\d+)",name:"(.+?)"\}/);
@@ -1122,10 +1131,10 @@ function urp_fetch_semesterdata()
                     if (spart[3] == "1") spart[3] = "春季";
                     if (spart[3] == "2") spart[3] = "秋季";
                     var sstr = spart[2] + " " + spart[3] + "学期";
-                    slist[sid] = sstr;
+                    semesterlist[sid] = sstr;
                 });
                 resolve({
-                    smap: slist,
+                    smap: semesterlist,
                     cursid: cur_semester,
                 });
             }).fail( function (xhr, textStatus, errorThrown) {
@@ -1317,15 +1326,39 @@ function coursetable_select(cidx, x, y)
 
 }
 
+
+
 function coursetable_enter(cidx, x, y)
 {
-    alert(cidx);
+    var sidx = match_cname_sname(cidx);
+    show_msg(sidx >= 0 ? slist[sidx].sname : "not found");
 }
 
 
-
-
-
+/*
+    match coursename to sitename
+    using global array: clist, sitelist
+    return
+        index in sitelist if matched
+        -1 if non-matched 
+*/
+function match_cname_sname(cidx)
+{
+    var sidx;
+    for (sidx = 0; sidx < slist.length; sidx++) {
+        if (slist[sidx].sname.indexOf(clist[cidx].cid) >= 0) break; // class id is in site name
+    }
+    if (sidx >= slist.length) { // if non-match, use another method
+        for (sidx = 0; sidx < slist.length; sidx++) {
+            if (slist[sidx].sname.indexOf(clist[cidx].cname) >= 0) break; // full class name is in site name
+        }
+    }
+    if (sidx < slist.length) {
+        return sidx; // match OK
+    } else {
+        return -1; // match failed
+    }
+}
 
 
 
@@ -1361,37 +1394,31 @@ function test()
 
     remove_all_cookies();
 
-    /*uis_login().then( function () {
+    uis_login().then( function () {
         elearning_login().then( function () {
             show_msg("elearing login OK");
-            elearning_fetch_sitelist().then( function (sitelist) {
-                console.log(sitelist);
+            elearning_fetch_sitelist().then( function (slist_input) {
+                slist = slist_input;
+                console.log(slist);
             }, function (reason) {
                 abort("can't fetch sitelist: " + reason);
             });
         }, function (reason) {
             abort("elearing login failed: " + reason);
         });
-    });*/
+    });
     
 
     uis_login().then( function () {
-        urp_fetch_semesterdata().then( function (sdata) {
-            console.log(sdata);
-            show_msg("OK");
+        urp_fetch_semesterdata().then( function (semesterdata) {
+            console.log(semesterdata);
+            show_msg("fetch sdata OK");
+            urp_fetch_coursetable(semesterdata.cursid).then( function (clist) {
+                coursetable_load(clist)
+                show_msg("load clist OK");
+            })
         });
     });
-
-    
-
-
-    /*uis_login().then( function () {
-        semester_id = "202";
-        urp_fetch_coursetable(semester_id).then( function (clist) {
-            coursetable_load(clist)
-            show_msg("OK");
-        })
-    });*/
 
 }
 
