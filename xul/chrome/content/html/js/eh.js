@@ -1364,6 +1364,60 @@ function match_cname_sname(cidx)
 
 
 
+
+
+// ===================== main page related function ========================
+
+function init_main_page()
+{
+    remove_all_cookies();
+
+    /* load data from network:
+        slist
+        semesterdata
+        clist
+    */
+    uis_login().then( function () {
+        elearning_login().then( function () {
+            show_msg("elearing login OK");
+            elearning_fetch_sitelist().then( function (slist_input) {
+                slist = slist_input;
+                console.log(slist);
+            }, function (reason) {
+                abort("can't fetch sitelist: " + reason);
+            });
+        }, function (reason) {
+            abort("elearing login failed: " + reason);
+        });
+
+        urp_fetch_semesterdata().then( function (semesterdata) {
+            console.log(semesterdata);
+            show_msg("fetch sdata OK");
+            urp_fetch_coursetable(semesterdata.cursid).then( function (clist) {
+                coursetable_load(clist)
+                show_msg("load clist OK");
+            })
+        });
+    }, function (reason) {
+        abort("uis login failed: " + reason);
+    });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // temporary for testing purpose
 function test()
 {
@@ -1391,34 +1445,8 @@ function test()
 
     //return;
 
+    init_main_page();
 
-    remove_all_cookies();
-
-    uis_login().then( function () {
-        elearning_login().then( function () {
-            show_msg("elearing login OK");
-            elearning_fetch_sitelist().then( function (slist_input) {
-                slist = slist_input;
-                console.log(slist);
-            }, function (reason) {
-                abort("can't fetch sitelist: " + reason);
-            });
-        }, function (reason) {
-            abort("elearing login failed: " + reason);
-        });
-    });
-    
-
-    uis_login().then( function () {
-        urp_fetch_semesterdata().then( function (semesterdata) {
-            console.log(semesterdata);
-            show_msg("fetch sdata OK");
-            urp_fetch_coursetable(semesterdata.cursid).then( function (clist) {
-                coursetable_load(clist)
-                show_msg("load clist OK");
-            })
-        });
-    });
 
 }
 
