@@ -19,7 +19,7 @@ function remove_all_cookies()
 // dump cookie
 function dump_cookies(domain)
 {
-    let x = Services.cookies.getCookiesFromHost("domain");
+    let x = Services.cookies.getCookiesFromHost(domain);
     while (x.hasMoreElements()) {
         var cookie = x.getNext().QueryInterface(Components.interfaces.nsICookie2); 
         console.log(cookie.host + ";" + cookie.name + "=" + cookie.value + "\n");
@@ -1008,8 +1008,13 @@ function elearning_fetch_sitelist()
 
 
 
+
+// ====================== jwfw related functions ========================
+
+
+
 /*
-    fetch course table from fdu urp
+    fetch course table from fdu jwfw
     return value is a promise
     must logged in to uis before calling this function
 
@@ -1018,7 +1023,7 @@ function elearning_fetch_sitelist()
 function urp_fetch_coursetable(semester_id)
 {
     return new Promise( function (resolve, reject) {
-        Services.cookies.add("jwfw.fudan.edu.cn", "/eams", "semester.id", semester_id, false, true, false, 0x7fffffff);
+        //Services.cookies.add("jwfw.fudan.edu.cn", "/eams", "semester.id", semester_id, false, true, false, 0x7fffffff);
         $.get("http://jwfw.fudan.edu.cn/eams/courseTableForStd!index.action").done( function () {
             $.post("http://jwfw.fudan.edu.cn/eams/courseTableForStd!courseTable.action", {
                 "ignoreHead": "1",
@@ -1087,28 +1092,51 @@ function urp_fetch_coursetable(semester_id)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+    fetch semester data from fdu jwfw
+    return value is a promise
+    return value is an object: 
+        {
+            smap: sparse array sid ==> sname,
+            cursid: current semester id,
+        }
+    must logged in to uis before calling this function
+*/
+function urp_fetch_semesterdata()
+{
+    return new Promise( function (resolve, reject) {
+        $.get("http://jwfw.fudan.edu.cn/eams/courseTableForStd!index.action").done( function (data, textStatus, request) {
+            // last GET response should set 'semester.id' cookie
+            var cur_semester = parseInt(request.getAllResponseHeaders().match(/semester\.id=(\d+)/)[1]);
+            
+            // send POST to get semester list
+            $.post("http://jwfw.fudan.edu.cn/eams/dataQuery.action", {
+                "dataType": "semesterCalendar",
+            }, null, "text").done( function (data, textStatus, jqXHR) {
+                // althogh we can use eval() to parse, but using eval() is NOT SAFE!!!
+                var slist = new Array();
+                var sarr = data.match(/(\{id:\d+,schoolYear:"\d+-\d+",name:".+?"\})/g);
+                sarr.forEach(function (element, index, array) {
+                    var spart = element.match(/\{id:(\d+),schoolYear:"(\d+-\d+)",name:"(.+?)"\}/);
+                    var sid = parseInt(spart[1]);
+                    if (spart[3] == "1") spart[3] = "春季";
+                    if (spart[3] == "2") spart[3] = "秋季";
+                    var sstr = spart[2] + " " + spart[3] + "学期";
+                    slist[sid] = sstr;
+                });
+                resolve({
+                    smap: slist,
+                    cursid: cur_semester,
+                });
+            }).fail( function (xhr, textStatus, errorThrown) {
+                reject("dataQuery.action failed: " + textStatus + ", " + errorThrown);
+            });
+            
+        }).fail( function (xhr, textStatus, errorThrown) {
+            reject("courseTableForStd!index.action failed: " + textStatus + ", " + errorThrown);
+        });
+    });
+}
 
 
 // =========== course table on main screen related functions ================
@@ -1347,19 +1375,23 @@ function test()
     });*/
     
 
-
-    
-
-    
-
-
     uis_login().then( function () {
+        urp_fetch_semesterdata().then( function (sdata) {
+            console.log(sdata);
+            show_msg("OK");
+        });
+    });
+
+    
+
+
+    /*uis_login().then( function () {
         semester_id = "202";
         urp_fetch_coursetable(semester_id).then( function (clist) {
             coursetable_load(clist)
             show_msg("OK");
         })
-    });
+    });*/
 
 }
 
