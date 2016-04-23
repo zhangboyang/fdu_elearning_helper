@@ -33,6 +33,16 @@ var el_ajax_errfunc =   function (xhr, textStatus, errorThrown) {
                         };
 
 
+// create universal key-value div
+function create_kvdiv(kstr, vstr)
+{
+    return $(document.createElement('div'))
+        .addClass("eh_kvdiv")
+        .append($(document.createElement('span')).addClass("eh_key").text(kstr))
+        .append($(document.createElement('span')).addClass("eh_value").text(vstr))
+        [0];
+}
+
 
 // ======================== showing debug messages ===========================
 
@@ -670,6 +680,7 @@ function webdav_parsename(path, is_dir)
 {
     if (is_dir) {
         if (path.slice(-1) == "/")
+
             path = path.slice(0, -1); // remove last slash if type is dir
     }
     return path.split("/").pop();
@@ -1002,14 +1013,6 @@ function elearning_fetch_sitelist()
     return value is a promise
     must logged in to uis before calling this function
 
-    clist is a associative array: cid => object
-        cid: course id (string)
-        cname: course name (string)
-        cclassroom: course classroom (string)
-        cteacher: course teacher name (string)
-        cavlweek: cavlweek (string, "001100..." means week 2-3 is avaliable)
-        ctime: course time in table (array, like [[1, 1], [1, 2]])
-
     note: one courses may have multiple entries in clist with different ctime
 */
 function urp_fetch_coursetable(semester_id)
@@ -1110,12 +1113,36 @@ function urp_fetch_coursetable(semester_id)
 
 // =========== course table on main screen related functions ================
 
+/*
+    clist:
+        cid: course id (string)
+        cname: course name (string)
+        cclassroom: course classroom (string)
+        cteacher: course teacher name (string)
+        cavlweek: cavlweek (string, "001100..." means week 2-3 is avaliable)
+        ctime: course time in table (array, like [[1, 1], [1, 2]])
+*/
+
+var clist; // course list
+var cdivlist; // div in course table
+var course_selected;
 
 /*
-    draw course table using clist to main screen
+    load data and draw course table using clist to main screen
+
+    will update global var:
+        clist
+        cdivlist
 */
-function draw_coursetable(clist)
+
+function coursetable_load(clist_input)
 {
+    // copy clist_input to clist
+    clist = clist_input;
+
+    // clear cdivlist
+    cdivlist = new Array();
+    
     // construct ctable
     // ctable[x][y]:  x -> weekday, y -> course sequence number
     var maxx = 5;
@@ -1151,10 +1178,13 @@ function draw_coursetable(clist)
                 if (tdrowspan > 1) {
                     tdobj.attr("rowspan", tdrowspan);
                 }
-                let cidx_pass = cidx;
-                let cid_pass = clist[cidx].cid;
-                tdobj.click(function () { console.log(cid_pass, cidx_pass); });
-                $(document.createElement('div'))
+                // prepare CallBack parameters
+                let cidx_cb = cidx;
+                let x_cb = x;
+                let y_cb = y;
+                tdobj.click(function () { coursetable_select(cidx_cb, x_cb, y_cb); });
+                tdobj.dblclick(function () { coursetable_enter(cidx_cb, x_cb, y_cb); });
+                $(cdivlist[cidx] = document.createElement('div'))
                     .append($(document.createElement('span')).text(clist[cidx].cname))
                     .appendTo(tdobj);
             }
@@ -1167,11 +1197,102 @@ function draw_coursetable(clist)
     tobj.appendTo($("#main_coursetable"));
 }
 
+/*
+    make course time string from ctime
+    note:
+        ctimelist will be sorted
+    for example:
+        [[2, 3], [2, 4], [2, 5], [4, 8], [4, 9]] ==> "二3-5, 四8-9"
+*/
+function make_ctime_str(ctimelist)
+{
+    ctimelist.sort( function (a, b) {
+        if (a[0] == b[0]) {
+            if (a[1] == b[1]) return 0;
+            if (a[1] < b[1]) return -1;
+            return 1;
+        }
+        if (a[0] < b[0]) return -1;
+        return 1;
+    });
+
+    var chsweekday = ["日", "一", "二", "三", "四", "五", "六", "日"];
+    var ctimestr = "";
+    var i, j;
+    for (i = 0; i < ctimelist.length; i = j) {
+        if (i != 0) ctimestr += ", ";
+        for (j = i + 1; j < ctimelist.length && ctimelist[i][0] == ctimelist[j][0] && ctimelist[i][1] + j - i == ctimelist[j][1]; j++);
+        if (j > i + 1) {
+            ctimestr += chsweekday[ctimelist[i][0]] + ctimelist[i][1].toString() + "-" + (ctimelist[i][1] + j - i - 1).toString();
+        } else {
+            ctimestr += chsweekday[ctimelist[i][0]] + ctimelist[i][1].toString();
+        }
+    }
+
+    return ctimestr;
+}
 
 
+/*
+    make course time string from ctime
+    note:
+        ctimelist will be sorted
+    for example:
+        "01111000111000" ==> "1-4 8-10"
+*/
+function make_avlweek_string(avlweek)
+{
+    var i, j;
+    var avlstr = "";
+    for (i = 0; i < avlweek.length; i = j) {
+        for (j = i + 1; j < avlweek.length && avlweek[i] == avlweek[j]; j++);
+        if (avlweek[i] == "1") {
+            if (avlstr != "") avlstr += " ";
+            if (j > i + 1) {
+                avlstr += i.toString() + "-" + (j - 1).toString();
+            } else {
+                avlstr += i.toString();
+            }
+        }
+    }
+
+    return avlstr;
+}
 
 
+function coursetable_select(cidx, x, y)
+{
+    // deselect all
+    cdivlist.forEach( function (element, index, array) {
+        $(element).removeClass("eh_selected");
+        $(element).removeClass("eh_selected_sub");
+    });
 
+
+    course_selected = cidx;
+    var cobj = clist[cidx];
+    var ctimelist = new Array();    
+    clist.forEach( function (element, index, array) {
+        if (element.cid == cobj.cid) { // there might be multiple object have same cid
+            $(cdivlist[index]).addClass(index == cidx ? "eh_selected" : "eh_selected_sub"); // make them selected
+            ctimelist.push(...element.ctime);
+        }
+    });
+
+    $("#main_course_details").empty();
+    $(create_kvdiv("名称: ", cobj.cname)).appendTo("#main_course_details");
+    $(create_kvdiv("代码: ", cobj.cid)).appendTo("#main_course_details");
+    $(create_kvdiv("教师: ", cobj.cteacher)).appendTo("#main_course_details");
+    $(create_kvdiv("地点: ", cobj.cclassroom)).appendTo("#main_course_details");
+    $(create_kvdiv("时间: ", make_ctime_str(ctimelist))).appendTo("#main_course_details");
+    $(create_kvdiv("开课周: ", make_avlweek_string(cobj.cavlweek))).appendTo("#main_course_details");
+
+}
+
+function coursetable_enter(cidx, x, y)
+{
+    alert(cidx);
+}
 
 
 
@@ -1209,30 +1330,33 @@ function test()
 
     //return;
 
-    /*elearning_login().then( function () {
-        show_msg("elearing login OK");
-        elearning_fetch_sitelist().then( function (sitelist) {
-            console.log(sitelist);
-        }, function (reason) {
-            abort("can't fetch sitelist: " + reason);
-        });
-    }, function (reason) {
-        abort("elearing login failed: " + reason);
-    });*/
-
-    
-
-
-    
 
     remove_all_cookies();
+
+    /*uis_login().then( function () {
+        elearning_login().then( function () {
+            show_msg("elearing login OK");
+            elearning_fetch_sitelist().then( function (sitelist) {
+                console.log(sitelist);
+            }, function (reason) {
+                abort("can't fetch sitelist: " + reason);
+            });
+        }, function (reason) {
+            abort("elearing login failed: " + reason);
+        });
+    });*/
+    
+
+
+    
+
+    
 
 
     uis_login().then( function () {
         semester_id = "202";
         urp_fetch_coursetable(semester_id).then( function (clist) {
-            console.log(clist);
-            draw_coursetable(clist);
+            coursetable_load(clist)
             show_msg("OK");
         })
     });
