@@ -839,12 +839,54 @@ function webdav_download_single(href, localbase, fpath)
                 .then(function () {
                     resolve();
                 }, function (reason) {
-                    reject(reason);
+                    reject("OS.File.writeAtomic failed: " + reason);
                 });
         }, function (reason) { // onerror
-            reject(reason);
+            reject("bin xhr failed: " + reason);
         });
         
+    });
+}
+
+
+/*
+    sync single file
+    return value is a promise
+    return object:
+        1: if real download happens
+        0: if no need to download
+
+    parameters:
+        see webdav_download_single() for details
+*/
+function webdav_sync_single(href, localbase, fpath)
+{
+    // FIXME: security risk, should check if fpath is legal
+
+    return new Promise( function (resolve, reject) {
+        var do_download = function () {
+            webdav_download_single(href, localbase, fpath).then( function () {
+                resolve(1);
+            }, function (reason) { // onerror
+                reject("download single failed: " + reason);
+            });
+        }
+    
+        var target_uri = localbase + fpath;
+        var target_native = OS.Path.fromFileURI(target_uri);
+        OS.File.stat(target_native).then( function (info) {
+            // file exists, no need to download
+            console.log("file exists: " + fpath);
+            resolve(0);
+        }, function (reason) {
+            if (reason instanceof OS.File.Error && reason.becauseNoSuchFile) {
+                // file not exists, we should download it
+                console.log("file not exists, download: " + fpath);
+                do_download(); // resolve() will be called in do_download()
+            } else {
+                reject("unknown stat() error: " + reason);
+            }
+        });
     });
 }
 
@@ -853,6 +895,8 @@ function webdav_download_single(href, localbase, fpath)
     sync a whole site
 
     return value is a promise
+    return object:
+        a integer, total real downloads
 
     uuid: site uuid
     course folder: course folder, must start with "/", some thing like "/2015-2016春季学期/离散数学"
@@ -869,9 +913,11 @@ function webdav_sync(uuid, coursefolder)
                 Promise.all(lobj.dlist.map( function (ditem) { return webdav_create_localpath(localbase, ditem.path); } ))
                     .then( function () {
                         // directory created, start downloading files
-                        Promise.all(lobj.flist.map( function (fitem) { return webdav_download_single(fitem.href, localbase, fitem.path); } ))
-                            .then( function () {
-                                resolve();
+                        Promise.all(lobj.flist.map( function (fitem) { return webdav_sync_single(fitem.href, localbase, fitem.path); } ))
+                            .then( function (dstat) {
+                                var sum = 0;
+                                dstat.forEach( function (element) { sum += element; } );
+                                resolve(sum);
                             }, function (reason) {
                                 reject("can't download file: " + reason);
                             });
@@ -1338,8 +1384,8 @@ function coursetable_enter(cidx, x, y)
 
         $("#filenav_syncbtn").unbind("click");
         $("#filenav_syncbtn").click( function () {
-            webdav_sync(sobj.uuid, "/" + cur_semestername + "/" + cobj.cname).then( function () {
-                show_msg("SYNC OK");
+            webdav_sync(sobj.uuid, "/" + cur_semestername + "/" + cobj.cname).then( function (sum) {
+                show_msg("SYNC OK, total downloads = " + sum.toString());
             });
         });
         
