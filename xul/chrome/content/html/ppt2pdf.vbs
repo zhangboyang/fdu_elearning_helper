@@ -51,12 +51,13 @@ Const ppWindowMinimized = 2
 Const ppWindowNormal = 1
 
 
+
 '
 ' This is the actual script
 '
 
-
-WriteLine "PPT 转 PDF 文件转换器"
+'WriteLine "PPT 转 PDF 文件转换器"
+WriteLine "正在转换文件格式, 请稍候 ..."
 WriteLine "========================================"
 
 Dim inputFile
@@ -88,11 +89,11 @@ If objFso.FileExists( outputFile ) Then
 End If
 outputFile = objFso.GetAbsolutePathName(outputFile)
 
-WriteLine "输入 PPT 文件: " & inputFile
-WriteLine "输出 PDF 文件: " & outputFile
-WriteLine "========================================"
+'WriteLine "输入 PPT 文件: " & inputFile
+'WriteLine "输出 PDF 文件: " & outputFile
+'WriteLine "========================================"
 
-WriteLine "正在创建 PowerPoint.Application 对象 ..."
+WriteLine "正在创建对象 ..."
 Set objPPT = CreateObject( "PowerPoint.Application" )
 
 objPPT.Visible = True
@@ -101,7 +102,7 @@ objPPT.Visible = True
 'objPPT.WindowState = ppWindowMinimized
 
 
-WriteLine "正在执行打开命令 ..."
+WriteLine "正在执行打开命令 (可能需要较长时间) ..."
 objPPT.Presentations.Open inputFile
 
 Set objPresentation = objPPT.ActivePresentation

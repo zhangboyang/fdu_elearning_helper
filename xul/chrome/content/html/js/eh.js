@@ -11,8 +11,11 @@ var el_password; // elearning password
 
 
 
-var docfolder; // document folder
+var docfolder; // document folder, FILE URI style, like file:///foo/bar....
+var datafolder; // internal data folder, NATIVE style, like C:\foo\bar.....
 
+
+var ppt2pdf_path; // NATIVE path to ppt2pdf.vbs
 
 // remove all cookies
 function remove_all_cookies()
@@ -55,6 +58,48 @@ function create_kvdiv(kstr, vstr, vfunc)
 }
 
 
+/*
+    install chrome-url data to native path
+    used with trusted filename/url only
+    return value is promise
+*/
+function install_file(url, targetpath)
+{
+    return new Promise( function (resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", url);
+        xhr.responseType = "arraybuffer";
+        
+        xhr.onload = function (event) {
+            var data = new Uint8Array(xhr.response);
+            if (xhr.status >= 200 && xhr.status < 300) {
+                OS.File.writeAtomic(targetpath, data)
+                    .then(function () {
+                        // install OK
+                        resolve();
+                    }, function (reason) {
+                        reject("datafolder install failed, OS.File.writeAtomic failed: " + reason);
+                    });
+            } else {
+                reject("datafolder install failed (status = " + xhr.status + "): " + url);
+            }
+        };
+
+        xhr.onerror = function () {
+            reject("datafolder install failed: " + url);
+        };
+
+        xhr.send();
+    });
+}
+
+
+function get_file_ext(str)
+{
+    return str.split(".").pop();
+}
+
+
 // ======================== showing debug messages ===========================
 
 function do_output(str)
@@ -76,6 +121,13 @@ function abort(str)
     throw str;
 }
 
+
+function friendly_error(str)
+{
+    str = "错误: " + str;
+    Materialize.toast(str, 10000);
+    console.log(str);
+}
 
 
 
@@ -136,9 +188,6 @@ function show_page(page_name)
         show_page_with_width("calendar", "200px", "200px", "200px", "0px", "20%", "100%");
     } else if (page_name == "viewfile") {
         show_page_with_width("viewfile", "200px", "200px", "200px", "250px", "20%", "100%");
-        //init_pdf('multipages.pdf');
-        init_pdf('dshu13nn.pdf');
-        clear_canvas();
     } else if (page_name == "filenav") {
         show_page_with_width("filenav", "0px", "0px", "0px", "0px", "0px", "0px");
     } else {
@@ -452,9 +501,12 @@ $("document").ready( function () {
     OS = window.parent.OS;
     Services = window.parent.Services;
 
-    docfolder = OS.Path.toFileURI(OS.Path.join(OS.Constants.Path.desktopDir, "ehdata"));
-    
+    docfolder = OS.Path.toFileURI(OS.Path.join(OS.Constants.Path.desktopDir, "ehdoc"));
+    datafolder = OS.Path.join(OS.Constants.Path.desktopDir, "ehdata");
 
+    OS.File.makeDir(OS.Path.join(datafolder, "tools"), { ignoreExisting: true, from: datafolder });
+    ppt2pdf_path = OS.Path.join(datafolder, "tools", "ppt2pdf.vbs");
+    install_file("ppt2pdf.vbs", ppt2pdf_path);
     
     init_colorbox();
     init_thicknessbox();
@@ -465,6 +517,9 @@ $("document").ready( function () {
     show_msg("INIT OK!", 4000);
 
 });
+
+
+
 
 
 
@@ -601,8 +656,68 @@ function show_pdf_jumpto(pdf, page_id)
 
 
 
+/*
+    switch to pdf viewer and load file
 
+    fitem: see webdav_listall()
+*/
 
+function pdfviewer_show(fitem, coursefolder)
+{
+    var promise = new Promise( function (resolve, reject) {
+        var fileuri = docfolder + coursefolder + fitem.path;
+        var fileext = get_file_ext(fileuri);
+        
+        if (fileext == "pdf") {
+            // this file is already PDF, no need to convert
+            resolve(fileuri);
+        } else {
+            // this file is not PDF, should convert to PDF
+            if (fileext == "ppt" || fileext == "pptx") {
+
+                var pdfuri = fileuri + ".pdf";
+                var pdfpath = OS.Path.fromFileURI(pdfuri);
+
+                OS.File.stat(pdfpath).then( function (info) {
+                    // pdf file exists, no need to convert
+                    resolve(pdfuri);
+                }, function (reason) {
+                    if (reason instanceof OS.File.Error && reason.becauseNoSuchFile) {
+                        // pdf file not exists, we need convert
+                        // start ppt2pdf.vbs to convert
+                        // FIXME: Windows Only Code
+                        var file = Components.classes["@mozilla.org/file/local;1"].createInstance(Components.interfaces["nsILocalFile"]);
+                        file.initWithPath("c:\\windows\\system32\\cscript.exe");
+                        var process = Components.classes["@mozilla.org/process/util;1"].createInstance(Components.interfaces.nsIProcess);
+                        process.init(file);
+                        process.runw(true, ["//Nologo", ppt2pdf_path, OS.Path.fromFileURI(fileuri), pdfpath], 4);
+                        resolve(pdfuri);
+                    } else {
+                        // other error
+                        reject("unknown stat() error: " + reason);
+                    }
+                });
+            } else {
+                reject("不支持该文件格式");
+            }
+        }
+    });
+
+    promise.then( function (pdfuri) {
+        $("#viewfile_filetitle").text(fitem.filename);
+
+        // register back button click function
+        $("#viewfile_backbtn").unbind("click");
+        $("#viewfile_backbtn").click( function () {
+            show_page("filenav");
+        });
+        show_page("viewfile");
+        init_pdf(pdfuri);
+        clear_canvas();
+    }, function (reason) {
+        friendly_error(reason);
+    });
+}
 
 
 
@@ -677,7 +792,6 @@ function webdav_parsename(path, is_dir)
 {
     if (is_dir) {
         if (path.slice(-1) == "/")
-
             path = path.slice(0, -1); // remove last slash if type is dir
     }
     return path.split("/").pop();
@@ -876,12 +990,12 @@ function webdav_sync_single(href, localbase, fpath)
         var target_native = OS.Path.fromFileURI(target_uri);
         OS.File.stat(target_native).then( function (info) {
             // file exists, no need to download
-            console.log("file exists: " + fpath);
+            //console.log("file exists: " + fpath);
             resolve(0);
         }, function (reason) {
             if (reason instanceof OS.File.Error && reason.becauseNoSuchFile) {
                 // file not exists, we should download it
-                console.log("file not exists, download: " + fpath);
+                //console.log("file not exists, download: " + fpath);
                 do_download(); // resolve() will be called in do_download()
             } else {
                 reject("unknown stat() error: " + reason);
@@ -896,8 +1010,13 @@ function webdav_sync_single(href, localbase, fpath)
 
     return value is a promise
     return object:
-        a integer, total real downloads
-
+    {
+        lobj: {
+            flist: file list
+            dlist: dir list
+        }
+        sum: a integer, total real downloads
+    }
     uuid: site uuid
     course folder: course folder, must start with "/", some thing like "/2015-2016春季学期/离散数学"
 
@@ -917,7 +1036,10 @@ function webdav_sync(uuid, coursefolder)
                             .then( function (dstat) {
                                 var sum = 0;
                                 dstat.forEach( function (element) { sum += element; } );
-                                resolve(sum);
+                                resolve({
+                                    lobj: lobj,
+                                    sum: sum,
+                                });
                             }, function (reason) {
                                 reject("can't download file: " + reason);
                             });
@@ -1380,18 +1502,35 @@ function coursetable_enter(cidx, x, y)
 
         let cobj = clist[cidx];
         let sobj = slist[sidx];
+        let coursefolder = "/" + cur_semestername + "/" + cobj.cname;
         $("#filenav_sitetitle").text(sobj.sname);
 
         $("#filenav_syncbtn").unbind("click");
         $("#filenav_syncbtn").click( function () {
-            webdav_sync(sobj.uuid, "/" + cur_semestername + "/" + cobj.cname).then( function (sum) {
-                show_msg("SYNC OK, total downloads = " + sum.toString());
+            webdav_sync(sobj.uuid, coursefolder).then( function (obj) {
+                console.log(obj);
+                show_msg("SYNC OK, total downloads = " + obj.sum.toString());
+                
+                $("#filenav_filelist").empty();
+                obj.lobj.flist.sort( function (a, b) {
+                    if (a.path == b.path) return 0;
+                    if (a.path < b.path) return -1;
+                    return 1;
+                });
+                obj.lobj.flist.forEach( function (element, index, array) {
+                    let element_cb = element;
+                    $(document.createElement('div'))
+                        .addClass("eh_listitem")
+                        .text(element.path)
+                        .appendTo("#filenav_filelist")
+                        .click( function () { pdfviewer_show(element, coursefolder); } );
+                });
             });
         });
         
     } else {
         // no matching site
-        show_error("没有匹配的 eLearning 站点");
+        friendly_error("没有匹配的 eLearning 站点");
     }
 }
 
