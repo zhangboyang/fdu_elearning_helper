@@ -11,6 +11,9 @@ var el_password; // elearning password
 
 
 
+var docfolder; // document folder
+
+
 // remove all cookies
 function remove_all_cookies()
 {
@@ -34,13 +37,21 @@ var el_ajax_errfunc =   function (xhr, textStatus, errorThrown) {
 
 
 // create universal key-value div
-function create_kvdiv(kstr, vstr)
+function create_kvdiv(kstr, vstr, vfunc)
 {
-    return $(document.createElement('div'))
-        .addClass("eh_kvdiv")
-        .append($(document.createElement('span')).addClass("eh_key").text(kstr))
-        .append($(document.createElement('span')).addClass("eh_value").text(vstr))
-        [0];
+    if (typeof(vfunc) != "undefined") {
+        return $(document.createElement('div'))
+            .addClass("eh_kvdiv")
+            .append($(document.createElement('span')).addClass("eh_key").text(kstr))
+            .append($(document.createElement('span')).addClass("eh_value eh_link").text(vstr).click(vfunc))
+            [0];
+    } else {
+        return $(document.createElement('div'))
+            .addClass("eh_kvdiv")
+            .append($(document.createElement('span')).addClass("eh_key").text(kstr))
+            .append($(document.createElement('span')).addClass("eh_value").text(vstr))
+            [0];
+    }
 }
 
 
@@ -76,6 +87,7 @@ function hide_all_pages()
     $("#main_page").hide();
     $("#calendar_page").hide();
     $("#viewfile_page").hide();
+    $("#filenav_page").hide();
 }
 
 function go_back()
@@ -127,6 +139,8 @@ function show_page(page_name)
         //init_pdf('multipages.pdf');
         init_pdf('dshu13nn.pdf');
         clear_canvas();
+    } else if (page_name == "filenav") {
+        show_page_with_width("filenav", "0px", "0px", "0px", "0px", "0px", "0px");
     } else {
         abort("unknown page_name");
     }
@@ -431,42 +445,25 @@ function clear_canvas()
 // ====================== the global init function ======================
 
 $("document").ready( function () {
-
-    // test if we are running in xulrunner
     prefs = window.parent.prefs;
-    if (typeof prefs !== 'undefined') {
-        // in xulrunner
-
-        // get username and password from preferences
-        el_username = prefs.getCharPref("username");
-        el_password = prefs.getCharPref("password");
-
-        show_msg("USER: " + el_username);
-        //show_msg("PASS: " + el_password);
-    } else {
-        abort("prefs is undefined");
-    }
+    el_username = prefs.getCharPref("username");
+    el_password = prefs.getCharPref("password");
 
     OS = window.parent.OS;
     Services = window.parent.Services;
 
+    docfolder = OS.Path.toFileURI(OS.Path.join(OS.Constants.Path.desktopDir, "ehdata"));
+    
 
-    
-    
-    //alert("haha");
     
     init_colorbox();
     init_thicknessbox();
     init_canvas();
 
-    
     show_page("main");
-//    show_page("viewfile");
     
     show_msg("INIT OK!", 4000);
-    //alert("ok");
 
-    
 });
 
 
@@ -688,69 +685,72 @@ function webdav_parsename(path, is_dir)
 
 
 /*
-    retrieve file list by given dirurl
+    retrieve file list by given site uuid
 
-    dirurl: some string like "http://elearning.fudan.edu.cn/dav/24ea24fd-0c39-49de-adbe-641d1cf4a499"
-    success: callback function when success, for example: function (dlist, flist) { ... }
+    return value is a promise
+    return object is
+    {
+        flist: [file list],
+        dlist: [dir list],
+    }
 */ 
-function webdav_listall(dirurl, success)
+function webdav_listall(uuid)
 {
-    // send WebDAV PROPFIND request
-    
-    $.ajax({
-        type: "PROPFIND",
-        url: dirurl,
-        context: document.body,
-        dataType: "xml",
-        username: el_username,
-        password: el_password,
-        headers: {  "Depth": "infinity",
-                    //"Authorization": "Basic " + btoa(el_username + ":" + el_password), // sometimes fails
-                 },
-        success:    function (xml, status) {
-                        //console.log(xml);
-                        //$("#test").text($(xml).text());
+    return new Promise( function (resolve, reject) {
+        // send WebDAV PROPFIND request
+        $.ajax({
+            type: "PROPFIND",
+            url: "http://elearning.fudan.edu.cn/dav/" + uuid,
+            context: document.body,
+            dataType: "xml",
+            username: el_username,
+            password: el_password,
+            headers: {  "Depth": "infinity",
+                        //"Authorization": "Basic " + btoa(el_username + ":" + el_password), // sometimes fails
+                     },
+            success:    function (xml, status) {
 
-                        var dlist = new Array();
-                        var flist = new Array();
-                        
-                        $(xml).children("D\\:multistatus").children("D\\:response").each( function (index, element) {
-                            //console.log(element);
-                            var prop = $(element).children("D\\:propstat").children("D\\:prop");
-                            var httpstatus = $(element).children("D\\:propstat").children("D\\:status").text();
-                            if (httpstatus != "HTTP/1.1 200 OK") { abort("unknown status: " + httpstatus); return; }
+                            var dlist = new Array();
+                            var flist = new Array();
                             
-                            var href = $(element).children("D\\:href").text();
-                            var is_dir = (prop.children("D\\:resourcetype").children("D\\:collection").length != 0);
-                            var path = webdav_parsepath(decodeURIComponent(href), is_dir);
-                            var filename = webdav_parsename(path, is_dir);
-                            var cur = {
-                                href: href,
-                                path: path,
-                                filename: filename,
-                                status: httpstatus,
-                                contentlength: parseInt(prop.children("D\\:getcontentlength").text()),
-                                contenttype: prop.children("D\\:getcontenttype").text(),
-                                is_dir: is_dir,
-                                lastmodified: prop.children("D\\:getlastmodified").text(),
-                                etag: prop.children("D\\:getetag").text(),
-                            };
+                            $(xml).children("D\\:multistatus").children("D\\:response").each( function (index, element) {
 
-                            if (is_dir) {
-                                dlist.push(cur);
-                            } else {
-                                flist.push(cur);
-                            }
-                            //show_msg($(element).text());
-                            //show_msg("HERF=" + href + " ISDIR=" + is_dir + " LASTMOD=" + lastmodified);
-                        });
+                                var prop = $(element).children("D\\:propstat").children("D\\:prop");
+                                var httpstatus = $(element).children("D\\:propstat").children("D\\:status").text();
+                                if (httpstatus != "HTTP/1.1 200 OK") { abort("unknown status: " + httpstatus); return; }
+                                
+                                var href = $(element).children("D\\:href").text();
+                                var is_dir = (prop.children("D\\:resourcetype").children("D\\:collection").length != 0);
+                                var path = webdav_parsepath(decodeURIComponent(href), is_dir);
+                                var filename = webdav_parsename(path, is_dir);
+                                var cur = {
+                                    href: href,
+                                    path: path,
+                                    filename: filename,
+                                    status: httpstatus,
+                                    contentlength: parseInt(prop.children("D\\:getcontentlength").text()),
+                                    contenttype: prop.children("D\\:getcontenttype").text(),
+                                    is_dir: is_dir,
+                                    lastmodified: prop.children("D\\:getlastmodified").text(),
+                                    etag: prop.children("D\\:getetag").text(),
+                                };
 
-                        //console.log(dlist);
-                        //console.log(flist);
-                        
-                        success(dlist, flist);
-                    },
-        error:  el_ajax_errfunc,
+                                if (is_dir) {
+                                    dlist.push(cur);
+                                } else {
+                                    flist.push(cur);
+                                }
+                            });
+
+                            resolve({
+                                dlist: dlist,
+                                flist: flist,
+                            });
+                        },
+            error: function (xhr, textStatus, errorThrown) {
+                reject("PROPFIND failed: " + textStatus + ", " + errorThrown + ", " + xhr.status);
+            },
+        });
     });
 }
 
@@ -777,7 +777,7 @@ function webdav_binary_xhr(url)
         };
 
         xhr.onerror = function () {
-            reject("onerror() is called");
+            reject("binary xhr failed: onerror() is called");
         };
 
         // FIXME: we haven't send username and password!
@@ -819,18 +819,16 @@ function webdav_create_localpath(localbase, subpath)
 /*
     download single file
     return value is a promise
-    for example:
-        webdav_create_localpath('file:///C:/aaa', '/bbb/ccc/')
-        will create c:\aaa\bbb and c:\aaa\bbb\ccc
-        and will not create c:\aaa
+
+    href: something like "/dav/24ea24fd-0c39-49de-adbe-641d1cf4a499"
+    localbase: local file uri of current site
 */
-function webdav_download_single(globalbase, href, localbase, fpath)
+function webdav_download_single(href, localbase, fpath)
 {
     // FIXME: security risk, should check if fpath is legal
-    
 
     return new Promise( function (resolve, reject) {
-        var url = globalbase + href;
+        var url = "http://elearning.fudan.edu.cn" + href;
         var target_uri = localbase + fpath;
         var target_native = OS.Path.fromFileURI(target_uri);
         
@@ -853,50 +851,39 @@ function webdav_download_single(globalbase, href, localbase, fpath)
 
 /*
     sync a whole site
+
+    return value is a promise
+
+    uuid: site uuid
+    course folder: course folder, must start with "/", some thing like "/2015-2016春季学期/离散数学"
+
 */
-function webdav_sync(globalbase, siteurl)
+function webdav_sync(uuid, coursefolder)
 {
-    show_msg("START AJAX");
-    
-    //var localbase_native = "C:\\Users\\zby\\Desktop\\ELEARNING_HELPER\\ehdata\\";
-    
-    var localbase_native = OS.Path.join(OS.Constants.Path.desktopDir, "ehdata");
-
-    
-    var localbase = OS.Path.toFileURI(localbase_native);
-    
-    webdav_listall(siteurl, function (dlist, flist) {
-        show_msg("AJAX SUCCESS");
-
-        //console.log(dlist);
-        //console.log(flist);
-        
-
-        Promise.all(dlist.map( function (ditem) { return webdav_create_localpath(localbase, ditem.path); } ))
-            .then( function () { // resolved
-                show_msg("Create all dirs finished");
-
-                // directory created, start downloading files
-                Promise.all(flist.map( function (fitem) { return webdav_download_single(globalbase, fitem.href, localbase, fitem.path); } ))
+    return new Promise( function (resolve, reject) {
+        // create course folder
+        var localbase = docfolder + coursefolder;
+        webdav_create_localpath(docfolder, coursefolder).then( function () {
+            // download files
+            webdav_listall(uuid).then(function (lobj) {
+                Promise.all(lobj.dlist.map( function (ditem) { return webdav_create_localpath(localbase, ditem.path); } ))
                     .then( function () {
-                        show_msg("all download finished");
+                        // directory created, start downloading files
+                        Promise.all(lobj.flist.map( function (fitem) { return webdav_download_single(fitem.href, localbase, fitem.path); } ))
+                            .then( function () {
+                                resolve();
+                            }, function (reason) {
+                                reject("can't download file: " + reason);
+                            });
                     }, function (reason) {
-                        abort("can't download file: " + reason);
+                        reject("can't create directory: " + reason);
                     });
-            }, function (reason) { // rejected
-                abort("can't create directory: " + reason);
+            }, function (reason) {
+                reject("can't list files: " + reason);
             });
-
-        
-        /*console.log(flist);
-        for (var i = 0; i < flist.length; i++) {
-            var cur = flist[i];
-            //show_msg("HERF=" + cur.href + " ISDIR=" + cur.is_dir + " LASTMOD=" + cur.lastmodified);
-            var fpath = OS.Path.fromFileURI(localbase + cur.path);
-            
-            show_msg(fpath);
-            
-        }*/
+        }, function (reason) {
+            reject("can't create course folder: " + reason);
+        });
     });
 }
 
@@ -1128,8 +1115,8 @@ function urp_fetch_semesterdata()
                 sarr.forEach(function (element, index, array) {
                     var spart = element.match(/\{id:(\d+),schoolYear:"(\d+-\d+)",name:"(.+?)"\}/);
                     var sid = parseInt(spart[1]);
-                    if (spart[3] == "1") spart[3] = "春季";
-                    if (spart[3] == "2") spart[3] = "秋季";
+                    if (spart[3] == "2") spart[3] = "春季";
+                    if (spart[3] == "1") spart[3] = "秋季";
                     var sstr = spart[2] + " " + spart[3] + "学期";
                     semesterlist[sid] = sstr;
                 });
@@ -1140,7 +1127,6 @@ function urp_fetch_semesterdata()
             }).fail( function (xhr, textStatus, errorThrown) {
                 reject("dataQuery.action failed: " + textStatus + ", " + errorThrown);
             });
-            
         }).fail( function (xhr, textStatus, errorThrown) {
             reject("courseTableForStd!index.action failed: " + textStatus + ", " + errorThrown);
         });
@@ -1162,7 +1148,8 @@ function urp_fetch_semesterdata()
 
 var clist; // course list
 var cdivlist; // div in course table
-var course_selected;
+var course_selected; // course index of selected course
+var cur_semestername; // current semester name
 
 /*
     load data and draw course table using clist to main screen
@@ -1316,9 +1303,19 @@ function coursetable_select(cidx, x, y)
         }
     });
 
+    var sidx = match_cname_sname(cidx);
+    
     $("#main_course_details").empty();
-    $(create_kvdiv("名称: ", cobj.cname)).appendTo("#main_course_details");
-    $(create_kvdiv("代码: ", cobj.cid)).appendTo("#main_course_details");
+    if (sidx >= 0) {
+        let cidx_cb = cidx;
+        let x_cb = x;
+        let y_cb = y;
+        $(create_kvdiv("名称: ", cobj.cname + " (" + cobj.cid + ")", function () {
+            coursetable_enter(cidx_cb, x_cb, y_cb);
+        })).appendTo("#main_course_details");
+    } else {
+        $(create_kvdiv("名称: ", cobj.cname + " (" + cobj.cid + ")")).appendTo("#main_course_details");
+    }
     $(create_kvdiv("教师: ", cobj.cteacher)).appendTo("#main_course_details");
     $(create_kvdiv("地点: ", cobj.cclassroom)).appendTo("#main_course_details");
     $(create_kvdiv("时间: ", make_ctime_str(ctimelist))).appendTo("#main_course_details");
@@ -1331,7 +1328,25 @@ function coursetable_select(cidx, x, y)
 function coursetable_enter(cidx, x, y)
 {
     var sidx = match_cname_sname(cidx);
-    show_msg(sidx >= 0 ? slist[sidx].sname : "not found");
+    if (sidx >= 0) {
+        // found matched site
+        show_page("filenav");
+
+        let cobj = clist[cidx];
+        let sobj = slist[sidx];
+        $("#filenav_sitetitle").text(sobj.sname);
+
+        $("#filenav_syncbtn").unbind("click");
+        $("#filenav_syncbtn").click( function () {
+            webdav_sync(sobj.uuid, "/" + cur_semestername + "/" + cobj.cname).then( function () {
+                show_msg("SYNC OK");
+            });
+        });
+        
+    } else {
+        // no matching site
+        show_error("没有匹配的 eLearning 站点");
+    }
 }
 
 
@@ -1378,25 +1393,28 @@ function init_main_page()
         clist
     */
     uis_login().then( function () {
+        // uis login OK, we should login to elearning
         elearning_login().then( function () {
-            show_msg("elearing login OK");
+            // elearning login OK, we should fetch sitelist
             elearning_fetch_sitelist().then( function (slist_input) {
-                slist = slist_input;
-                console.log(slist);
+                slist = slist_input; // save fetched slite to global var
+                // slist fetched OK, we should query for course table
+                urp_fetch_semesterdata().then( function (semesterdata) {
+                    // current semester is saved in semesterdata.cursid
+                    cur_semestername = semesterdata.smap[semesterdata.cursid];
+                    urp_fetch_coursetable(semesterdata.cursid).then( function (clist) {
+                        // load clist data
+                        coursetable_load(clist)
+                        show_msg("load clist OK");
+                    })
+                }, function (reason) {
+                    abort("can't fetch semesterdata: " + reason);
+                });
             }, function (reason) {
                 abort("can't fetch sitelist: " + reason);
             });
         }, function (reason) {
             abort("elearing login failed: " + reason);
-        });
-
-        urp_fetch_semesterdata().then( function (semesterdata) {
-            console.log(semesterdata);
-            show_msg("fetch sdata OK");
-            urp_fetch_coursetable(semesterdata.cursid).then( function (clist) {
-                coursetable_load(clist)
-                show_msg("load clist OK");
-            })
         });
     }, function (reason) {
         abort("uis login failed: " + reason);
