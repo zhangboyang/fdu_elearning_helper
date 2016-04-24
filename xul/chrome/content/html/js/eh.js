@@ -9,7 +9,7 @@ var prefs; // it's a copy of window.parent.prefs
 var el_username; // elearning username
 var el_password; // elearning password
 
-
+var page_limit; // pdfviewer page limit
 
 var docfolder; // document folder, FILE URI style, like file:///foo/bar....
 var datafolder; // internal data folder, NATIVE style, like C:\foo\bar.....
@@ -96,7 +96,7 @@ function install_file(url, targetpath)
 
 function get_file_ext(str)
 {
-    return str.split(".").pop();
+    return str.split(".").pop().toLowerCase();
 }
 
 
@@ -125,8 +125,7 @@ function abort(str)
 function friendly_error(str)
 {
     str = "错误: " + str;
-    Materialize.toast(str, 10000);
-    console.log(str);
+    alert(str);
 }
 
 
@@ -493,14 +492,20 @@ function clear_canvas()
 
 // ====================== the global init function ======================
 
-$("document").ready( function () {
-    prefs = window.parent.prefs;
+function load_prefs()
+{
     el_username = prefs.getCharPref("username");
     el_password = prefs.getCharPref("password");
+    page_limit = prefs.getIntPref("pagelimit");
+}
 
+$("document").ready( function () {
+    prefs = window.parent.prefs;
     OS = window.parent.OS;
     Services = window.parent.Services;
 
+    load_prefs();
+    
     docfolder = OS.Path.toFileURI(OS.Path.join(OS.Constants.Path.desktopDir, "ehdoc"));
     datafolder = OS.Path.join(OS.Constants.Path.desktopDir, "ehdata");
 
@@ -553,10 +558,13 @@ function init_pdf(pdf_path)
     PDFJS.getDocument(pdf_path).then( function (pdf) {
         //show_pdf_jumpto(pdf, 1);
 
+        if (pdf.numPages > page_limit) {
+            friendly_error("文件页数过多，无法打开");
+            return;
+        }
+        
         pdf_thumbnail_div_list = new Array();
         selected_pdf_page = 1;
-
-        show_pdf_jumpto(pdf, 1);
         
         for (var i = 1; i <= pdf.numPages; i++) {
             // append an canvas to our thumbnail list
@@ -581,7 +589,7 @@ function init_pdf(pdf_path)
                       )
                 .appendTo('#pdf_page_list');
 
-            
+            if (i == 1) show_pdf_jumpto(pdf, 1);
             
             pdf.getPage(i).then( function (page) {
                 var scale = 1.0;
@@ -720,8 +728,14 @@ function pdfviewer_show(fitem, coursefolder)
 }
 
 
-
-
+/*
+    check if file type is supported
+*/
+function pdfviewer_issupported(fitem)
+{
+    var fileext = get_file_ext(fitem.filename);
+    return fileext == "pdf" || fileext == "ppt" || fileext == "pptx";
+}
 
 
 
@@ -1505,28 +1519,38 @@ function coursetable_enter(cidx, x, y)
         let coursefolder = "/" + cur_semestername + "/" + cobj.cname;
         $("#filenav_sitetitle").text(sobj.sname);
 
-        $("#filenav_syncbtn").unbind("click");
-        $("#filenav_syncbtn").click( function () {
-            webdav_sync(sobj.uuid, coursefolder).then( function (obj) {
-                console.log(obj);
-                show_msg("SYNC OK, total downloads = " + obj.sum.toString());
-                
-                $("#filenav_filelist").empty();
-                obj.lobj.flist.sort( function (a, b) {
-                    if (a.path == b.path) return 0;
-                    if (a.path < b.path) return -1;
-                    return 1;
-                });
-                obj.lobj.flist.forEach( function (element, index, array) {
-                    let element_cb = element;
-                    $(document.createElement('div'))
-                        .addClass("eh_listitem")
-                        .text(element.path)
-                        .appendTo("#filenav_filelist")
-                        .click( function () { pdfviewer_show(element, coursefolder); } );
-                });
+
+        // load data
+        $("#filenav_filelist").empty();
+        $("#filenav_filelist").text("加载中...");
+
+        webdav_sync(sobj.uuid, coursefolder).then( function (obj) {
+            console.log(obj);
+            show_msg("SYNC OK, total downloads = " + obj.sum.toString());
+
+            obj.lobj.flist.sort( function (a, b) {
+                if (a.path == b.path) return 0;
+                if (a.path < b.path) return -1;
+                return 1;
+            });
+
+            $("#filenav_filelist").empty();
+            obj.lobj.flist.forEach( function (element, index, array) {
+                let element_cb = element;
+                var obj = $(document.createElement('span'))
+                    .addClass("eh_listitem")
+                    .text(element.path)
+                    .click( function () { pdfviewer_show(element, coursefolder); } );
+                if (!pdfviewer_issupported(element)) {
+                    obj.css("color", "gray");
+                } else {
+                    obj.addClass("eh_link");
+                }
+
+                $(document.createElement('div')).append(obj).appendTo("#filenav_filelist");
             });
         });
+
         
     } else {
         // no matching site
