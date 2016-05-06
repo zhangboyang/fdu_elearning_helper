@@ -63,6 +63,16 @@ body {
     font-weight: normal;
 }
 
+/* status list */
+.eh_statuslist {
+}
+.eh_statuslist_firsthalf {
+}
+.eh_statuslist_secondhalf {
+}
+.eh_statuslist_item {
+}
+
 
 /* fake link */
 .eh_link {

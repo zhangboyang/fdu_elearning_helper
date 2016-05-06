@@ -58,6 +58,47 @@ function create_kvdiv(kstr, vstr, vfunc)
 }
 
 
+// create universal statuslist div
+function create_statuslist()
+{
+    return $(document.createElement('div')).addClass("eh_statuslist")[0];
+}
+function statuslist_append(list, str, color)
+{
+    var x = $(document.createElement('div'))
+        .addClass("eh_statuslist_item")
+        .text(str)
+        .appendTo($(list));
+    if (typeof(color) != "undefined") {
+        x.css("color", color);
+    }
+    return x[0];
+}
+function statuslist_appendprogress(list, str, color)
+{
+    var x = $(document.createElement('div'))
+        .append(y = $(document.createElement('span'))
+            .addClass("eh_statuslist_firsthalf")
+            .text(str)
+        ).append($(document.createElement('span'))
+            .html("&nbsp;...&nbsp;")
+        ).append($(document.createElement('span'))
+            .addClass("eh_statuslist_secondhalf")
+        ).appendTo($(list));
+    if (typeof(color) != "undefined") {
+        y.css("color", color);
+    }
+    return x[0];
+}
+function statuslist_update(obj, str, color)
+{
+    var x = $($(obj).children("span")[2]).text(str);
+
+    if (typeof(color) != "undefined") {
+        x.css("color", color);
+    }
+}
+
 /*
     install chrome-url data to native path
     used with trusted filename/url only
@@ -310,6 +351,8 @@ function init_thicknessbox()
         $("#viewfile_thicknessbox" + i).hover(
             function () {
                 $(this).css("border-color", thicknessbox_boxbgcolor_hover);
+
+
             },
             function () {
                 $(this).css("border-color", thicknessbox_boxbgcolor_selected);
@@ -518,6 +561,8 @@ $("document").ready( function () {
     init_canvas();
 
     show_page("main");
+
+    init_main_page(); // load course table
     
     show_msg("INIT OK!", 4000);
 
@@ -1031,25 +1076,46 @@ function webdav_sync_single(href, localbase, fpath)
         }
         sum: a integer, total real downloads
     }
+    
     uuid: site uuid
     course folder: course folder, must start with "/", some thing like "/2015-2016春季学期/离散数学"
 
+    var x = create_status("some description");
+    update_status(x, "new status");
 */
-function webdav_sync(uuid, coursefolder)
+function webdav_sync(uuid, coursefolder, statuslist)
 {
     return new Promise( function (resolve, reject) {
         // create course folder
         var localbase = docfolder + coursefolder;
         webdav_create_localpath(docfolder, coursefolder).then( function () {
-            // download files
+            // download files, list dir first
+            var lsstatus = statuslist_appendprogress(statuslist, "正在列目录");
             webdav_listall(uuid).then(function (lobj) {
                 Promise.all(lobj.dlist.map( function (ditem) { return webdav_create_localpath(localbase, ditem.path); } ))
                     .then( function () {
+                        statuslist_update(lsstatus, "完成", "green");
                         // directory created, start downloading files
-                        Promise.all(lobj.flist.map( function (fitem) { return webdav_sync_single(fitem.href, localbase, fitem.path); } ))
-                            .then( function (dstat) {
+                        Promise.all(lobj.flist.map( function (fitem) {
+                                return new Promise( function (resolve, reject) {
+                                    var fstatus = statuslist_appendprogress(statuslist, "正在同步 " + fitem.filename);
+                                    statuslist_update(fstatus, "下载中", "blue");
+                                    webdav_sync_single(fitem.href, localbase, fitem.path).then( function (dstat) {
+                                        if (dstat == 0) {
+                                            statuslist_update(fstatus, "无需下载", "green");
+                                        } else {
+                                            statuslist_update(fstatus, "下载成功", "green");
+                                        }
+                                        resolve(dstat);
+                                    }, function (reason) {
+                                        statuslist_update(fstatus, "下载失败", red);
+                                        reject("can't download " + fitem.filename + ": " + reason);
+                                    });
+                                });
+                            })).then( function (dstat) {
                                 var sum = 0;
                                 dstat.forEach( function (element) { sum += element; } );
+                                statuslist_append(statuslist, "同步完成，共有 " + sum + " 个新文件", "green");
                                 resolve({
                                     lobj: lobj,
                                     sum: sum,
@@ -1061,6 +1127,7 @@ function webdav_sync(uuid, coursefolder)
                         reject("can't create directory: " + reason);
                     });
             }, function (reason) {
+                statuslist_update(lsstatus, "失败", red);
                 reject("can't list files: " + reason);
             });
         }, function (reason) {
@@ -1524,7 +1591,10 @@ function coursetable_enter(cidx, x, y)
         $("#filenav_filelist").empty();
         $("#filenav_filelist").text("加载中...");
 
-        webdav_sync(sobj.uuid, coursefolder).then( function (obj) {
+        var statuslist = create_statuslist();
+        $("#filenav_syncstatus").empty().append($(statuslist));
+
+        webdav_sync(sobj.uuid, coursefolder, statuslist).then( function (obj) {
             console.log(obj);
             show_msg("SYNC OK, total downloads = " + obj.sum.toString());
 
@@ -1672,7 +1742,7 @@ function test()
 
     //return;
 
-    init_main_page();
+    
 
 
 }
