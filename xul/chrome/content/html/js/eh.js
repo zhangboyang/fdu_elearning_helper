@@ -1135,7 +1135,7 @@ function webdav_sync(uuid, coursefolder, statuslist, report_progress)
                         reject("can't create directory: " + reason);
                     });
             }, function (reason) {
-                statuslist_update(lsstatus, "失败", red);
+                statuslist_update(lsstatus, "失败", "red");
                 reject("can't list files: " + reason);
             });
         }, function (reason) {
@@ -1598,18 +1598,21 @@ function coursetable_enter(cidx, x, y)
         // load data
         $("#filenav_filelist").empty();
 
+
+
         
         // prepare for status bar
         $("#filenav_syncprogress").empty();
         $("#filenav_syncinprogresstext").show();
         $("#filenav_syncinfinishedtext").empty().hide();
         $("#filenav_showsyncdetails").unbind("click").click( function () {
-            $("#filenav_syncdetails").toggle();
+            $("#filenav_syncdetails_box").toggle().scrollTop(0);
         });
 
-        // prepare for status list
+        // prepare detail box
+        $("#filenav_syncdetails_box").hide();
         var statuslist = create_statuslist();
-        $("#filenav_syncdetails").empty().append($(statuslist)).hide();
+        $("#filenav_syncdetails").empty().append($(statuslist));
 
         webdav_sync(sobj.uuid, coursefolder, statuslist,
             function (finished, total) { // report_progress

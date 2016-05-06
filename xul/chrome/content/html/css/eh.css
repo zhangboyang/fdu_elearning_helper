@@ -176,6 +176,7 @@ body {
 
 .eh_coursetable tr:nth-child(n+7):nth-child(-n+11) td:nth-child(n+1) {
     /* color blender: http://meyerweb.com/eric/tools/color-blend */
+    /* 6-10 */
     background-color: #CDE5B2;
 }
 .eh_coursetable tr:nth-child(n+7):nth-child(-n+11) td:nth-child(1) {
