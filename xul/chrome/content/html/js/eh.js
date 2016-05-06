@@ -398,7 +398,35 @@ function select_thickness(id)
 
 
 
-
+// ============= dtype selector ===========
+var dtype_selected;
+function is_dtype_drawtype(id) { return id >= 2; }
+function get_dtype(id)
+{
+    var l = [
+        "navigate",
+        "select",
+        "rect",
+        "line",
+        "ellipse",
+        "pen",
+    ];
+    return l[id - 1];
+}
+function select_dtype(id)
+{
+    dtype_selected = id;
+    $(
+        $("#viewfile_dtypelist").children("a")
+            .removeClass("lighten-1")
+            .addClass("darken-3")
+        [id - 1]
+    ).removeClass("darken-3").addClass("lighten-1");
+}
+function init_dtype()
+{
+    select_dtype(1);
+}
 
 
 
@@ -406,10 +434,6 @@ function select_thickness(id)
 
 
 // ============= drawing related functions  (in the PDF viewer) ==========
-
-
-var type_selected = "ellipse";
-
 
 var is_painting = false;
 var canvas_offset; // x: left, y: top
@@ -572,12 +596,22 @@ function canvas_clearpage()
 {
     dlist = new Array();
     lastdraw = 0;
+    canvas_clearsingle('pdf_page_draw');
+    canvas_clearsingle('pdf_page_temp');
 }
 
 
 function init_canvas() // will be called once in global init function
 {
     $('#pdf_page_front').mousedown(function(e){
+        var dtype = get_dtype(dtype_selected);
+        if (dtype == "navigate") {
+            show_pdf_switchpage(1);
+            return;
+        }
+        
+        if (!is_dtype_drawtype(dtype_selected)) return;
+        
         // get canvas offset
         var off = $("#pdf_page_temp").offset();
         canvas_offset = { x: off.left, y: off.top };
@@ -590,7 +624,7 @@ function init_canvas() // will be called once in global init function
 
         tmp_lastdraw = -1;
         
-        tmp_dobj = new_dobj(type_selected, color_selected, thickness_selected);
+        tmp_dobj = new_dobj(dtype, color_selected, thickness_selected);
         var mcoord = { x: e.pageX, y: e.pageY };
         canvas_addmousedata(mcoord);
     });
@@ -658,13 +692,14 @@ $("document").ready( function () {
     
     init_colorbox();
     init_thicknessbox();
+    init_dtype();
     init_canvas();
 
     show_page("main");
 
     init_main_page(); // load course table
     
-    show_msg("INIT OK!", 4000);
+    //show_msg("INIT OK!", 4000);
 
 });
 
@@ -687,7 +722,7 @@ $("document").ready( function () {
 
 var pdf_thumbnail_div_list;
 var selected_pdf_page;
-
+var pdf_page_loading = false;
 
 /*
     initialize pdf viewer
@@ -698,10 +733,17 @@ var selected_pdf_page;
 function init_pdf(pdf_path)
 {
     $('#pdf_page_list').empty();
+    canvas_clearsingle("pdf_page_view");
     
     // this function is call when user enters "viewfile" page
     PDFJS.getDocument(pdf_path).then( function (pdf) {
         //show_pdf_jumpto(pdf, 1);
+
+        show_pdf_switchpage = function (delta) {
+            if (selected_pdf_page + delta < 1 || selected_pdf_page + delta > pdf.numPages) return;
+            show_pdf_jumpto(pdf, selected_pdf_page + delta);
+            pdf_thumbnail_div_list[selected_pdf_page].scrollIntoView();
+        };
 
         if (pdf.numPages > page_limit) {
             friendly_error("文件页数过多，无法打开");
@@ -767,6 +809,15 @@ function init_pdf(pdf_path)
 }
 
 
+
+/*
+    switch pdf page ( current += delta )
+    the function is dynamicly generated in init_pdf()
+    usage:
+        show_pdf_switchpage(delta)
+*/
+var show_pdf_switchpage;
+
 /*
     jump to a pdf page
 
@@ -776,8 +827,14 @@ function init_pdf(pdf_path)
 */
 function show_pdf_jumpto(pdf, page_id)
 {
+    if (pdf_page_loading) return;
+    
     $(pdf_thumbnail_div_list[selected_pdf_page]).removeClass("eh_selected");
     $(pdf_thumbnail_div_list[selected_pdf_page = page_id]).addClass("eh_selected");
+
+    pdf_page_loading = true;
+
+    canvas_clearpage();
     
     pdf.getPage(page_id).then(function (page) {
         var space_ratio = 0.03;
@@ -799,8 +856,6 @@ function show_pdf_jumpto(pdf, page_id)
         var context = canvas.getContext('2d');
         canvasdraw.height = canvastemp.height = canvas.height = viewport.height;
         canvasdraw.width = canvastemp.width = canvas.width = viewport.width;
-
-        canvas_clearpage();
         
         // Render PDF page into canvas context.
         var renderContext = {
@@ -808,7 +863,9 @@ function show_pdf_jumpto(pdf, page_id)
             viewport: viewport
         };
         
-        page.render(renderContext);
+        page.render(renderContext).then( function () {
+            pdf_page_loading = false;
+        });
     });
 }
 
@@ -1293,7 +1350,7 @@ function uis_login()
                     "gx_charset": "UTF-8",
                 }, null, "text").done( function (data, textStatus, jqXHR) {
                     if (data.indexOf("Please Wait While Redirecting to console") > -1) {
-                        show_msg("Login to UIS - OK!");
+                        //show_msg("Login to UIS - OK!");
                         resolve();
                     } else {
                         reject("UIS login check failed");
@@ -1318,7 +1375,7 @@ function elearning_login()
             .done( function (data, textStatus, jqXHR) {
                 //console.log(data);
                 if (data.indexOf(el_username) > -1) {
-                    show_msg("Login to eLearning - OK!");
+                    //show_msg("Login to eLearning - OK!");
                     resolve();
                 } else {
                     reject("eLearning login check failed");
@@ -1822,7 +1879,7 @@ function init_main_page()
                     urp_fetch_coursetable(semesterdata.cursid).then( function (clist) {
                         // load clist data
                         coursetable_load(clist)
-                        show_msg("load clist OK");
+                        //show_msg("load clist OK");
                     })
                 }, function (reason) {
                     abort("can't fetch semesterdata: " + reason);
