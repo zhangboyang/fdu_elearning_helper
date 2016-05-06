@@ -1604,7 +1604,7 @@ function coursetable_enter(cidx, x, y)
         // prepare for status bar
         $("#filenav_syncprogress").empty();
         $("#filenav_syncinprogresstext").show();
-        $("#filenav_syncinfinishedtext").empty().hide();
+        $("#filenav_syncfinishedtext").empty().hide();
         $("#filenav_showsyncdetails").unbind("click").click( function () {
             $("#filenav_syncdetails_box").toggle().scrollTop(0);
         });
@@ -1621,11 +1621,12 @@ function coursetable_enter(cidx, x, y)
             }
         ).then( function (obj) {
             $("#filenav_syncinprogresstext").hide();
-            $("#filenav_syncinfinishedtext").text("同步完成，共 " + obj.sum.toString() + " 个新文件").show();
+            if (obj.sum == 0) {
+                $("#filenav_syncfinishedtext").text("同步完成").show();
+            } else {
+                $("#filenav_syncfinishedtext").text("同步完成，共 " + obj.sum.toString() + " 个新文件").show();
+            }
             
-            console.log(obj);
-            show_msg("SYNC OK, total downloads = " + obj.sum.toString());
-
             obj.lobj.flist.sort( function (a, b) {
                 if (a.path == b.path) return 0;
                 if (a.path < b.path) return -1;
@@ -1647,6 +1648,10 @@ function coursetable_enter(cidx, x, y)
 
                 $(document.createElement('div')).append(obj).appendTo("#filenav_filelist");
             });
+        }, function (reason) {
+            $("#filenav_syncinprogresstext").hide();
+            $("#filenav_syncfinishedtext").text("同步失败").show();
+            statuslist_append(statuslist, "同步失败: " + reason, "red");
         });
 
         
