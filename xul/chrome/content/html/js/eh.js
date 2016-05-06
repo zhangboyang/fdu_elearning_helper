@@ -76,6 +76,7 @@ function statuslist_append(list, str, color)
 }
 function statuslist_appendprogress(list, str, color)
 {
+    var y;
     var x = $(document.createElement('div'))
         .append(y = $(document.createElement('span'))
             .addClass("eh_statuslist_firsthalf")
@@ -166,7 +167,7 @@ function abort(str)
 function friendly_error(str)
 {
     str = "错误: " + str;
-    alert(str);
+    do_output(str);
 }
 
 
@@ -1031,31 +1032,35 @@ function webdav_download_single(href, localbase, fpath)
 
     parameters:
         see webdav_download_single() for details
+        fstatus: statuslist item object
+        update_count_callback(delta_finished, delta_total)
 */
-function webdav_sync_single(href, localbase, fpath)
+function webdav_sync_single(href, localbase, fpath, fstatus, update_count_callback)
 {
     // FIXME: security risk, should check if fpath is legal
 
     return new Promise( function (resolve, reject) {
-        var do_download = function () {
-            webdav_download_single(href, localbase, fpath).then( function () {
-                resolve(1);
-            }, function (reason) { // onerror
-                reject("download single failed: " + reason);
-            });
-        }
-    
         var target_uri = localbase + fpath;
         var target_native = OS.Path.fromFileURI(target_uri);
         OS.File.stat(target_native).then( function (info) {
             // file exists, no need to download
             //console.log("file exists: " + fpath);
+            statuslist_update(fstatus, "无需下载", "green");
             resolve(0);
         }, function (reason) {
             if (reason instanceof OS.File.Error && reason.becauseNoSuchFile) {
                 // file not exists, we should download it
                 //console.log("file not exists, download: " + fpath);
-                do_download(); // resolve() will be called in do_download()
+                statuslist_update(fstatus, "下载中", "blue");
+                update_count_callback(0, 1);
+                webdav_download_single(href, localbase, fpath).then( function () {
+                    statuslist_update(fstatus, "下载成功", "green");
+                    update_count_callback(1, 0);
+                    resolve(1);
+                }, function (reason) { // onerror
+                    statuslist_update(fstatus, "下载失败", "red");
+                    reject("download single failed: " + reason);
+                });
             } else {
                 reject("unknown stat() error: " + reason);
             }
@@ -1079,11 +1084,10 @@ function webdav_sync_single(href, localbase, fpath)
     
     uuid: site uuid
     course folder: course folder, must start with "/", some thing like "/2015-2016春季学期/离散数学"
-
-    var x = create_status("some description");
-    update_status(x, "new status");
+    statuslist: see create_statuslist()
+    report_progress(finished_count, total_count)
 */
-function webdav_sync(uuid, coursefolder, statuslist)
+function webdav_sync(uuid, coursefolder, statuslist, report_progress)
 {
     return new Promise( function (resolve, reject) {
         // create course folder
@@ -1096,16 +1100,20 @@ function webdav_sync(uuid, coursefolder, statuslist)
                     .then( function () {
                         statuslist_update(lsstatus, "完成", "green");
                         // directory created, start downloading files
+                        var count = 0;
+                        var total = 0;
+                        report_progress(count, total);
                         Promise.all(lobj.flist.map( function (fitem) {
                                 return new Promise( function (resolve, reject) {
-                                    var fstatus = statuslist_appendprogress(statuslist, "正在同步 " + fitem.filename);
-                                    statuslist_update(fstatus, "下载中", "blue");
-                                    webdav_sync_single(fitem.href, localbase, fitem.path).then( function (dstat) {
-                                        if (dstat == 0) {
-                                            statuslist_update(fstatus, "无需下载", "green");
-                                        } else {
-                                            statuslist_update(fstatus, "下载成功", "green");
+                                    var fstatus = statuslist_appendprogress(statuslist, "正在同步 " + fitem.path);
+                                    statuslist_update(fstatus, "正在检查", "blue");
+                                    webdav_sync_single(fitem.href, localbase, fitem.path, fstatus,
+                                        function (delta_count, delta_total) { // update_count_callback
+                                            count += delta_count;
+                                            total += delta_total;
+                                            report_progress(count, total);
                                         }
+                                    ).then( function (dstat) {
                                         resolve(dstat);
                                     }, function (reason) {
                                         statuslist_update(fstatus, "下载失败", red);
@@ -1589,12 +1597,29 @@ function coursetable_enter(cidx, x, y)
 
         // load data
         $("#filenav_filelist").empty();
-        $("#filenav_filelist").text("加载中...");
 
+        
+        // prepare for status bar
+        $("#filenav_syncprogress").empty();
+        $("#filenav_syncinprogresstext").show();
+        $("#filenav_syncinfinishedtext").empty().hide();
+        $("#filenav_showsyncdetails").unbind("click").click( function () {
+            $("#filenav_syncdetails").toggle();
+        });
+
+        // prepare for status list
         var statuslist = create_statuslist();
-        $("#filenav_syncstatus").empty().append($(statuslist));
+        $("#filenav_syncdetails").empty().append($(statuslist)).hide();
 
-        webdav_sync(sobj.uuid, coursefolder, statuslist).then( function (obj) {
+        webdav_sync(sobj.uuid, coursefolder, statuslist,
+            function (finished, total) { // report_progress
+                // update status bar
+                $("#filenav_syncprogress").text(finished.toString() + "/" + total.toString());
+            }
+        ).then( function (obj) {
+            $("#filenav_syncinprogresstext").hide();
+            $("#filenav_syncinfinishedtext").text("同步完成，共 " + obj.sum.toString() + " 个新文件").show();
+            
             console.log(obj);
             show_msg("SYNC OK, total downloads = " + obj.sum.toString());
 
@@ -1647,6 +1672,7 @@ function match_cname_sname(cidx)
             if (slist[sidx].sname.indexOf(clist[cidx].cname) >= 0) break; // full class name is in site name
         }
     }
+
     if (sidx < slist.length) {
         return sidx; // match OK
     } else {
