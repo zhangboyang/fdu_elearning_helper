@@ -407,110 +407,209 @@ function select_thickness(id)
 
 // ============= drawing related functions  (in the PDF viewer) ==========
 
-var context;
-var clickX = new Array();
-var clickY = new Array();
-var clickDrag = new Array();
-var clickColor = new Array();
-var clickThickness = new Array();
-var paint;
 
-var canvas_offset_X;
-var canvas_offset_Y;
+var type_selected = "ellipse";
 
-var last_redraw_count;
 
-function addClick(x, y, dragging, color, thickness)
+var is_painting = false;
+var canvas_offset; // x: left, y: top
+var canvas_size; // x: width, y: height
+
+var dlist; /* currently drawn objects
+    {
+        type: string, "ellipse", "rect", "line", "pen"
+        data: array of mouse pointer route, normalized
+            {
+                x: left, normalized value in [0, 1]
+                y: top, normalized value in [0, 1]
+
+                (0,0)
+                *---------->(1,0)
+                |
+                |
+                v(0,1)
+            }
+        thickness: tid
+        color: cid
+    }
+*/
+
+var tmp_dobj; // current drawing object
+var tmp_lastdraw; // index of last draw coord, for redraw_single()
+var lastdraw; // index of last drawn object + 1, for redraw()
+
+// ccoord: canvas coord is related to left, top corner, in px
+// ncoord: normalzed coord is related to left, top corner, range: [0, 1]
+// mcoord: mcoord coord is related to window, in px
+
+function canvas_c2n(c) { return { x: c.x / canvas_size.x, y: c.y / canvas_size.y }; }
+function canvas_n2c(n) { return { x: n.x * canvas_size.x, y: n.y * canvas_size.y }; }
+function canvas_m2c(m) { return { x: m.x - canvas_offset.x, y: m.y - canvas_offset.y }; }
+
+// add new mouse coord to tmp_dobj
+function canvas_addmousedata(mcoord)
 {
-  clickX.push(x);
-  clickY.push(y);
-  clickDrag.push(dragging);
-  clickColor.push(color);
-  clickThickness.push(thickness);
-}
-
-function redraw(){
-  context.lineJoin = "round";
-
-  var i;
-  for(i = last_redraw_count; i < clickX.length; i++) {
-    context.strokeStyle = get_color(clickColor[i]);
-    context.lineWidth = parseInt(get_thickness(clickThickness[i]));
-    context.beginPath();
-    if(clickDrag[i] && i){
-      context.moveTo(clickX[i-1], clickY[i-1]);
-     }else{
-       context.moveTo(clickX[i]-1, clickY[i]);
-     }
-     context.lineTo(clickX[i], clickY[i]);
-     context.closePath();
-     context.stroke();
-  }
-  last_redraw_count = i;
-}
+    var ccoord = canvas_m2c(mcoord);
+    var ncoord = canvas_c2n(ccoord);
     
-function init_canvas()
+    tmp_dobj.data.push(ncoord);
+
+    var tmpctx = document.getElementById("pdf_page_temp").getContext("2d");
+    canvas_redraw_init(tmpctx);
+    tmp_lastdraw = canvas_redraw_single(tmpctx, tmp_dobj, tmp_lastdraw);
+    canvas_redraw_finish(tmpctx);
+}
+
+// remove unused data from dobj
+function canvas_shrink_dobj(dobj)
 {
-    context = document.getElementById("pdf_page_view").getContext("2d");
-    $('#pdf_page_view').mousedown(function(e){
-        var x = $("#pdf_page_view").offset();
-        canvas_offset_X = x.left;
-        canvas_offset_Y = x.top;
-        var mouseX = e.pageX - canvas_offset_X;
-        var mouseY = e.pageY - canvas_offset_Y;
-        paint = true;
-        addClick(e.pageX - canvas_offset_X, e.pageY - canvas_offset_Y, false, color_selected, thickness_selected);
-        redraw();
-    });
-    $('#pdf_page_view').mousemove(function(e){
-        if(paint){
-            addClick(e.pageX - canvas_offset_X, e.pageY - canvas_offset_Y, true, color_selected, thickness_selected);
-            redraw();
+    if (dobj.type != "pen") {
+        if (dobj.data.length > 2) {
+            dobj.data = [dobj.data[0], dobj.data[dobj.data.length - 1]];
         }
-    });
-    $('#pdf_page_view').mouseup(function(e){
-        paint = false;
-    });
-    $('#pdf_page_view').mouseleave(function(e){
-        paint = false;
-    });
+    }
 }
 
-function clear_canvas()
+
+
+
+// redraw shall begin with init(), draw single with single(), finish with finish()
+function canvas_redraw_init(ctx) { ctx.lineCap = "round"; ctx.lineJoin = "round"; }
+function canvas_redraw_finish(ctx) { }
+function canvas_redraw_single(ctx, dobj, startfrom)
 {
-    
-    if (parseInt($("#myImage").css("width")) == 0) {
-        setTimeout("clear_canvas()", 10); // ugly hack
-        return;
+    var data = dobj.data;
+    if (data.length < 2) { return 0; }
+
+    var ret = 0;
+    ctx.strokeStyle = get_color(dobj.color);
+    ctx.lineWidth = parseInt(get_thickness(dobj.thickness));
+
+    var st = typeof(startfrom) != "undefined" ? startfrom : 0;
+
+    if (st == -1) {
+        canvas_clearcontext(ctx);
+        st = 0;
     }
     
-    clickX.length = 0;
-    clickY.length = 0;
-    clickDrag.length = 0;
-    clickColor.length = 0;
-    clickThickness.length = 0;
-    var canvas = document.getElementById("pdf_page_view");
-    canvas.getContext("2d").clearRect(0, 0, context.canvas.width, context.canvas.height); // Clears the canvas
-    
-    //canvas.setAttribute('width', $("#myImage")[0].naturalWidth);
-    //canvas.setAttribute('height', $("#myImage")[0].naturalHeight);
-    
-    
-    //$("#pdf_page_view").css("width", $("#myImage").css("width"));
-    //$("#pdf_page_view").css("height", $("#myImage").css("height"));
-    
-    
-    //canvas.setAttribute('width', $("#myImage").css("width"));
-   // canvas.setAttribute('height', $("#myImage").css("height"));
-    
-    //Materialize.toast($("#myImage").css("width"), 4000);
-    
-  
-    last_redraw_count = 0;
+    if (dobj.type == "pen") {
+        ctx.beginPath();
+        var lc = canvas_n2c(data[st]);
+        for (var i = st + 1; i < data.length; i++) {
+            var c = canvas_n2c(data[i]);
+            ctx.moveTo(lc.x, lc.y);
+            ctx.lineTo(c.x, c.y);
+            lc = c;
+        }
+        ctx.closePath();
+        
+        ret = data.length - 1;
+    } else if (dobj.type == "rect") {
+        var lt = canvas_n2c(data[0]);
+        var rb = canvas_n2c(data[data.length - 1]);
+        ctx.beginPath();
+        ctx.rect(lt.x, lt.y, rb.x - lt.x, rb.y - lt.y);
+        ctx.closePath();
+        ret = -1;
+    } else if (dobj.type == "line") {
+        var lt = canvas_n2c(data[0]);
+        var rb = canvas_n2c(data[data.length - 1]);
+        ctx.beginPath();
+        ctx.moveTo(lt.x, lt.y);
+        ctx.lineTo(rb.x, rb.y);
+        ctx.closePath();
+        ret = -1;
+    } else if (dobj.type == "ellipse") {
+        var lt = canvas_n2c(data[0]);
+        var rb = canvas_n2c(data[data.length - 1]);
+        ctx.beginPath();
+        ctx.save();
+        ctx.translate(lt.x, lt.y);
+        ctx.scale(rb.x - lt.x, rb.y - lt.y);
+        ctx.arc(0.5, 0.5, 0.5, 0, 2 * Math.PI, false);
+        ctx.restore();
+        ctx.closePath();
+        ret = -1;
+    }
+    ctx.stroke();
+    return ret;
+}
+
+// redraw dlist
+function canvas_redraw(startfrom)
+{
+    var st = typeof(startfrom) != "undefined" ? startfrom : 0;
+    var canvas = document.getElementById("pdf_page_draw");
+    if (st == 0) canvas_clearcanvas(canvas);
+    var ctx = canvas.getContext("2d");
+    canvas_redraw_init(ctx);
+    for (var i = st; i < dlist.length; i++) {
+        canvas_redraw_single(ctx, dlist[i]);
+    }
+    canvas_redraw_finish(ctx);
+    return dlist.length;
+}
+
+// create a new dobj
+function new_dobj(type, color, thickness)
+{
+    return {
+        type: type,
+        thickness: thickness,
+        color: color,
+        data: new Array(),
+    };
+}
+
+// clear canvas
+function canvas_clearcontext(context) { context.clearRect(0, 0, context.canvas.width, context.canvas.height); }
+function canvas_clearcanvas(canvas) { canvas_clearcontext(canvas.getContext("2d")); }
+function canvas_clearsingle(idstr) { canvas_clearcanvas(document.getElementById(idstr)); }
+
+
+// called when loading a new page
+function canvas_clearpage()
+{
+    dlist = new Array();
+    lastdraw = 0;
 }
 
 
+function init_canvas() // will be called once in global init function
+{
+    $('#pdf_page_front').mousedown(function(e){
+        // get canvas offset
+        var off = $("#pdf_page_temp").offset();
+        canvas_offset = { x: off.left, y: off.top };
 
+        // get canvas size
+        var canvas = document.getElementById('pdf_page_temp');
+        canvas_size = { x: canvas.height, y: canvas.width };
+
+        is_painting = true;
+
+        tmp_lastdraw = -1;
+        
+        tmp_dobj = new_dobj(type_selected, color_selected, thickness_selected);
+        var mcoord = { x: e.pageX, y: e.pageY };
+        canvas_addmousedata(mcoord);
+    });
+    $(document).mousemove( function (e) {
+        if (is_painting) {
+            var mcoord = { x: e.pageX, y: e.pageY };
+            canvas_addmousedata(mcoord);
+        }
+    });
+    $(document).mouseup( function (e) {
+        if (is_painting) {
+            canvas_clearsingle('pdf_page_temp');
+            canvas_shrink_dobj(tmp_dobj);
+            dlist.push(tmp_dobj);
+            lastdraw = canvas_redraw(lastdraw);
+        }
+        is_painting = false;
+    });
+}
 
 
 
@@ -685,19 +784,24 @@ function show_pdf_jumpto(pdf, page_id)
         
         var scale = 1.0;
         var viewport = page.getViewport(scale);
-        var wrapper_width = Math.floor(parseInt($("#pdf_page_view_wrapper").css("width")) * (1.0 - space_ratio)) - 2;
-        var wrapper_height = Math.floor(parseInt($("#pdf_page_view_wrapper").css("height")) * (1.0 - space_ratio)) - 2;
+        var wrapper_width = Math.floor(parseInt($("#pdf_page_view_wrapper").css("width")) * (1.0 - space_ratio));
+        var wrapper_height = Math.floor(parseInt($("#pdf_page_view_wrapper").css("height")) * (1.0 - space_ratio));
         
         scale = Math.min(wrapper_width / viewport.width, wrapper_height / viewport.height);
         //show_msg(scale);
         viewport = page.getViewport(scale);
 
         // Prepare canvas using PDF page dimensions.
+
+        var canvasdraw = document.getElementById('pdf_page_draw');
+        var canvastemp = document.getElementById('pdf_page_temp');
         var canvas = document.getElementById('pdf_page_view');
         var context = canvas.getContext('2d');
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
+        canvasdraw.height = canvastemp.height = canvas.height = viewport.height;
+        canvasdraw.width = canvastemp.width = canvas.width = viewport.width;
 
+        canvas_clearpage();
+        
         // Render PDF page into canvas context.
         var renderContext = {
             canvasContext: context,
@@ -767,7 +871,7 @@ function pdfviewer_show(fitem, coursefolder)
         });
         show_page("viewfile");
         init_pdf(pdfuri);
-        clear_canvas();
+        canvas_clearpage();
     }, function (reason) {
         friendly_error(reason);
     });
