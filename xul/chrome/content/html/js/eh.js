@@ -142,6 +142,28 @@ function get_file_ext(str)
 }
 
 
+
+// ======================== vector functions =================================
+
+
+function sq(x) { return x * x; }
+function vnew(x, y) { return { x: x, y: y }; }
+function vadd(a, b) { return vnew(a.x + b.x, a.y + b.y); }
+function vsub(a, b) { return vnew(a.x - b.x, a.y - b.y); }
+function vdot(a, b) { return a.x * b.x + a.y * b.y; }
+function vdet(a, b) { return a.x * b.y - a.y * b.x; }
+function vlensq(a) { return vdot(a, a); }
+function vlen(a) { return Math.sqrt(vlensq(a)); }
+function vangle(a) { return Math.acos(vdot(a, b) / vlen(a) / vlen(b)); }
+function distsq_p2s(p, a, b)
+{
+    var v1 = vsub(b, a), v2 = vsub(p, a), v3 = vsub(p, b);
+    if (vdot(v1, v2) < 0) return vlensq(v2);
+    else if (vdot(v1, v3) > 0) return vlensq(v3);
+    else return sq(vdet(v1, v2)) / vlensq(v1);
+}
+function dist_p2s(p, a, b) { return Math.sqrt(distsq_p2s(p, a, b)); }
+
 // ======================== showing debug messages ===========================
 
 function do_output(str)
@@ -270,19 +292,30 @@ var color_count = 8;
 
 var color_selected;
 
+var colorlist = [
+    "#ff0000",
+    "#00ff00",
+    "#0000ff",
+    "#ffff00",
+    "#00ffff",
+    "#ff00ff",
+    "#eeeeee",
+    "#000000",
+];
+    
 function get_color(id)
 {
-    var clist = [
-        "#ff0000",
-        "#00ff00",
-        "#0000ff",
-        "#ffff00",
-        "#00ffff",
-        "#ff00ff",
-        "#eeeeee",
-        "#000000",
-    ];
-    return clist[id - 1];
+    return colorlist[id - 1];
+}
+
+
+function get_color_id(str)
+{
+    for (var i = 0; i < colorlist.length; i++) {
+        if (str == colorlist[i])
+            return i + 1;
+    }
+    return 0;
 }
 
 function init_colorbox()
@@ -318,12 +351,16 @@ function redraw_colorbox()
     }
 }
 
-function select_color(id)
+function select_color(id, shouldcallback)
 {
+    if (id < 1 || id > colorlist.length) return;
     color_selected = id;
     redraw_colorbox();
     $("#viewfile_colorbox" + id).css("border-color", colorbox_boxbgcolor_hover);
-    canvas_ct_changed_callback();
+
+    var scb = true;
+    if (typeof shouldcallback != "undefined") scb = shouldcallback;
+    if (scb) canvas_ct_changed_callback();
 }
 
 /* thicknessbox */
@@ -332,15 +369,25 @@ var thickness_count = 4;
 
 var thickness_selected;
 
-function get_thickness(id)
-{
-    var clist = [
+var thicknesslist = [
         "1px",
         "3px",
         "5px",
         "7px",
     ];
-    return clist[id - 1];
+
+function get_thickness(id)
+{
+    return thicknesslist[id - 1];
+}
+
+function get_thickness_id(str)
+{
+    for (var i = 0; i < thicknesslist.length; i++) {
+        if (str == thicknesslist[i])
+            return i + 1;
+    }
+    return 0;
 }
 
 function init_thicknessbox()
@@ -378,12 +425,16 @@ function redraw_thicknessbox()
     }
 }
 
-function select_thickness(id)
+function select_thickness(id, shouldcallback)
 {
+    if (id < 1 || id > thicknesslist.length) return;
     thickness_selected = id;
     redraw_thicknessbox();
     $("#viewfile_thicknessbox" + id).css("border-color", thicknessbox_boxbgcolor_hover);
-    canvas_ct_changed_callback();
+    
+    var scb = true;
+    if (typeof shouldcallback != "undefined") scb = shouldcallback;
+    if (scb) canvas_ct_changed_callback();
 }
 
 
@@ -425,13 +476,14 @@ function select_dtype(id)
         [id - 1]
     ).removeClass("darken-3").addClass("lighten-1");
 
+    canvas_resetselected();
+
+    
     if (is_dtype_drawtype(id)) {
         $("#viewfile_dtoolbox").show();
     } else {
         $("#viewfile_dtoolbox").hide();
     }
-
-    canvas_resetselected();
 }
 
 function reset_dtype()
@@ -626,6 +678,49 @@ function canvas_clearpage()
 
 
 
+/* return distance to object */
+function canvas_distance2object(dobj, ccoord)
+{
+    if (dobj.data.length == 1) {
+        return vlen(vsub(canvas_n2c(dobj.data[0]), ccoord));
+    }
+
+    if (dobj.type == "line") {
+        return dist_p2s(ccoord, canvas_n2c(dobj.data[0]), canvas_n2c(dobj.data[dobj.data.length - 1]));
+    } else if (dobj.type == "rect") {
+        var a = canvas_n2c(dobj.data[0]);
+        var b = canvas_n2c(dobj.data[dobj.data.length - 1]);
+        return Math.min(
+            dist_p2s(ccoord, a, vnew(a.x, b.y)),
+            dist_p2s(ccoord, a, vnew(b.x, a.y)),
+            dist_p2s(ccoord, b, vnew(a.x, b.y)),
+            dist_p2s(ccoord, b, vnew(b.x, a.y)));
+    } else if (dobj.type == "pen") {
+        var dist = Infinity;
+        for (i = 1; i < dobj.data.length; i++) {
+            var a = canvas_n2c(dobj.data[i - 1]);
+            var b = canvas_n2c(dobj.data[i]);
+            dist = Math.min(dist, dist_p2s(ccoord, a, b));
+        }
+        return dist;
+    } else if (dobj.type == "ellipse") {
+        var dist = Infinity;
+        var samples = 360; // brute-force
+        var p1 = canvas_n2c(dobj.data[0]);
+        var p2 = canvas_n2c(dobj.data[dobj.data.length - 1]);
+        var o = vnew((p1.x + p2.x) / 2, (p1.y + p2.y) / 2);
+        var a = (p1.x - p2.x) / 2;
+        var b = (p1.y - p2.y) / 2;
+        for (var i = 0; i < samples; i++) {
+            var deg = 2 * Math.PI * i / samples;
+            var p = vadd(o, vnew(a * Math.sin(deg), b * Math.cos(deg)));
+            dist = Math.min(dist, vlen(vsub(ccoord, p)));
+        }
+        return dist;
+    }
+
+    return Infinity;
+}
 
 /*  return id of the nearest object by mouse position
     return -1 if none should be selected
@@ -633,11 +728,18 @@ function canvas_clearpage()
 */
 function canvas_selectobject(ccoord)
 {
-    // FIXME
+    var ret = -1;
+    var mindist = Infinity;
     for (var i = 0; i < drawlist.length; i++) {
-        return i;
+        if (drawlist[i].data.length > 0) {
+            var dist = canvas_distance2object(drawlist[i], ccoord);
+            if (dist < mindist) {
+                mindist = dist;
+                ret = i;
+            }
+        }
     }
-    return -1;
+    return ret;
 }
 
 function canvas_removeselected()
@@ -664,13 +766,20 @@ function canvas_mouseselect(mcoord)
     var ccoord = canvas_m2c(mcoord);
     var ncoord = canvas_c2n(ccoord);
 
-    did_selected = canvas_selectobject(ccoord);
-    if (did_selected < 0) {
+    var did = canvas_selectobject(ccoord);
+    if (did < 0) {
         canvas_resetselected();
         return;
     }
+
+    did_selected = did;
+
+    console.log(drawlist[did]);
     
     canvas_redrawselected();
+
+    select_color(get_color_id(drawlist[did_selected].color), false);
+    select_thickness(get_thickness_id(drawlist[did_selected].thickness), false);
     
     $("#viewfile_dtoolbox").show();
     $("#viewfile_deditbox").show();
@@ -703,7 +812,7 @@ function canvas_redrawselected()
 //    tmpctx.drawImage(viewcanvas, 0, 0);
 //    tmpctx.drawImage(drawcanvas, 0, 0);    
 //    tmpctx.globalCompositeOperation = "difference";
-    canvas_redraw_single(tmpctx, tmp_dobj, 0);
+    canvas_redraw_single(tmpctx, tmp_dobj, -1);
 //    tmpctx.globalCompositeOperation = "source-over";
 }
 
@@ -732,7 +841,7 @@ function init_canvas() // will be called once in global init function
 
         // get canvas size
         var canvas = document.getElementById('pdf_page_temp');
-        canvas_size = { x: canvas.height, y: canvas.width };
+        canvas_size = { x: canvas.width, y: canvas.height };
 
         is_painting = true;
 
