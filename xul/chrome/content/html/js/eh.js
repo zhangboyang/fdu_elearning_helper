@@ -323,6 +323,7 @@ function select_color(id)
     color_selected = id;
     redraw_colorbox();
     $("#viewfile_colorbox" + id).css("border-color", colorbox_boxbgcolor_hover);
+    canvas_ct_changed_callback();
 }
 
 /* thicknessbox */
@@ -334,10 +335,10 @@ var thickness_selected;
 function get_thickness(id)
 {
     var clist = [
-        "7px",
-        "5px",
-        "3px",
         "1px",
+        "3px",
+        "5px",
+        "7px",
     ];
     return clist[id - 1];
 }
@@ -382,6 +383,7 @@ function select_thickness(id)
     thickness_selected = id;
     redraw_thicknessbox();
     $("#viewfile_thicknessbox" + id).css("border-color", thicknessbox_boxbgcolor_hover);
+    canvas_ct_changed_callback();
 }
 
 
@@ -400,7 +402,7 @@ function select_thickness(id)
 
 // ============= dtype selector ===========
 var dtype_selected;
-function is_dtype_drawtype(id) { return id >= 2; }
+function is_dtype_drawtype(id) { return id >= 3; }
 function get_dtype(id)
 {
     var l = [
@@ -422,8 +424,17 @@ function select_dtype(id)
             .addClass("darken-3")
         [id - 1]
     ).removeClass("darken-3").addClass("lighten-1");
+
+    if (is_dtype_drawtype(id)) {
+        $("#viewfile_dtoolbox").show();
+    } else {
+        $("#viewfile_dtoolbox").hide();
+    }
+
+    canvas_resetselected();
 }
-function init_dtype()
+
+function reset_dtype()
 {
     select_dtype(1);
 }
@@ -439,7 +450,7 @@ var is_painting = false;
 var canvas_offset; // x: left, y: top
 var canvas_size; // x: width, y: height
 
-var dlist; /* currently drawn objects
+var drawlist; /* currently drawn objects
     {
         type: string, "ellipse", "rect", "line", "pen"
         data: array of mouse pointer route, normalized
@@ -453,8 +464,11 @@ var dlist; /* currently drawn objects
                 |
                 v(0,1)
             }
-        thickness: tid
-        color: cid
+        thickness: string
+        color: string
+        linedash: array of int, see CanvasRenderingContext2D.setLineDash()
+        linecap: string, see CanvasRenderingContext2D.lineCap
+        linejoin: string, see CanvasRenderingContext2D.lineJoin
     }
 */
 
@@ -462,12 +476,16 @@ var tmp_dobj; // current drawing object
 var tmp_lastdraw; // index of last draw coord, for redraw_single()
 var lastdraw; // index of last drawn object + 1, for redraw()
 
+
+var did_selected; // id of selected dobj, -1 if none selected
+
+
 // ccoord: canvas coord is related to left, top corner, in px
 // ncoord: normalzed coord is related to left, top corner, range: [0, 1]
 // mcoord: mcoord coord is related to window, in px
 
 function canvas_c2n(c) { return { x: c.x / canvas_size.x, y: c.y / canvas_size.y }; }
-function canvas_n2c(n) { return { x: n.x * canvas_size.x, y: n.y * canvas_size.y }; }
+function canvas_n2c(n) { return { x: Math.floor(n.x * canvas_size.x + 0.5) + 0.5, y: Math.floor(n.y * canvas_size.y + 0.5) + 0.5 }; }
 function canvas_m2c(m) { return { x: m.x - canvas_offset.x, y: m.y - canvas_offset.y }; }
 
 // add new mouse coord to tmp_dobj
@@ -479,9 +497,7 @@ function canvas_addmousedata(mcoord)
     tmp_dobj.data.push(ncoord);
 
     var tmpctx = document.getElementById("pdf_page_temp").getContext("2d");
-    canvas_redraw_init(tmpctx);
     tmp_lastdraw = canvas_redraw_single(tmpctx, tmp_dobj, tmp_lastdraw);
-    canvas_redraw_finish(tmpctx);
 }
 
 // remove unused data from dobj
@@ -496,18 +512,14 @@ function canvas_shrink_dobj(dobj)
 
 
 
-
-// redraw shall begin with init(), draw single with single(), finish with finish()
-function canvas_redraw_init(ctx) { ctx.lineCap = "round"; ctx.lineJoin = "round"; }
-function canvas_redraw_finish(ctx) { }
 function canvas_redraw_single(ctx, dobj, startfrom)
 {
     var data = dobj.data;
     if (data.length < 2) { return 0; }
 
     var ret = 0;
-    ctx.strokeStyle = get_color(dobj.color);
-    ctx.lineWidth = parseInt(get_thickness(dobj.thickness));
+    ctx.strokeStyle = dobj.color;
+    ctx.lineWidth = parseInt(dobj.thickness);
 
     var st = typeof(startfrom) != "undefined" ? startfrom : 0;
 
@@ -515,6 +527,10 @@ function canvas_redraw_single(ctx, dobj, startfrom)
         canvas_clearcontext(ctx);
         st = 0;
     }
+
+    ctx.lineCap = dobj.linecap;
+    ctx.lineJoin = dobj.linejoin;
+    ctx.setLineDash(dobj.linedash);
     
     if (dobj.type == "pen") {
         ctx.beginPath();
@@ -559,19 +575,23 @@ function canvas_redraw_single(ctx, dobj, startfrom)
     return ret;
 }
 
-// redraw dlist
+// redraw drawlist
 function canvas_redraw(startfrom)
 {
-    var st = typeof(startfrom) != "undefined" ? startfrom : 0;
-    var canvas = document.getElementById("pdf_page_draw");
-    if (st == 0) canvas_clearcanvas(canvas);
-    var ctx = canvas.getContext("2d");
-    canvas_redraw_init(ctx);
-    for (var i = st; i < dlist.length; i++) {
-        canvas_redraw_single(ctx, dlist[i]);
+    if (drawlist) {
+        var st = typeof(startfrom) != "undefined" ? startfrom : 0;
+        var canvas = document.getElementById("pdf_page_draw");
+        if (st == 0) {
+            canvas_clearcanvas(canvas);
+            canvas_clearsingle('pdf_page_draw');
+            canvas_clearsingle('pdf_page_temp');
+        }
+        var ctx = canvas.getContext("2d");
+        for (var i = st; i < drawlist.length; i++) {
+            canvas_redraw_single(ctx, drawlist[i]);
+        }
+        return drawlist.length;
     }
-    canvas_redraw_finish(ctx);
-    return dlist.length;
 }
 
 // create a new dobj
@@ -581,7 +601,10 @@ function new_dobj(type, color, thickness)
         type: type,
         thickness: thickness,
         color: color,
-        data: new Array(),
+        data: [],
+        linedash: [],
+        linecap: "round",
+        linejoin: "round",
     };
 }
 
@@ -594,11 +617,106 @@ function canvas_clearsingle(idstr) { canvas_clearcanvas(document.getElementById(
 // called when loading a new page
 function canvas_clearpage()
 {
-    dlist = new Array();
+    drawlist = new Array();
     lastdraw = 0;
+    canvas_resetselected();
     canvas_clearsingle('pdf_page_draw');
     canvas_clearsingle('pdf_page_temp');
 }
+
+
+
+
+/*  return id of the nearest object by mouse position
+    return -1 if none should be selected
+    note: we MUSE use CCOORD
+*/
+function canvas_selectobject(ccoord)
+{
+    // FIXME
+    for (var i = 0; i < drawlist.length; i++) {
+        return i;
+    }
+    return -1;
+}
+
+function canvas_removeselected()
+{
+    if (did_selected < 0) return;
+    drawlist.splice(did_selected, 1);
+    canvas_resetselected();
+    lastdraw = 0;
+}
+
+function canvas_resetselected()
+{
+    if (did_selected >= 0) {
+        $("#viewfile_dtoolbox").hide();
+        did_selected = -1;
+        canvas_redraw();
+    }
+    $("#viewfile_deditbox").hide();
+}
+
+/* select object by mouse */
+function canvas_mouseselect(mcoord)
+{
+    var ccoord = canvas_m2c(mcoord);
+    var ncoord = canvas_c2n(ccoord);
+
+    did_selected = canvas_selectobject(ccoord);
+    if (did_selected < 0) {
+        canvas_resetselected();
+        return;
+    }
+    
+    canvas_redrawselected();
+    
+    $("#viewfile_dtoolbox").show();
+    $("#viewfile_deditbox").show();
+}
+
+function canvas_redrawselected()
+{
+    if (did_selected < 0) return;
+    var dobj = drawlist[did_selected];
+
+    var maxx = 0, maxy = 0;
+    var minx = 1, miny = 1;
+    for (var i = 0; i < dobj.data.length; i++) {
+        maxx = Math.max(maxx, dobj.data[i].x);
+        maxy = Math.max(maxy, dobj.data[i].y);
+        minx = Math.min(minx, dobj.data[i].x);
+        miny = Math.min(miny, dobj.data[i].y);
+    }
+    
+    tmp_dobj = new_dobj("rect", "#777777", "7px");
+    tmp_dobj.linedash = [30, 30];
+    tmp_dobj.linecap = "butt";
+    tmp_dobj.linejoin = "miter";
+    tmp_dobj.data = [{x: minx, y: miny}, {x: maxx, y: maxy}];
+
+//    var viewcanvas = document.getElementById("pdf_page_view");
+//    var drawcanvas = document.getElementById("pdf_page_draw");
+    var tmpctx = document.getElementById("pdf_page_temp").getContext("2d");
+    
+//    tmpctx.drawImage(viewcanvas, 0, 0);
+//    tmpctx.drawImage(drawcanvas, 0, 0);    
+//    tmpctx.globalCompositeOperation = "difference";
+    canvas_redraw_single(tmpctx, tmp_dobj, 0);
+//    tmpctx.globalCompositeOperation = "source-over";
+}
+
+// the function is called when 'color_selected' / 'thickness_selected' changed
+function canvas_ct_changed_callback()
+{
+    if (did_selected < 0) return;
+    drawlist[did_selected].color = get_color(color_selected);
+    drawlist[did_selected].thickness = get_thickness(thickness_selected);
+    canvas_redraw();
+    canvas_redrawselected();
+}
+
 
 
 function init_canvas() // will be called once in global init function
@@ -620,7 +738,7 @@ function init_canvas() // will be called once in global init function
 
         tmp_lastdraw = -1;
         
-        tmp_dobj = new_dobj(dtype, color_selected, thickness_selected);
+        tmp_dobj = new_dobj(dtype, get_color(color_selected), get_thickness(thickness_selected));
         var mcoord = { x: e.pageX, y: e.pageY };
         canvas_addmousedata(mcoord);
     });
@@ -628,6 +746,9 @@ function init_canvas() // will be called once in global init function
         var dtype = get_dtype(dtype_selected);
         if (dtype == "navigate") {
             show_pdf_switchpage(1);
+        } else if (dtype == "select") {
+            var mcoord = { x: e.pageX, y: e.pageY };
+            canvas_mouseselect(mcoord);
         }
         e.preventDefault();
     });
@@ -641,7 +762,7 @@ function init_canvas() // will be called once in global init function
         if (is_painting) {
             canvas_clearsingle('pdf_page_temp');
             canvas_shrink_dobj(tmp_dobj);
-            dlist.push(tmp_dobj);
+            drawlist.push(tmp_dobj);
             lastdraw = canvas_redraw(lastdraw);
         }
         is_painting = false;
@@ -695,7 +816,7 @@ $("document").ready( function () {
     
     init_colorbox();
     init_thicknessbox();
-    init_dtype();
+    reset_dtype();
     init_canvas();
     init_notebox();
 
@@ -739,6 +860,7 @@ function init_pdf(pdf_path)
 {
     $('#pdf_page_list').empty();
     canvas_clearsingle("pdf_page_view");
+    reset_dtype();
     
     // this function is call when user enters "viewfile" page
     PDFJS.getDocument(pdf_path).then( function (pdf) {
@@ -1043,10 +1165,10 @@ function webdav_listall(uuid)
             url: "http://elearning.fudan.edu.cn/dav/" + uuid,
             context: document.body,
             dataType: "xml",
-            username: el_username,
-            password: el_password,
+            //username: el_username,
+            //password: el_password,
             headers: {  "Depth": "infinity",
-                        //"Authorization": "Basic " + btoa(el_username + ":" + el_password), // sometimes fails
+                        "Authorization": "Basic " + btoa(el_username + ":" + el_password), // sometimes fails
                      },
             success:    function (xml, status) {
 

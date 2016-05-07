@@ -301,7 +301,7 @@ haha
     	<a class="orange btn darken-3 z-depth-0 eh_toolbar_button_small" onclick="select_dtype(5)">线</a>
     	<a class="orange btn darken-3 z-depth-0 eh_toolbar_button_small" onclick="select_dtype(6)">笔</a>
     </div>
-	<div class="row orange lighten-4" style="margin: 0px">
+	<div id="viewfile_dtoolbox" class="row orange lighten-4" style="margin: 0px">
 		<div class="col s6 orange lighten-4" style="padding: 4px">
 		    <div id="viewfile_colorbox_selected_style" class="orange lighten-4" style="display: none;"></div>
 			<div id="viewfile_colorbox1" class="eh_colorbox" onclick="select_color(1)"><div id="viewfile_colorbox_sample1" class="eh_colorbox_sample"></div></div>
@@ -320,6 +320,9 @@ haha
 			<div id="viewfile_thicknessbox3" class="eh_thicknessbox" onclick="select_thickness(3)"><div id="viewfile_thicknessbox_sample3" class="eh_thicknessbox_sample" style="height: 7px;"></div></div>
 			<div id="viewfile_thicknessbox4" class="eh_thicknessbox" onclick="select_thickness(4)"><div id="viewfile_thicknessbox_sample4" class="eh_thicknessbox_sample" style="height: 7px;"></div></div>
 		</div>
+	</div>
+	<div id="viewfile_deditbox" class="eh_toolbar orange lighten-5">
+	    <a class="orange btn lighten-2 z-depth-0 eh_toolbar_button_small" onclick="canvas_removeselected()"><i class="material-icons">clear</i></a>
 	</div>
 </div>
 <div class="light-green eh_sidebar" style="flex: 1 1 auto;">

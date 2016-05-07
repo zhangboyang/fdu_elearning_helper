@@ -34,6 +34,13 @@ body {
 }
 
 
+.btn {
+    padding-top: 2px !important; /* ugly fix for Windows */
+}
+
+
+
+
 .eh_xul_popupmenu {
 }
 
