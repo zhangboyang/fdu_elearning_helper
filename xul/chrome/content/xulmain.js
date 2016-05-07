@@ -1,6 +1,8 @@
 /*
     enable remote debugging
     note: this will no longer works when gecko version >= 44
+    note: if you want to use "firefox -app" to run this application with firefox >= 44
+          you must comment out this block of code!
     
     https://developer.mozilla.org/en-US/docs/Archive/Mozilla/XULRunner/Debugging_XULRunner_applications
 */
@@ -131,7 +133,7 @@ Components.utils.import("resource://gre/modules/osfile.jsm")
 /*
     clipboard system:
 */
-const gClipboardHelper = Components.classes["@mozilla.org/widget/clipboardhelper;1"]
+var gClipboardHelper = Components.classes["@mozilla.org/widget/clipboardhelper;1"]
                                        .getService(Components.interfaces.nsIClipboardHelper);
 
 function set_clipboard_text(str)
@@ -188,5 +190,5 @@ function get_clipboard_text(str)
     C:\Users\YOUR_USER_NAME\AppData\Roaming\elearninghelper\Profiles\SOME_UNIQUE_STRING.default
 */
 
-const prefs = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefService).getBranch("elearninghelper.");
+var prefs = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefService).getBranch("elearninghelper.");
 

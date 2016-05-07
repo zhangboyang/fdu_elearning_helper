@@ -1370,6 +1370,7 @@ function uis_login()
 
 function elearning_login()
 {
+
     return new Promise( function (resolve, reject) {
         $.get("http://elearning.fudan.edu.cn/portal/login", null, null, "text")
             .done( function (data, textStatus, jqXHR) {

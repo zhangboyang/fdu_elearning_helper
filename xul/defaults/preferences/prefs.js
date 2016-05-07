@@ -1,6 +1,7 @@
 pref("toolkit.defaultChromeURI", "chrome://elearninghelper/content/xulmain.xul");
 
 // enable remote debugging
+pref("devtools.chrome.enabled", true);
 pref("devtools.debugger.remote-enabled", true);
 pref("browser.dom.window.dump.enabled", true);
 pref("javascript.options.showInConsole", true);
