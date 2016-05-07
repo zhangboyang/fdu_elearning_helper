@@ -1,38 +1,3 @@
-/*
-    enable remote debugging
-    note: this will no longer works when gecko version >= 44
-    note: if you want to use "firefox -app" to run this application with firefox >= 44
-          you must comment out this block of code!
-    
-    https://developer.mozilla.org/en-US/docs/Archive/Mozilla/XULRunner/Debugging_XULRunner_applications
-*/
-Components.utils.import('resource://gre/modules/devtools/dbg-server.jsm');
-if (!DebuggerServer.initialized) {
-    DebuggerServer.init();
-    DebuggerServer.addBrowserActors();
-    DebuggerServer.allowChromeProcess = true;
-}
-let dbgListener=DebuggerServer.createListener();
-dbgListener.portOrPath=6000;
-dbgListener.open();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // log to js console
 function mylog(s)
 {
@@ -192,3 +157,46 @@ function get_clipboard_text(str)
 
 var prefs = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefService).getBranch("elearninghelper.");
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+    enable remote debugging
+    note: this will no longer works when gecko version >= 44
+    note: this block of code is moved to tail
+          since this block of code will cause error when version >= 44
+    
+    https://developer.mozilla.org/en-US/docs/Archive/Mozilla/XULRunner/Debugging_XULRunner_applications
+*/
+Components.utils.import('resource://gre/modules/devtools/dbg-server.jsm');
+if (!DebuggerServer.initialized) {
+    DebuggerServer.init();
+    DebuggerServer.addBrowserActors();
+    DebuggerServer.allowChromeProcess = true;
+}
+let dbgListener=DebuggerServer.createListener();
+dbgListener.portOrPath=6000;
+dbgListener.open();
