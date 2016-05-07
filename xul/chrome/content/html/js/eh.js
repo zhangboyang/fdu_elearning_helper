@@ -407,8 +407,8 @@ function get_dtype(id)
         "navigate",
         "select",
         "rect",
-        "line",
         "ellipse",
+        "line",
         "pen",
     ];
     return l[id - 1];
@@ -603,14 +603,10 @@ function canvas_clearpage()
 
 function init_canvas() // will be called once in global init function
 {
-    $('#pdf_page_front').mousedown(function(e){
-        var dtype = get_dtype(dtype_selected);
-        if (dtype == "navigate") {
-            show_pdf_switchpage(1);
-            return;
-        }
-        
+    $('#pdf_page_front').mousedown( function (e) {
         if (!is_dtype_drawtype(dtype_selected)) return;
+        var dtype = get_dtype(dtype_selected);
+        e.preventDefault();
         
         // get canvas offset
         var off = $("#pdf_page_temp").offset();
@@ -627,6 +623,13 @@ function init_canvas() // will be called once in global init function
         tmp_dobj = new_dobj(dtype, color_selected, thickness_selected);
         var mcoord = { x: e.pageX, y: e.pageY };
         canvas_addmousedata(mcoord);
+    });
+    $('#pdf_page_front').click( function (e) {
+        var dtype = get_dtype(dtype_selected);
+        if (dtype == "navigate") {
+            show_pdf_switchpage(1);
+        }
+        e.preventDefault();
     });
     $(document).mousemove( function (e) {
         if (is_painting) {
@@ -694,6 +697,8 @@ $("document").ready( function () {
     init_thicknessbox();
     init_dtype();
     init_canvas();
+    init_notebox();
+
 
     show_page("main");
 
@@ -1371,6 +1376,7 @@ function uis_login()
 function elearning_login()
 {
 
+
     return new Promise( function (resolve, reject) {
         $.get("http://elearning.fudan.edu.cn/portal/login", null, null, "text")
             .done( function (data, textStatus, jqXHR) {
@@ -1625,10 +1631,14 @@ function coursetable_load(clist_input)
                 let cidx_cb = cidx;
                 let x_cb = x;
                 let y_cb = y;
-                tdobj.click(function () { coursetable_select(cidx_cb, x_cb, y_cb); });
-                tdobj.dblclick(function () { coursetable_enter(cidx_cb, x_cb, y_cb); });
+                tdobj.click(function () { coursetable_select(cidx_cb, x_cb, y_cb); })
+                     .dblclick(function () { coursetable_enter(cidx_cb, x_cb, y_cb); })
+                     .mousedown(function (e) { e.preventDefault(); })
+                     .css("cursor", "pointer");
                 $(cdivlist[cidx] = document.createElement('div'))
-                    .append($(document.createElement('span')).text(clist[cidx].cname))
+                    .append($(document.createElement('span'))
+                            .text(clist[cidx].cname)
+                           )
                     .appendTo(tdobj);
             }
             tdobj.appendTo(trobj);
@@ -1960,6 +1970,23 @@ function helloworld2()
 
 
 
+function init_notebox()
+{
+    // make paste become plain paste
+    // ref: http://stackoverflow.com/questions/12027137/javascript-trick-for-paste-as-plain-text-in-execcommand
+    document.getElementById('viewfile_notebox').addEventListener("paste", function (e) {
+        e.preventDefault();
+        if (e.clipboardData) {
+            content = (e.originalEvent || e).clipboardData.getData('text/plain');
+            document.execCommand('insertText', false, content);
+        } else if (window.clipboardData) {
+            content = window.clipboardData.getData('Text');
+            document.selection.createRange().pasteHTML(content);
+        }  
+    });
+}
+
+
 
 // ======================= XUL related functions =========================
 
@@ -1993,6 +2020,10 @@ function paste_from_clipboard(element)
         $(element).replaceSelectedText(text);
     }*/
     document.execCommand('paste', false, undefined);
+}
+function doc_exec_cmd(element, cmd)
+{
+    document.execCommand(cmd, false, undefined);
 }
 
 

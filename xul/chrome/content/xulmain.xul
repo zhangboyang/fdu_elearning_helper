@@ -27,14 +27,21 @@
         <menuitem label="剪切" oncommand="document.getElementById('mybrowser').contentWindow.cut_to_clipboard(document.popupNode)"/>
         <menuitem label="复制" oncommand="document.getElementById('mybrowser').contentWindow.copy_to_clipboard(document.popupNode)"/>
         <menuitem label="粘贴" oncommand="document.getElementById('mybrowser').contentWindow.paste_from_clipboard(document.popupNode)"/>
-        
-        
         <menuseparator/>
+        <menuitem label="撤销" oncommand="document.getElementById('mybrowser').contentWindow.doc_exec_cmd(document.popupNode, 'undo')"/>
+        <menuitem label="重做" oncommand="document.getElementById('mybrowser').contentWindow.doc_exec_cmd(document.popupNode, 'redo')"/>
+        <menuseparator/>
+        <menuitem label="加粗" oncommand="document.getElementById('mybrowser').contentWindow.doc_exec_cmd(document.popupNode, 'bold')"/>
+        <menuitem label="斜体" oncommand="document.getElementById('mybrowser').contentWindow.doc_exec_cmd(document.popupNode, 'italic')"/>
+        <menuitem label="下划线" oncommand="document.getElementById('mybrowser').contentWindow.doc_exec_cmd(document.popupNode, 'underline')"/>
+        <menuitem label="去除格式" oncommand="document.getElementById('mybrowser').contentWindow.doc_exec_cmd(document.popupNode, 'removeformat')"/>
+        
+        <!--<menuseparator/>
         
         <menuitem label="Open"/>
         <menuitem label="Save"/>
         
-        <menuitem label="Exit"/>
+        <menuitem label="Exit"/>-->
     </menupopup>
 </window>
 

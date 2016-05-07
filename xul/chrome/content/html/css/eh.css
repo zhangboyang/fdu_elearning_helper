@@ -339,6 +339,24 @@ body {
     outline: 0px solid transparent;
 }
 
+#textcolor_dropdown {
+    width: 39px;
+    min-width: 39px;
+    padding: 2px;
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    justify-content: center;
+    overflow: hidden;
+}
+#textcolor_dropdown a {
+    width: 25px;
+    height: 25px;
+    margin: 5px;
+    padding: 0px;
+}
+
+
 
 .eh_pdf_list {
     overflow-x: hidden;
