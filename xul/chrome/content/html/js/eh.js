@@ -2268,7 +2268,9 @@ function coursetable_enter(cidx, x, y)
                 var icontd = $(document.createElement('td')).append(
                     $(document.createElement('img'))
                         .attr("src", get_filetype_iconuri(get_file_ext(fitem.filename)))
-                        .css("padding", "4px 3px")
+                        .attr("width", "16")
+                        .attr("height", "16")
+                        .css("margin", "4px 3px")
                 ).appendTo(rowobj);
                 
                 // filename
