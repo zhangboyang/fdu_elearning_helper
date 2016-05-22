@@ -20,7 +20,7 @@ var ppt2pdf_path; // NATIVE path to ppt2pdf.vbs
 
 
 var chsweekday = ["日", "一", "二", "三", "四", "五", "六", "日"];
-
+var preventdefaultfunc = function (e) { e.preventDefault(); };
 
 
 function get_filetype_remote_iconuri(ext)
@@ -2063,7 +2063,7 @@ function coursetable_load(clist_input)
                 let y_cb = y;
                 tdobj.click(function () { coursetable_select(cidx_cb, x_cb, y_cb); })
                      .dblclick(function () { coursetable_enter(cidx_cb, x_cb, y_cb); })
-                     .mousedown(function (e) { e.preventDefault(); })
+                     .mousedown(preventdefaultfunc)
                      .css("cursor", "pointer");
                 $(cdivlist[cidx] = document.createElement('div'))
                     .append($(document.createElement('span'))
@@ -2275,11 +2275,11 @@ function coursetable_enter(cidx, x, y)
                 var fndisp = fitem.path.slice(1);
                 var obj = $(document.createElement('span'))
                     .text(fndisp)
-                    .addClass("eh_link2 eh_link_add_hover");
+                    .addClass("eh_link2");
                 var fntd = $(document.createElement('td')).append(obj).appendTo(rowobj);
 
                 let openoutside = !pdfviewer_issupported(fitem); // should we open this file outside
-                var openfunc = function () {
+                var openfunc = function (e) {
                     console.log(fitem, coursefolder);
                     if (openoutside) { // user dblclick file
                         launch_fileuri(fileuri);
@@ -2287,9 +2287,11 @@ function coursetable_enter(cidx, x, y)
                         pdfviewer_show(fitem, coursefolder);
                     }
                 };
-                var selectfunc = function () { // user select file
-                    $(this).parent().parent().find("span").filter(".eh_link3").removeClass("eh_link3").addClass("eh_link2");
-                    $(this).parent().find("span").filter(".eh_link2").removeClass("eh_link2").addClass("eh_link3");
+                var selectfunc = function (e) { // user select file
+                    //$(this).parent().parent().find("span").filter(".eh_link3").removeClass("eh_link3").addClass("eh_link2");
+                    //$(this).parent().find("span").filter(".eh_link2").removeClass("eh_link2").addClass("eh_link3");
+                    $(this).parent().children("tr").removeClass("eh_selected");
+                    $(this).addClass("eh_selected");
                     var actobj = $(document.createElement('span'));
                     $(document.createElement('span')).addClass("eh_link").text("打开文件位置").click( function () {
                         reveal_fileuri(fileuri);
@@ -2302,11 +2304,6 @@ function coursetable_enter(cidx, x, y)
                         .append($(create_kvdiv_with_obj("操作: ", actobj)));
                 };
 
-                fntd.dblclick(openfunc);
-                icontd.dblclick(openfunc);
-                fntd.click(selectfunc);
-                icontd.click(selectfunc);
-                
                 if (fitem.is_new_file) {
                     $(document.createElement('span'))
                         .text(" (新)")
@@ -2323,10 +2320,10 @@ function coursetable_enter(cidx, x, y)
                         $(document.createElement('span'))
                             .text(" (" + lastmodifiedoffset.str + ")")
                             .css("color", lastmodifiedoffset.color)
-                    ).click(selectfunc).dblclick(openfunc).appendTo(rowobj);
+                    ).appendTo(rowobj);
                 }
 
-                rowobj.appendTo(tbodyobj);
+                rowobj.mousedown(preventdefaultfunc).dblclick(openfunc).click(selectfunc).appendTo(tbodyobj);
             });
         }, function (reason) {
             $("#filenav_syncinprogresstext").hide();

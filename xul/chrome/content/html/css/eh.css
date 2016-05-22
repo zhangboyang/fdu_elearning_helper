@@ -99,11 +99,6 @@ body {
     color: blue;
     cursor: pointer;
 }
-.eh_link_add_hover:hover {
-    color: blue;
-}
-
-
 
 
 
@@ -283,10 +278,20 @@ body {
     font-size: 15px;
     text-align: left;
     border-radius: 0px;
-	background-color: #dcedc8;
 	overflow: hidden;
 	padding: 0px 4px;
 }
+.eh_filetable tr {
+    background-color: #dcedc8;
+    cursor: pointer;
+}
+.eh_filetable tr:hover {
+	background-color: #CDE5B2;
+}
+.eh_filetable .eh_selected {
+    background-color: #aed581 !important;
+}
+
 .eh_filetable table {
 	table-layout: fixed;
 	border-collapse: separate;
