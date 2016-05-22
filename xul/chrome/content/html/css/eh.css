@@ -90,7 +90,9 @@ body {
     cursor: pointer;
 }
 
-
+.eh_link_add_hover:hover {
+    color: orange;
+}
 
 
 

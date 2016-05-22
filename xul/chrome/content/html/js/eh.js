@@ -17,6 +17,60 @@ var datafolder; // internal data folder, NATIVE style, like C:\foo\bar.....
 
 var ppt2pdf_path; // NATIVE path to ppt2pdf.vbs
 
+function launch_fileuri(fileuri)
+{
+    var file = Components.classes["@mozilla.org/file/local;1"].createInstance(Components.interfaces["nsILocalFile"]);
+    file.initWithPath(OS.Path.fromFileURI(fileuri));
+    file.launch();
+}
+function reveal_fileuri(fileuri)
+{
+    var file = Components.classes["@mozilla.org/file/local;1"].createInstance(Components.interfaces["nsILocalFile"]);
+    file.initWithPath(OS.Path.fromFileURI(fileuri));
+    file.reveal();
+}
+function date_offset(d)
+{
+    var offset = "";
+    var c = new Date(); // current time
+    var o = c.getTime() - d.getTime(); // time diff in ms
+    if (o > 0) {
+        if (o < 7 * 24 * 60 * 60 * 1000) {
+            var days = Math.floor(o / (24 * 60 * 60 * 1000));
+            offset = days.toString() + " 天前";
+        } else if (o < 4 * 7 * 24 * 60 * 60 * 1000) {
+            var weeks = Math.floor(o / (7 * 24 * 60 * 60 * 1000));
+            offset = weeks.toString() + " 周前";
+        } else if (o < 365 * 24 * 60 * 60 * 1000) {
+            var months = (c.getMonth() - d.getMonth() + 12) % 12;
+            offset = months.toString() + " 个月前";
+        } else {
+            var years = c.getFullYear() - d.getFullYear();
+            offset = years.toString() + " 年前";
+        }
+    }
+    return offset;
+}
+
+function format_date(d)
+{
+    var base = d.getFullYear().toString() + "/" + (d.getMonth() + 1).toString() + "/" + d.getDay().toString()
+         + " " + d.getHours().toString() + ":" + d.getMinutes().toString();
+    var offset = date_offset(d);
+    if (offset != "") offset = " (" + offset + ")";
+    return base + offset;
+}
+
+function format_filesize(sz)
+{
+    if (sz >= 1024) {
+        if (sz < 1024 * 1024) return (sz / 1024).toFixed(2) + " KB";
+        if (sz < 1024 * 1024 * 1024) return (sz / (1024 * 1024)).toFixed(2) + " MB";
+        if (sz < 1024 * 1024 * 1024 * 1024) return (sz / (1024 * 1024 * 1024)).toFixed(2) + " GB";
+    }
+    return sz + " 字节";
+}
+
 // remove all cookies
 function remove_all_cookies()
 {
@@ -43,11 +97,11 @@ var el_ajax_errfunc =   function (xhr, textStatus, errorThrown) {
 function create_kvdiv(kstr, vstr, vfunc)
 {
     if (typeof(vfunc) != "undefined") {
-        return $(document.createElement('div'))
+        var divobj = $(document.createElement('div'))
             .addClass("eh_kvdiv")
             .append($(document.createElement('span')).addClass("eh_key").text(kstr))
-            .append($(document.createElement('span')).addClass("eh_value eh_link").text(vstr).click(vfunc))
-            [0];
+            .append($(document.createElement('span')).addClass("eh_value eh_link").text(vstr).click(vfunc));
+        return divobj[0];
     } else {
         return $(document.createElement('div'))
             .addClass("eh_kvdiv")
@@ -55,6 +109,15 @@ function create_kvdiv(kstr, vstr, vfunc)
             .append($(document.createElement('span')).addClass("eh_value").text(vstr))
             [0];
     }
+}
+
+function create_kvdiv_with_obj(kstr, vobj)
+{
+    return $(document.createElement('div'))
+        .addClass("eh_kvdiv")
+        .append($(document.createElement('span')).addClass("eh_key").text(kstr))
+        .append($(document.createElement('span')).addClass("eh_value").append(vobj))
+        [0];
 }
 
 
@@ -1828,6 +1891,11 @@ var cdivlist; // div in course table
 var course_selected; // course index of selected course
 var cur_semestername; // current semester name
 
+function get_coursefolder(cobj)
+{
+    return "/" + cur_semestername + "/" + cobj.cname;
+}
+
 /*
     load data and draw course table using clist to main screen
 
@@ -1986,7 +2054,8 @@ function coursetable_select(cidx, x, y)
 
     var sidx = match_cname_sname(cidx);
     
-    $("#main_course_details").empty();
+    var detailobj = $("#main_course_details").empty();
+    
     if (sidx >= 0) {
         let cidx_cb = cidx;
         let x_cb = x;
@@ -1995,16 +2064,22 @@ function coursetable_select(cidx, x, y)
             coursetable_enter(cidx_cb, x_cb, y_cb);
         })).appendTo("#main_course_details");
     } else {
-        $(create_kvdiv("名称: ", cobj.cname + " (" + cobj.cid + ")")).appendTo("#main_course_details");
+        $(create_kvdiv("名称: ", cobj.cname + " (" + cobj.cid + ")")).appendTo(detailobj);
     }
-    $(create_kvdiv("教师: ", cobj.cteacher)).appendTo("#main_course_details");
-    $(create_kvdiv("地点: ", cobj.cclassroom)).appendTo("#main_course_details");
-    $(create_kvdiv("时间: ", make_ctime_str(ctimelist))).appendTo("#main_course_details");
-    $(create_kvdiv("开课周: ", make_avlweek_string(cobj.cavlweek))).appendTo("#main_course_details");
+    $(create_kvdiv("教师: ", cobj.cteacher)).appendTo(detailobj);
+    $(create_kvdiv("地点: ", cobj.cclassroom)).appendTo(detailobj);
+    $(create_kvdiv("时间: ", make_ctime_str(ctimelist))).appendTo(detailobj);
+    $(create_kvdiv("开课周: ", make_avlweek_string(cobj.cavlweek))).appendTo(detailobj);
 
+    if (sidx >= 0) {
+        var actobj = $(document.createElement('span'));
+        $(document.createElement('span')).addClass("eh_link").text("打开课程文件夹").click( function () {
+            launch_fileuri(docfolder + get_coursefolder(cobj));
+        }).appendTo(actobj);
+
+        detailobj.append($(create_kvdiv_with_obj("操作: ", actobj)));
+    }
 }
-
-
 
 function coursetable_enter(cidx, x, y)
 {
@@ -2015,17 +2090,14 @@ function coursetable_enter(cidx, x, y)
 
         let cobj = clist[cidx];
         let sobj = slist[sidx];
-        let coursefolder = "/" + cur_semestername + "/" + cobj.cname;
+        let coursefolder = get_coursefolder(cobj);
         $("#filenav_sitetitle").text(sobj.sname);
-
 
         // load data
         $("#filenav_filelist").empty();
-
-
-
         
         // prepare for status bar
+        $("#filenav_deatils").empty();
         $("#filenav_syncprogress").empty();
         $("#filenav_syncinprogresstext").show();
         $("#filenav_syncfinishedtext").empty().hide();
@@ -2037,6 +2109,7 @@ function coursetable_enter(cidx, x, y)
         $("#filenav_syncdetails_box").hide();
         var statuslist = create_statuslist();
         $("#filenav_syncdetails").empty().append($(statuslist));
+        $("#filenav_showfiles").hide();
 
         webdav_sync(sobj.uuid, coursefolder, statuslist,
             function (finished, total) { // report_progress
@@ -2050,37 +2123,79 @@ function coursetable_enter(cidx, x, y)
             } else {
                 $("#filenav_syncfinishedtext").text("同步完成，共 " + obj.sum.toString() + " 个新文件").show();
             }
+            $("#filenav_showfiles").show().unbind("click").click( function () { // open course folder
+                launch_fileuri(docfolder + coursefolder);
+            });
             
             obj.lobj.flist.sort( function (a, b) {
-                if (a.is_new_file != b.is_new_file) {
+                // sort by last_modified
+                var ta = Date.parse(a.lastmodified);
+                var tb = Date.parse(b.lastmodified);
+                if (ta < tb) return 1;
+                if (tb < ta) return -1;
+                return 0;
+                
+                /*if (a.is_new_file != b.is_new_file) {
                     return a.is_new_file > b.is_new_file ? -1 : 1;
                 } else {
                     if (a.path == b.path) return 0;
                     if (a.path < b.path) return -1;
                     return 1;
-                }
+                }*/
             });
 
             $("#filenav_filelist").empty();
             obj.lobj.flist.forEach( function (element, index, array) {
-                let element_cb = element;
+                console.log(element);
+                let fitem = element;
+                let fileuri = docfolder + coursefolder + fitem.path;
                 var obj = $(document.createElement('span'))
                     .addClass("eh_listitem")
-                    .text(element.path)
-                    .click( function () { pdfviewer_show(element, coursefolder); } );
-                if (!pdfviewer_issupported(element)) {
-                    obj.css("color", "gray");
-                } else {
-                    obj.addClass("eh_link");
-                }
+                    .text(fitem.path)
+                    .addClass("eh_link eh_link_add_hover");
+
+                let openoutside = !pdfviewer_issupported(fitem); // should we open this file outside
+                
+                var openfunc = function () {
+                    console.log(fitem, coursefolder);
+                    if (openoutside) { // user dblclick file
+                        launch_fileuri(fileuri);
+                    } else {
+                        pdfviewer_show(fitem, coursefolder);
+                    }
+                };
+
+                obj.dblclick(openfunc);
+                obj.click( function () { // user select file
+                    var actobj = $(document.createElement('span'));
+                    $(document.createElement('span')).addClass("eh_link").text("打开文件位置").click( function () {
+                        reveal_fileuri(fileuri);
+                    }).appendTo(actobj);
+                    var detaildiv = $("#filenav_deatils");
+                    detaildiv.empty()
+                        .append($(create_kvdiv("名称: ", fitem.filename, openfunc)))
+                        .append($(create_kvdiv("修改时间: ", format_date(new Date(Date.parse(fitem.lastmodified))))))
+                        .append($(create_kvdiv("大小: ", format_filesize(fitem.contentlength))))
+                        .append($(create_kvdiv_with_obj("操作: ", actobj)));
+                });
+                
+                
                 
                 var divobj = $(document.createElement('div')).append(obj);
-                if (element.is_new_file) {
+                if (fitem.is_new_file) {
                     var obj2 = $(document.createElement('span'))
                         .addClass("eh_listitem_new")
                         .text(" (新)")
                         .css("color", "red");
                     divobj.append(obj2);
+                }
+
+                var lastmodifiedoffset = date_offset(new Date(Date.parse(fitem.lastmodified)));
+                if (lastmodifiedoffset != "") {
+                    var obj3 = $(document.createElement('span'))
+                        .addClass("eh_listitem_dateoffset")
+                        .text(" (" + lastmodifiedoffset + ")")
+                    divobj.append(obj3);
                 }
 
                 divobj.appendTo("#filenav_filelist");
