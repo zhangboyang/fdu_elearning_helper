@@ -111,7 +111,7 @@
 		</div>
 	</div>
 	<div class="light-green lighten-4" style="flex: 0 1 auto;">
-		<div style="overflow-y: auto; height: 160px; white-space: pre-line;">
+		<div style="overflow-y: auto; height: 160px; white-space: pre-line; border-width: 2px 0px 0px 0px; border-style: solid; border-color: rgb(139, 195, 74);">
 		    <div id="main_course_details" style="padding: 10px;">
                 <!-- course details will dynamicly generated here -->
             </div>
@@ -182,7 +182,7 @@ haha
 </div>
 
 <!-- sync details -->
-<div class="lighten-2" style="flex: 0 1 auto; background-color: #CDE5B2">
+<div class="lighten-2" style="flex: 0 1 auto; background-color: #CDE5B2;">
 	<div id="filenav_syncdetails_box" style="overflow-y: auto; height: 150px; white-space: pre-line;"><div style="padding: 10px;">
 	    <div id="filenav_syncdetails"></div>
     </div></div>
@@ -190,11 +190,23 @@ haha
 
 <!-- file list -->
 <div class="light-green lighten-5" style="flex: 1 1 auto; height: 0px;">
-	<div style="overflow-y: auto; height: 100%;"><div style="padding: 10px;">
+	<div id="filenav_filelist_box" style="overflow-y: auto; height: 100%; border-width: 2px 0px; border-style: solid; border-color: rgb(139, 195, 74);">
+	<div style="padding: 10px;">
 
-<div id="filenav_filelist"></div>
+<div class="eh_filetable">
+<table id="filenav_filelist">
+<!--<thead><tr>
+<th></th>
+<th>文件名</th>
+<th>修改时间</th>
+</tr></thead>-->
+<tbody>
+</tbody>
+</table>
+</div>
 
-	</div></div>
+	</div>
+	</div>
 </div>
 
 <!-- file details -->

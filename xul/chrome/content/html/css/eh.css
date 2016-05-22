@@ -248,6 +248,72 @@ body {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+/*.eh_filetable th {
+    font-size: 15px;
+    text-align: left;
+    border-radius: 0px;
+	background-color: #aed581;
+	height: 22px;
+	overflow: hidden;
+	padding: 0px 4px;
+}
+.eh_filetable th:nth-child(1) {
+    background-color: transparent;
+    width: 30px;
+}*/
+.eh_filetable td:nth-child(1) {
+    width: 30px;
+}
+.eh_filetable td:nth-child(3) {
+    width: 180px;
+}
+.eh_filetable td {
+    font-size: 15px;
+    text-align: left;
+    border-radius: 0px;
+	background-color: #dcedc8;
+	overflow: hidden;
+	padding: 0px 4px;
+}
+.eh_filetable table {
+	table-layout: fixed;
+	border-collapse: separate;
+	border-spacing: 2px;
+	text-align: left;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 .eh_header {
     margin: 0px;
     height: 60px;

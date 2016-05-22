@@ -23,6 +23,46 @@ var chsweekday = ["日", "一", "二", "三", "四", "五", "六", "日"];
 
 
 
+function get_filetype_remote_iconuri(ext)
+{
+    switch (ext.toLowerCase()) {
+        case "ppt": case "pptx": return "http://elearning.fudan.edu.cn/library/image/sakai/ppt.gif";
+        case "doc": case "docx": return "http://elearning.fudan.edu.cn/library/image/sakai/word.gif";
+        case "xls": case "xlsx": return "http://elearning.fudan.edu.cn/library/image/sakai/excel.gif";
+        case "pdf": return "http://elearning.fudan.edu.cn/library/image/sakai/pdf.gif";
+        case "jpg": case "jpeg": case "png": case "gif": case "bmp": case "tif": case "tiff":
+            return "http://elearning.fudan.edu.cn/library/image/sakai/image.gif";
+        case "zip": case "rar": case "dmg": case "7z": case "tar": case "xz": case "gz": case "bz2":
+            return "http://elearning.fudan.edu.cn/library/image/sakai/compressed.gif";
+        default: return "http://elearning.fudan.edu.cn/library/image/sakai/generic.gif";
+    }
+}
+
+var filetype_icon_set = new Set();
+function get_filetype_iconuri(ext)
+{
+    var remoteuri = get_filetype_remote_iconuri(ext);
+    var filename = get_basename(remoteuri);
+    var filepath = OS.Path.join(datafolder, "fileicons", filename);
+    if (filetype_icon_set.has(ext)) {
+        return OS.Path.toFileURI(filepath);
+    } else {
+        OS.File.exists(filepath).then( function (fe) {
+            if (!fe) {
+                OS.File.makeDir(OS.Path.join(datafolder, "fileicons"), { ignoreExisting: true, from: datafolder }).then( function () {
+                    install_file(remoteuri, filepath).then( function () {
+                        filetype_icon_set.add(ext);
+                    });
+                });
+            } else {
+                filetype_icon_set.add(ext);
+            }
+        });
+        
+        return remoteuri; // because we can't wait for promise, so we just return remoteuri
+    }
+}
+
 
 function launch_fileuri(fileuri)
 {
@@ -97,14 +137,33 @@ function date_offset(d)
     return { str: str, color: color, offset: offset };
 }
 
-function format_date(d)
+
+/*
+    format date
+    fmt: d -> date, t -> time, w -> weekday, o -> offset
+*/
+function format_date(d, fmt)
 {
-    var base = d.getFullYear().toString() + "/" + (d.getMonth() + 1).toString() + "/" + d.getDate().toString()
-         + " " + ("0" + d.getHours().toString()).slice(-2) + ":" + ("0" + d.getMinutes().toString()).slice(-2);
-    var desc = "周" + chsweekday[d.getDay()];
+    var base = "";
+    if (fmt.indexOf("d") !== -1) base += " " + d.getFullYear().toString() + "/" + (d.getMonth() + 1).toString() + "/" + d.getDate().toString();
+    if (fmt.indexOf("t") !== -1) base += " " + ("0" + d.getHours().toString()).slice(-2) + ":" + ("0" + d.getMinutes().toString()).slice(-2);
+    if (base != "") base = base.slice(1);
+    
+    var desc = "";
+    if (fmt.indexOf("w") !== -1) desc += ", 周" + chsweekday[d.getDay()];
+    
     var ostr = date_offset(d).str;
-    if (ostr != "") desc += ", " + ostr;
-    return base + " (" + desc + ")";
+    if (fmt.indexOf("o") !== -1 && ostr != "") desc += ", " + ostr;
+
+    if (desc != "") {
+        if (base != "") {
+            return base + " (" + desc.slice(2) + ")";
+        } else {
+            return desc;
+        }
+    } else {
+        return base;
+    }
 }
 
 function format_filesize(sz)
@@ -220,7 +279,7 @@ function statuslist_update(obj, str, color, str2, color2)
 
 /*
     install chrome-url data to native path
-    used with trusted filename/url only
+    used with trusted targetpath only
     return value is promise
 */
 function install_file(url, targetpath)
@@ -259,7 +318,10 @@ function get_file_ext(str)
     return str.split(".").pop().toLowerCase();
 }
 
-
+function get_basename(str)
+{
+    return str.split("/").pop();
+}
 
 // ======================== vector functions =================================
 
@@ -1046,9 +1108,10 @@ $("document").ready( function () {
     docfolder = OS.Path.toFileURI(OS.Path.join(OS.Constants.Path.desktopDir, "ehdoc"));
     datafolder = OS.Path.join(OS.Constants.Path.desktopDir, "ehdata");
 
-    OS.File.makeDir(OS.Path.join(datafolder, "tools"), { ignoreExisting: true, from: datafolder });
-    ppt2pdf_path = OS.Path.join(datafolder, "tools", "ppt2pdf.vbs");
-    install_file("ppt2pdf.vbs", ppt2pdf_path);
+    OS.File.makeDir(OS.Path.join(datafolder, "tools"), { ignoreExisting: true, from: datafolder }).then( function () {
+        ppt2pdf_path = OS.Path.join(datafolder, "tools", "ppt2pdf.vbs");
+        install_file("ppt2pdf.vbs", ppt2pdf_path);
+    });
     
     init_colorbox();
     init_thicknessbox();
@@ -2140,7 +2203,9 @@ function coursetable_enter(cidx, x, y)
         $("#filenav_sitetitle").text(sobj.sname);
 
         // load data
-        $("#filenav_filelist").empty();
+        $("#filenav_filelist_box").scrollTop(0);
+        var tbodyobj = $("#filenav_filelist").children("tbody")
+            .html("<tr><td></td><td>加载中 ...</td><td></td></tr>");
         
         // prepare for status bar
         $("#filenav_deatils").empty();
@@ -2189,19 +2254,31 @@ function coursetable_enter(cidx, x, y)
                     return 1;
                 }*/
             });
-
-            $("#filenav_filelist").empty();
+            
+            tbodyobj.empty();
+            
             obj.lobj.flist.forEach( function (element, index, array) {
-                console.log(element);
                 let fitem = element;
                 let fileuri = docfolder + coursefolder + fitem.path;
+
+                console.log(element);
+                var rowobj = $(document.createElement('tr'))
+
+                // image
+                var icontd = $(document.createElement('td')).append(
+                    $(document.createElement('img'))
+                        .attr("src", get_filetype_iconuri(get_file_ext(fitem.filename)))
+                        .css("padding", "4px 3px")
+                ).appendTo(rowobj);
+                
+                // filename
+                var fndisp = fitem.path.slice(1);
                 var obj = $(document.createElement('span'))
-                    .addClass("eh_listitem")
-                    .text(fitem.path)
-                    .addClass("eh_link2 eh_link_add_hover")
+                    .text(fndisp)
+                    .addClass("eh_link2 eh_link_add_hover");
+                var fntd = $(document.createElement('td')).append(obj).appendTo(rowobj);
 
                 let openoutside = !pdfviewer_issupported(fitem); // should we open this file outside
-                
                 var openfunc = function () {
                     console.log(fitem, coursefolder);
                     if (openoutside) { // user dblclick file
@@ -2210,11 +2287,9 @@ function coursetable_enter(cidx, x, y)
                         pdfviewer_show(fitem, coursefolder);
                     }
                 };
-                
-                obj.dblclick(openfunc);
-                obj.click( function () { // user select file
+                var selectfunc = function () { // user select file
                     $(this).parent().parent().find("span").filter(".eh_link3").removeClass("eh_link3").addClass("eh_link2");
-                    $(this).removeClass("eh_link2").addClass("eh_link3");
+                    $(this).parent().find("span").filter(".eh_link2").removeClass("eh_link2").addClass("eh_link3");
                     var actobj = $(document.createElement('span'));
                     $(document.createElement('span')).addClass("eh_link").text("打开文件位置").click( function () {
                         reveal_fileuri(fileuri);
@@ -2222,30 +2297,36 @@ function coursetable_enter(cidx, x, y)
                     var detaildiv = $("#filenav_deatils");
                     detaildiv.empty()
                         .append($(create_kvdiv("名称: ", fitem.filename, openfunc)))
-                        .append($(create_kvdiv("修改时间: ", format_date(new Date(Date.parse(fitem.lastmodified))))))
+                        .append($(create_kvdiv("修改时间: ", format_date(new Date(Date.parse(fitem.lastmodified)), "dto"))))
                         .append($(create_kvdiv("大小: ", format_filesize(fitem.contentlength))))
                         .append($(create_kvdiv_with_obj("操作: ", actobj)));
-                });
+                };
 
-                var divobj = $(document.createElement('div')).append(obj);
+                fntd.dblclick(openfunc);
+                icontd.dblclick(openfunc);
+                fntd.click(selectfunc);
+                icontd.click(selectfunc);
+                
+                if (fitem.is_new_file) {
+                    $(document.createElement('span'))
+                        .text(" (新)")
+                        .css("color", "red")
+                        .appendTo(fntd);
+                }
+
+                // lastmodified
                 var lastmodifiedoffset = date_offset(new Date(Date.parse(fitem.lastmodified)));
                 if (lastmodifiedoffset.str != "") {
-                    var obj3 = $(document.createElement('span'))
-                        .addClass("eh_listitem_dateoffset")
-                        .text(" (" + lastmodifiedoffset.str + ")")
-                        .css("color", lastmodifiedoffset.color);
-                    divobj.append(obj3);
+                    $(document.createElement('td')).append(
+                        $(document.createElement('span')).text(format_date(new Date(Date.parse(fitem.lastmodified)), "d") + "  ")
+                    ).append(
+                        $(document.createElement('span'))
+                            .text(" (" + lastmodifiedoffset.str + ")")
+                            .css("color", lastmodifiedoffset.color)
+                    ).click(selectfunc).dblclick(openfunc).appendTo(rowobj);
                 }
 
-                if (fitem.is_new_file) {
-                    var obj2 = $(document.createElement('span'))
-                        .addClass("eh_listitem_new")
-                        .text(" (新)")
-                        .css("color", "red");
-                    divobj.append(obj2);
-                }
-
-                divobj.appendTo("#filenav_filelist");
+                rowobj.appendTo(tbodyobj);
             });
         }, function (reason) {
             $("#filenav_syncinprogresstext").hide();
