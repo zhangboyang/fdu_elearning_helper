@@ -89,9 +89,18 @@ body {
     color: blue;
     cursor: pointer;
 }
-
+.eh_link2 {
+    text-decoration: underline;
+    color: navy;
+    cursor: pointer;
+}
+.eh_link3 {
+    text-decoration: underline;
+    color: blue;
+    cursor: pointer;
+}
 .eh_link_add_hover:hover {
-    color: orange;
+    color: blue;
 }
 
 

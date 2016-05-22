@@ -17,6 +17,13 @@ var datafolder; // internal data folder, NATIVE style, like C:\foo\bar.....
 
 var ppt2pdf_path; // NATIVE path to ppt2pdf.vbs
 
+
+
+var chsweekday = ["日", "一", "二", "三", "四", "五", "六", "日"];
+
+
+
+
 function launch_fileuri(fileuri)
 {
     var file = Components.classes["@mozilla.org/file/local;1"].createInstance(Components.interfaces["nsILocalFile"]);
@@ -29,36 +36,75 @@ function reveal_fileuri(fileuri)
     file.initWithPath(OS.Path.fromFileURI(fileuri));
     file.reveal();
 }
+
+/*
+    return date offset from now
+    return object:
+        {
+            str: something like "x 天前"
+            color: something like "red"
+            offset: time diff in ms, <0 means past, >0 means future
+        }
+*/
 function date_offset(d)
 {
-    var offset = "";
+    var f;
     var c = new Date(); // current time
-    var o = c.getTime() - d.getTime(); // time diff in ms
-    if (o > 0) {
-        if (o < 7 * 24 * 60 * 60 * 1000) {
-            var days = Math.floor(o / (24 * 60 * 60 * 1000));
-            offset = days.toString() + " 天前";
-        } else if (o < 4 * 7 * 24 * 60 * 60 * 1000) {
-            var weeks = Math.floor(o / (7 * 24 * 60 * 60 * 1000));
-            offset = weeks.toString() + " 周前";
-        } else if (o < 365 * 24 * 60 * 60 * 1000) {
-            var months = (c.getMonth() - d.getMonth() + 12) % 12;
-            offset = months.toString() + " 个月前";
-        } else {
-            var years = c.getFullYear() - d.getFullYear();
-            offset = years.toString() + " 年前";
-        }
+    var offset = d.getTime() - c.getTime(); // time diff in ms
+    var number, unit, pastfuture;
+    var str;
+    if (offset <= 0) { f = -1; pastfuture = "前"; } else { f = 1; pastfuture = "后" };
+    var o = f * offset;
+    
+    if (o < 10 * 1000) {
+        number = -1;
+        unit = "现在";
+        color = "red";
+    } else if (o < 60 * 1000) {
+        number = Math.floor(o / 1000);
+        unit = "秒";
+        color = "red";
+    } else if (o < 60 * 60 * 1000) {
+        number = Math.floor(o / (60 * 1000));
+        unit = "分钟";
+        color = "red";
+    } else if (o < 3 * 24 * 60 * 60 * 1000) {
+        number = Math.floor(o / (60 * 60 * 1000));
+        unit = "小时";
+        color = "red";
+    } else if (o < 7 * 24 * 60 * 60 * 1000) {
+        number = Math.floor(o / (24 * 60 * 60 * 1000));
+        unit = "天";
+        color = "fuchsia";
+    } else if (o < 4 * 7 * 24 * 60 * 60 * 1000) {
+        number = Math.floor(o / (7 * 24 * 60 * 60 * 1000));
+        unit = "周";
+        color = "blue";
+    } else if (o < 365 * 24 * 60 * 60 * 1000) {
+        number = (f * (d.getMonth() - c.getMonth()) + 12) % 12;
+        unit = "个月";
+        if (number <= 1) color = "darkgreen";
+        else if (number <= 3) color = "black";
+    } else {
+        number = Math.abs(d.getFullYear() - c.getFullYear());
+        unit = "年";
+        color = "black";
     }
-    return offset;
+
+    if (number < 0) str = unit;
+    else str = number.toString() + " " + unit + pastfuture;
+
+    return { str: str, color: color, offset: offset };
 }
 
 function format_date(d)
 {
-    var base = d.getFullYear().toString() + "/" + (d.getMonth() + 1).toString() + "/" + d.getDay().toString()
-         + " " + d.getHours().toString() + ":" + d.getMinutes().toString();
-    var offset = date_offset(d);
-    if (offset != "") offset = " (" + offset + ")";
-    return base + offset;
+    var base = d.getFullYear().toString() + "/" + (d.getMonth() + 1).toString() + "/" + d.getDate().toString()
+         + " " + ("0" + d.getHours().toString()).slice(-2) + ":" + ("0" + d.getMinutes().toString()).slice(-2);
+    var desc = "周" + chsweekday[d.getDay()];
+    var ostr = date_offset(d).str;
+    if (ostr != "") desc += ", " + ostr;
+    return base + " (" + desc + ")";
 }
 
 function format_filesize(sz)
@@ -565,6 +611,7 @@ function select_dtype(id)
 }
 
 function reset_dtype()
+
 {
     select_dtype(1);
 }
@@ -1989,7 +2036,6 @@ function make_ctime_str(ctimelist)
         return 1;
     });
 
-    var chsweekday = ["日", "一", "二", "三", "四", "五", "六", "日"];
     var ctimestr = "";
     var i, j;
     for (i = 0; i < ctimelist.length; i = j) {
@@ -2152,7 +2198,7 @@ function coursetable_enter(cidx, x, y)
                 var obj = $(document.createElement('span'))
                     .addClass("eh_listitem")
                     .text(fitem.path)
-                    .addClass("eh_link eh_link_add_hover");
+                    .addClass("eh_link2 eh_link_add_hover")
 
                 let openoutside = !pdfviewer_issupported(fitem); // should we open this file outside
                 
@@ -2164,9 +2210,11 @@ function coursetable_enter(cidx, x, y)
                         pdfviewer_show(fitem, coursefolder);
                     }
                 };
-
+                
                 obj.dblclick(openfunc);
                 obj.click( function () { // user select file
+                    $(this).parent().parent().find("span").filter(".eh_link3").removeClass("eh_link3").addClass("eh_link2");
+                    $(this).removeClass("eh_link2").addClass("eh_link3");
                     var actobj = $(document.createElement('span'));
                     $(document.createElement('span')).addClass("eh_link").text("打开文件位置").click( function () {
                         reveal_fileuri(fileuri);
@@ -2178,24 +2226,23 @@ function coursetable_enter(cidx, x, y)
                         .append($(create_kvdiv("大小: ", format_filesize(fitem.contentlength))))
                         .append($(create_kvdiv_with_obj("操作: ", actobj)));
                 });
-                
-                
-                
+
                 var divobj = $(document.createElement('div')).append(obj);
+                var lastmodifiedoffset = date_offset(new Date(Date.parse(fitem.lastmodified)));
+                if (lastmodifiedoffset.str != "") {
+                    var obj3 = $(document.createElement('span'))
+                        .addClass("eh_listitem_dateoffset")
+                        .text(" (" + lastmodifiedoffset.str + ")")
+                        .css("color", lastmodifiedoffset.color);
+                    divobj.append(obj3);
+                }
+
                 if (fitem.is_new_file) {
                     var obj2 = $(document.createElement('span'))
                         .addClass("eh_listitem_new")
                         .text(" (新)")
                         .css("color", "red");
                     divobj.append(obj2);
-                }
-
-                var lastmodifiedoffset = date_offset(new Date(Date.parse(fitem.lastmodified)));
-                if (lastmodifiedoffset != "") {
-                    var obj3 = $(document.createElement('span'))
-                        .addClass("eh_listitem_dateoffset")
-                        .text(" (" + lastmodifiedoffset + ")")
-                    divobj.append(obj3);
                 }
 
                 divobj.appendTo("#filenav_filelist");
