@@ -85,18 +85,27 @@ function statuslist_appendprogress(list, str, color)
             .html("&nbsp;...&nbsp;")
         ).append($(document.createElement('span'))
             .addClass("eh_statuslist_secondhalf")
+        ).append($(document.createElement('span'))
+            .addClass("eh_statuslist_additional")
         ).appendTo($(list));
     if (typeof(color) != "undefined") {
         y.css("color", color);
     }
     return x[0];
 }
-function statuslist_update(obj, str, color)
+function statuslist_update(obj, str, color, str2, color2)
 {
     var x = $($(obj).children("span")[2]).text(str);
 
     if (typeof(color) != "undefined") {
         x.css("color", color);
+    }
+
+    if (typeof(str2) != "undefined") {
+        var x2 = $($(obj).children("span")[3]).text(str2);
+        if (typeof(color2) != "undefined") {
+            x2.css("color", color2);
+        }
     }
 }
 
@@ -192,6 +201,12 @@ function friendly_error(str)
     do_output(str);
 }
 
+function assert(x)
+{
+    if (!x) {
+        throw "assert failed";
+    }
+}
 
 
 // =============== page switching related functions ======================
@@ -613,6 +628,8 @@ function canvas_redraw_single(ctx, dobj, startfrom)
         ret = -1;
     } else if (dobj.type == "ellipse") {
         var lt = canvas_n2c(data[0]);
+
+
         var rb = canvas_n2c(data[data.length - 1]);
         ctx.beginPath();
         ctx.save();
@@ -1274,10 +1291,10 @@ function webdav_listall(uuid)
             url: "http://elearning.fudan.edu.cn/dav/" + uuid,
             context: document.body,
             dataType: "xml",
-            //username: el_username,
-            //password: el_password,
+            username: el_username,
+            password: el_password,
             headers: {  "Depth": "infinity",
-                        "Authorization": "Basic " + btoa(el_username + ":" + el_password), // sometimes fails
+                        //"Authorization": "Basic " + btoa(el_username + ":" + el_password), // sometimes fails
                      },
             success:    function (xml, status) {
 
@@ -1448,10 +1465,10 @@ function webdav_sync_single(href, localbase, fpath, fstatus, update_count_callba
             if (reason instanceof OS.File.Error && reason.becauseNoSuchFile) {
                 // file not exists, we should download it
                 //console.log("file not exists, download: " + fpath);
-                statuslist_update(fstatus, "下载中", "blue");
+                statuslist_update(fstatus, "下载中", "blue", " (新)", "red");
                 update_count_callback(0, 1);
                 webdav_download_single(href, localbase, fpath).then( function () {
-                    statuslist_update(fstatus, "下载成功", "green");
+                    statuslist_update(fstatus, "下载成功", "green", " (新)", "red");
                     update_count_callback(1, 0);
                     resolve(1);
                 }, function (reason) { // onerror
@@ -1519,7 +1536,11 @@ function webdav_sync(uuid, coursefolder, statuslist, report_progress)
                                 });
                             })).then( function (dstat) {
                                 var sum = 0;
-                                dstat.forEach( function (element) { sum += element; } );
+                                assert(dstat.length == lobj.flist.length);
+                                for (var i = 0; i < dstat.length; i++) {
+                                    sum += dstat[i];
+                                    lobj.flist[i].is_new_file = dstat[i];
+                                }
                                 statuslist_append(statuslist, "同步完成，共有 " + sum + " 个新文件", "green");
                                 resolve({
                                     lobj: lobj,
@@ -2031,9 +2052,13 @@ function coursetable_enter(cidx, x, y)
             }
             
             obj.lobj.flist.sort( function (a, b) {
-                if (a.path == b.path) return 0;
-                if (a.path < b.path) return -1;
-                return 1;
+                if (a.is_new_file != b.is_new_file) {
+                    return a.is_new_file > b.is_new_file ? -1 : 1;
+                } else {
+                    if (a.path == b.path) return 0;
+                    if (a.path < b.path) return -1;
+                    return 1;
+                }
             });
 
             $("#filenav_filelist").empty();
@@ -2048,8 +2073,17 @@ function coursetable_enter(cidx, x, y)
                 } else {
                     obj.addClass("eh_link");
                 }
+                
+                var divobj = $(document.createElement('div')).append(obj);
+                if (element.is_new_file) {
+                    var obj2 = $(document.createElement('span'))
+                        .addClass("eh_listitem_new")
+                        .text(" (新)")
+                        .css("color", "red");
+                    divobj.append(obj2);
+                }
 
-                $(document.createElement('div')).append(obj).appendTo("#filenav_filelist");
+                divobj.appendTo("#filenav_filelist");
             });
         }, function (reason) {
             $("#filenav_syncinprogresstext").hide();
