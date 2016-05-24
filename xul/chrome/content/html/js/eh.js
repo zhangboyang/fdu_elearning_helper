@@ -34,6 +34,12 @@ function get_filetype_remote_iconuri(ext)
             return "http://elearning.fudan.edu.cn/library/image/sakai/image.gif";
         case "zip": case "rar": case "dmg": case "7z": case "tar": case "xz": case "gz": case "bz2":
             return "http://elearning.fudan.edu.cn/library/image/sakai/compressed.gif";
+        case "txt": case "c": case "cpp": case "h": case "java": case "py": case "sh":
+            return "http://elearning.fudan.edu.cn/library/image/sakai/text.gif";
+        case "htm": case "html": case "js": case "css": case "json":
+            return "http://elearning.fudan.edu.cn/library/image/sakai/html.gif";
+        case "exe": case "jar": case "class": case "o": case "a":
+            return "http://elearning.fudan.edu.cn/library/image/sakai/binary.gif";
         default: return "http://elearning.fudan.edu.cn/library/image/sakai/generic.gif";
     }
 }
