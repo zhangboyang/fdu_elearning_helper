@@ -9,6 +9,6 @@ pref("javascript.options.strict", true);
 pref("nglayout.debug.disable_xul_cache", true);
 pref("nglayout.debug.disable_xul_fastload", true);
 
-pref("general.useragent.override", "elearninghelper/0.0.1");
+pref("general.useragent.override", "elearninghelper/unknownversion");
 
 

@@ -5,11 +5,35 @@ var Services; // it's a copy of window.parent.Services
 var prefs; // it's a copy of window.parent.prefs
 
 
-
+// prefs
+var el_debug, el_dbgremotelog;
 var el_username; // elearning username
 var el_password; // elearning password
-
+var el_rememberme;
 var page_limit; // pdfviewer page limit
+
+function load_prefs()
+{
+    el_debug = prefs.getBoolPref("dbgremotelog");
+    el_dbgremotelog = prefs.getBoolPref("el_dbgremotelog");
+    el_username = prefs.getCharPref("username");
+    el_password = prefs.getCharPref("password");
+    el_rememberme = prefs.getBoolPref("rememberme");
+    page_limit = prefs.getIntPref("pagelimit");
+}
+
+function save_prefs()
+{
+    prefs.setCharPref("username", el_username);
+    prefs.setCharPref("password", el_rememberme ? el_password : "");
+    prefs.setBoolPref("rememberme", el_rememberme);
+    prefs.setIntPref("pagelimit", page_limit);
+}
+
+
+
+
+var el_version; // app version string, a copy of window.parent.xulinfo.version
 
 var docfolder; // document folder, FILE URI style, like file:///foo/bar....
 var datafolder; // internal data folder, NATIVE style, like C:\foo\bar.....
@@ -22,6 +46,24 @@ var ppt2pdf_path; // NATIVE path to ppt2pdf.vbs
 var chsweekday = ["日", "一", "二", "三", "四", "五", "六", "日"];
 var preventdefaultfunc = function (e) { e.preventDefault(); };
 
+function local_log(msg)
+{
+    if (el_debug) {
+        console.log("LOCAL LOG: " + msg);
+        window.parent.mylog("LOCAL LOG: " + msg);
+    }
+}
+
+function remote_log(msg)
+{
+    if (el_debug) {
+        console.log("REMOTE LOG: " + msg);
+        window.parent.mylog("REMOTE LOG: " + msg);
+        if (el_dbgremotelog) {
+            // FIXME
+        }
+    }
+}
 
 function get_filetype_remote_iconuri(ext)
 {
@@ -1152,18 +1194,12 @@ function init_canvas() // will be called once in global init function
 
 // ====================== the global init function ======================
 
-function load_prefs()
-{
-    el_username = prefs.getCharPref("username");
-    el_password = prefs.getCharPref("password");
-    page_limit = prefs.getIntPref("pagelimit");
-}
-
 $("document").ready( function () {
     prefs = window.parent.prefs;
     OS = window.parent.OS;
     Services = window.parent.Services;
-
+    el_version = window.parent.xulinfo.version;
+    
     load_prefs();
     
     docfolder = OS.Path.toFileURI(OS.Path.join(OS.Constants.Path.desktopDir, "ehdoc"));

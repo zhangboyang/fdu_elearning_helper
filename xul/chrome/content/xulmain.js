@@ -157,7 +157,13 @@ function get_clipboard_text(str)
     C:\Users\YOUR_USER_NAME\AppData\Roaming\elearninghelper\Profiles\SOME_UNIQUE_STRING.default
 */
 
-var prefs = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefService).getBranch("elearninghelper.");
+var prefservice = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefService);
+var prefs = prefservice.getBranch("elearninghelper.");
+
+
+
+// override user agent
+prefservice.getBranch("general.").setCharPref("useragent.override", "elearninghelper/" + parent.xulinfo.version);
 
 
 
@@ -175,8 +181,7 @@ var prefs = Components.classes["@mozilla.org/preferences-service;1"].getService(
 
 
 
-
-
+/* check if we should enable remote debug feature */
 
 if (!prefs.getBoolPref("debug") || !prefs.getBoolPref("dbgserver")) {
     document.getElementById("reloadbtn").style.display = "none";
