@@ -1,12 +1,14 @@
 <?xml version="1.0"?>
 <?xml-stylesheet href="chrome://global/skin" type="text/css"?>
 
-<window title="HelloWorld"
+<window title="eLearning 助手"
     xmlns:html="http://www.w3.org/1999/xhtml"
     xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
     width="1200px"
     height="700px">
     
+
+    <button id="reloadbtn" label="Reload" oncommand="document.getElementById('mybrowser').reload();"/>
     
     <script type="application/javascript" src="chrome://elearninghelper/content/xulmain.js"/>
 
@@ -15,11 +17,7 @@
     'chrome,extrachrome,menubar,resizable,scrollbars,status,toolbar');"/>
     <separator/>-->
 
-    
-    <button label="Reload" oncommand="document.getElementById('mybrowser').reload();"/>
-    
     <browser id="mybrowser" src="chrome://elearninghelper/content/html/main.html" flex="1" context="mymenu" />
-
 
     <!-- the popup menu -->
     <menupopup id="mymenu" onpopupshowing="mymenu_popupshowing(event)">
@@ -35,12 +33,9 @@
         <menuitem label="斜体" oncommand="document.getElementById('mybrowser').contentWindow.doc_exec_cmd(document.popupNode, 'italic')"/>
         <menuitem label="下划线" oncommand="document.getElementById('mybrowser').contentWindow.doc_exec_cmd(document.popupNode, 'underline')"/>
         <menuitem label="去除格式" oncommand="document.getElementById('mybrowser').contentWindow.doc_exec_cmd(document.popupNode, 'removeformat')"/>
-        
         <!--<menuseparator/>
-        
         <menuitem label="Open"/>
         <menuitem label="Save"/>
-        
         <menuitem label="Exit"/>-->
     </menupopup>
 </window>

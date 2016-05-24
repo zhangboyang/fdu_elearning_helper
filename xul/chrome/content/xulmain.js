@@ -1,3 +1,6 @@
+// ========================= useful functions =========================
+
+
 // log to js console
 function mylog(s)
 {
@@ -5,15 +8,6 @@ function mylog(s)
     console = Components.classes["@mozilla.org/consoleservice;1"].getService(Components.interfaces.nsIConsoleService);
     console.logStringMessage("[MYLOG] " + s);
 }
-
-
-
-
-
-
-
-
-
 
 
 
@@ -77,6 +71,22 @@ function mymenu_popupshowing(event)
 
 
 
+
+
+
+
+
+
+
+
+// =========================== vars ========================================
+
+/*
+    appinfo
+*/
+var xulinfo = Components.classes["@mozilla.org/xre/app-info;1"].getService(Components.interfaces.nsIXULAppInfo);
+
+
 /*
     import Services
 */
@@ -135,14 +145,6 @@ function get_clipboard_text(str)
 
 
 
-
-
-
-
-
-
-
-
 /*
     preferences system:
     
@@ -176,27 +178,26 @@ var prefs = Components.classes["@mozilla.org/preferences-service;1"].getService(
 
 
 
-
-
-
-
-
-
-
-/*
-    enable remote debugging
-    note: this will no longer works when gecko version >= 44
-    note: this block of code is moved to tail
-          since this block of code will cause error when version >= 44
-    
-    https://developer.mozilla.org/en-US/docs/Archive/Mozilla/XULRunner/Debugging_XULRunner_applications
-*/
-Components.utils.import('resource://gre/modules/devtools/dbg-server.jsm');
-if (!DebuggerServer.initialized) {
-    DebuggerServer.init();
-    DebuggerServer.addBrowserActors();
-    DebuggerServer.allowChromeProcess = true;
+if (!prefs.getBoolPref("debug") || !prefs.getBoolPref("dbgserver")) {
+    document.getElementById("reloadbtn").style.display = "none";
 }
-let dbgListener=DebuggerServer.createListener();
-dbgListener.portOrPath=6000;
-dbgListener.open();
+
+if (prefs.getBoolPref("debug") && prefs.getBoolPref("dbgserver")) {
+    /*
+        enable remote debugging
+        note: this will no longer works when gecko version >= 44
+        note: this block of code is moved to tail
+              since this block of code will cause error when version >= 44
+        
+        https://developer.mozilla.org/en-US/docs/Archive/Mozilla/XULRunner/Debugging_XULRunner_applications
+    */
+    Components.utils.import('resource://gre/modules/devtools/dbg-server.jsm');
+    if (!DebuggerServer.initialized) {
+        DebuggerServer.init();
+        DebuggerServer.addBrowserActors();
+        DebuggerServer.allowChromeProcess = true;
+    }
+    let dbgListener=DebuggerServer.createListener();
+    dbgListener.portOrPath=6000;
+    dbgListener.open();
+}
