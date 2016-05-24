@@ -10,15 +10,18 @@ var el_debug, el_dbgremotelog;
 var el_username; // elearning username
 var el_password; // elearning password
 var el_rememberme;
+var usebuiltinviewer; // use builtin pdfviewer or not
 var page_limit; // pdfviewer page limit
 
 function load_prefs()
 {
     el_debug = prefs.getBoolPref("dbgremotelog");
-    el_dbgremotelog = prefs.getBoolPref("el_dbgremotelog");
+    el_dbgremotelog = prefs.getBoolPref("dbgremotelog");
+    
     el_username = prefs.getCharPref("username");
     el_password = prefs.getCharPref("password");
     el_rememberme = prefs.getBoolPref("rememberme");
+    usebuiltinviewer = prefs.getBoolPref("usebuiltinviewer");
     page_limit = prefs.getIntPref("pagelimit");
 }
 
@@ -27,6 +30,7 @@ function save_prefs()
     prefs.setCharPref("username", el_username);
     prefs.setCharPref("password", el_rememberme ? el_password : "");
     prefs.setBoolPref("rememberme", el_rememberme);
+    prefs.setBoolPref("usebuiltinviewer", usebuiltinviewer);
     prefs.setIntPref("pagelimit", page_limit);
 }
 
@@ -1463,6 +1467,7 @@ function pdfviewer_show(fitem, coursefolder)
 */
 function pdfviewer_issupported(fitem)
 {
+    if (!usebuiltinviewer) return false;
     var fileext = get_file_ext(fitem.filename);
     return fileext == "pdf" || fileext == "ppt" || fileext == "pptx";
 }
