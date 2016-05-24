@@ -34,7 +34,7 @@ function get_filetype_remote_iconuri(ext)
             return "http://elearning.fudan.edu.cn/library/image/sakai/image.gif";
         case "zip": case "rar": case "dmg": case "7z": case "tar": case "xz": case "gz": case "bz2":
             return "http://elearning.fudan.edu.cn/library/image/sakai/compressed.gif";
-        case "txt": case "c": case "cpp": case "h": case "java": case "py": case "sh":
+        case "txt": case "c": case "cpp": case "h": case "java": case "py": case "sh": case "sql":
             return "http://elearning.fudan.edu.cn/library/image/sakai/text.gif";
         case "htm": case "html": case "js": case "css": case "json":
             return "http://elearning.fudan.edu.cn/library/image/sakai/html.gif";
@@ -83,6 +83,15 @@ function reveal_fileuri(fileuri)
     file.reveal();
 }
 
+function get_hour_desc(d)
+{
+    var h = d.getHours();
+    if (h <= 4) return "凌晨";
+    if (h <= 11) return "早上";
+    if (h <= 13) return "中午";
+    if (h <= 17) return "下午";
+    return "晚上";
+}
 /*
     return date offset from now
     return object:
@@ -94,17 +103,21 @@ function reveal_fileuri(fileuri)
 */
 function date_offset(d)
 {
-    var f;
     var c = new Date(); // current time
     var offset = d.getTime() - c.getTime(); // time diff in ms
-    var number, unit, pastfuture;
-    var str;
-    if (offset <= 0) { f = -1; pastfuture = "前"; } else { f = 1; pastfuture = "后" };
+
+    var f;
+    var number = -1;
+    var unit;
+    var suffix;
+    
+    if (offset <= 0) { f = -1; suffix = "前"; } else { f = 1; suffix = "后" };
     var o = f * offset;
+
+    var str;
     
     if (o < 10 * 1000) {
-        number = -1;
-        unit = "现在";
+        str = "现在";
         color = "red";
     } else if (o < 60 * 1000) {
         number = Math.floor(o / 1000);
@@ -114,31 +127,73 @@ function date_offset(d)
         number = Math.floor(o / (60 * 1000));
         unit = "分钟";
         color = "red";
-    } else if (o < 3 * 24 * 60 * 60 * 1000) {
+    } else if (o < 12 * 60 * 60 * 1000) {
         number = Math.floor(o / (60 * 60 * 1000));
         unit = "小时";
         color = "red";
-    } else if (o < 7 * 24 * 60 * 60 * 1000) {
-        number = Math.floor(o / (24 * 60 * 60 * 1000));
-        unit = "天";
-        color = "fuchsia";
-    } else if (o < 4 * 7 * 24 * 60 * 60 * 1000) {
-        number = Math.floor(o / (7 * 24 * 60 * 60 * 1000));
-        unit = "周";
-        color = "blue";
-    } else if (o < 365 * 24 * 60 * 60 * 1000) {
-        number = (f * (d.getMonth() - c.getMonth()) + 12) % 12;
-        unit = "个月";
-        if (number <= 1) color = "darkgreen";
-        else if (number <= 3) color = "black";
     } else {
-        number = Math.abs(d.getFullYear() - c.getFullYear());
-        unit = "年";
-        color = "black";
+        do {
+            var dd = new Date(d);
+            dd.setHours(0, 0, 0, 0);
+            
+            // recent offset
+            var rdesc = ["前天", "昨天", "今天", "明天", "后天"];
+            for (var i = -2; i <= 2; i++) {
+                var r = new Date(c);
+                r.setDate(r.getDate() + i);
+                r.setHours(0, 0, 0, 0);
+                if (r <= dd && dd <= r) {
+                    str = rdesc[i + 2] + get_hour_desc(d);
+                    color = "red";
+                    o = -1;
+                    break;
+                }
+            }
+            if (o < 0) break;
+
+            // weekday offset
+            var wdesc = ["上周", "本周", "下周"];
+            for (var i = -1; i <= 1; i++) {
+                var w = new Date(c);
+                w.setDate(w.getDate() - w.getDay() + i * 7);
+                for (var j = 1; j <= 7; j++) {
+                    var ww = new Date(w);
+                    ww.setDate(ww.getDate() + j);
+                    ww.setHours(0, 0, 0, 0);
+                    if (ww <= dd && dd <= ww) {
+                        str = wdesc[i + 1] + chsweekday[j] + get_hour_desc(d);
+                        color = "fuchsia";
+                        o = -1;
+                        break;
+                    }
+                }
+                if (o < 0) break;
+            }
+            if (o < 0) break;
+            
+            // other offset
+            if (o < 7 * 24 * 60 * 60 * 1000) {
+                number = Math.floor(o / (24 * 60 * 60 * 1000));
+                unit = "天";
+                color = "fuchsia";
+            } else if (o < 4 * 7 * 24 * 60 * 60 * 1000) {
+                number = Math.round(o / (7 * 24 * 60 * 60 * 1000));
+                unit = "周";
+                color = "blue";
+            } else if (o < 365 * 24 * 60 * 60 * 1000) {
+                number = (f * (d.getMonth() - c.getMonth()) + 12) % 12;
+                unit = "个月";
+                if (number <= 1) color = "darkgreen";
+                else if (number <= 3) color = "black";
+            } else {
+                number = Math.abs(d.getFullYear() - c.getFullYear());
+                unit = "年";
+                color = "black";
+            }
+        } while (0);
     }
 
-    if (number < 0) str = unit;
-    else str = number.toString() + " " + unit + pastfuture;
+    if (number >= 0) str = number.toString() + " " + unit + suffix;
 
     return { str: str, color: color, offset: offset };
 }
