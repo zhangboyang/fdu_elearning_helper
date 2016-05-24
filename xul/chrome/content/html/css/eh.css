@@ -24,6 +24,9 @@
 
 /* elearning helper css */
 
+html {
+    font-size: 14.5px !important;
+}
 body {
     font-family: sans-serif;
     -moz-text-size-adjust: none; 
@@ -481,4 +484,39 @@ body {
 
 .eh_pdf_list_item.eh_selected {
     background-color: #FFEE58;
+}
+
+.eh_formlabel {
+    font-size: 16px !important;
+    color: black !important;
+}
+.eh_textinput:focus {
+	box-shadow: none !important;
+}
+.eh_textinput {
+	background-color: white !important;
+	border-width: 2px !important;
+	border-style: solid !important;
+	padding: 4px !important;
+}
+.eh_login_textinput {
+    margin-top: 6px !important;
+    border-color: #7cb342 !important;
+	width: 280px !important;
+	height: 22px !important;
+}
+.eh_login_submitbutton {
+    margin-top: 10px !important;
+	width: 292px !important;
+}
+.eh_login_checkbox[type="checkbox"].filled-in:checked + label:after{
+     border: 2px solid #7cb342;
+     background-color: #7cb342;
+}
+.eh_login_checkbox[type="checkbox"].filled-in + label:after{
+     border: 2px solid #7cb342;
+}
+.eh_formlabel_checkbox_span {
+	margin-top: -3.5px;
+	display: inherit;
 }

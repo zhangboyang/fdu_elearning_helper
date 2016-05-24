@@ -490,13 +490,6 @@ function assert(x)
 // =============== page switching related functions ======================
 
 
-function hide_all_pages()
-{
-    $("#main_page").hide();
-    $("#calendar_page").hide();
-    $("#viewfile_page").hide();
-    $("#filenav_page").hide();
-}
 
 function go_back()
 {
@@ -535,10 +528,21 @@ function show_page_with_width(page_name, min_left_width, left_width, max_left_wi
     $("#" + page_name + "_page").show();
 }
 
+function hide_all_pages()
+{
+    $("#login_page").hide();
+    $("#main_page").hide();
+    $("#calendar_page").hide();
+    $("#viewfile_page").hide();
+    $("#filenav_page").hide();
+}
+
 function show_page(page_name)
 {
     hide_all_pages();
-    if (page_name == "main") {
+    if (page_name == "login") {
+        show_page_with_width("login", "0px", "0px", "0px", "0px", "0px", "0px");
+    } else if (page_name == "main") {
         show_page_with_width("main", "0px", "0px", "0px", "0px", "0px", "0px");
     } else if (page_name == "calendar") {
         show_page_with_width("calendar", "200px", "200px", "200px", "0px", "20%", "100%");
@@ -1221,12 +1225,11 @@ $("document").ready( function () {
     init_notebox();
 
 
-    show_page("main");
-
-    init_main_page(); // load course table
-    
-    //show_msg("INIT OK!", 4000);
-
+    if (el_username == "" || el_password == "" || !el_rememberme) {
+        show_page("login");
+    } else {
+        init_main_page(); // load course table
+    }
 });
 
 
@@ -2479,6 +2482,7 @@ function match_cname_sname(cidx)
 
 function init_main_page()
 {
+    show_page("main");
     remove_all_cookies();
 
     /* load data from network:
@@ -2486,15 +2490,21 @@ function init_main_page()
         semesterdata
         clist
     */
+    var progressobj = $("#main_loadprogress");
+    progressobj.text("登录 UIS 中");
     uis_login().then( function () {
         // uis login OK, we should login to elearning
+        progressobj.text("登录 eLearning 中");
         elearning_login().then( function () {
             // elearning login OK, we should fetch sitelist
+            progressobj.text("获取站点数据");
             elearning_fetch_sitelist().then( function (slist_input) {
                 slist = slist_input; // save fetched slite to global var
                 // slist fetched OK, we should query for course table
+                progressobj.text("获取学期数据");
                 urp_fetch_semesterdata().then( function (semesterdata) {
                     // current semester is saved in semesterdata.cursid
+                    progressobj.text("获取课程表数据");
                     cur_semestername = semesterdata.smap[semesterdata.cursid];
                     urp_fetch_coursetable(semesterdata.cursid).then( function (clist) {
                         // load clist data
