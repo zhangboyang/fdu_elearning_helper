@@ -2837,10 +2837,11 @@ function show_about()
 {
     // remember where we come from
     aboutpage_lastpage = current_page;
-    show_page("about");
+    
     $("#about_licensebox").show();
     $("#about_debugbox").hide();
     $("#about_dbgtoolbtn").addClass("eh_link").text("打开调试工具");
+    show_page("about");
 }
 
 
@@ -2853,6 +2854,7 @@ function show_debug_tools()
 
 function initp_about()
 {
+    $("#about_versiontext").text(eh_version);
     return new Promise( function (resolve, reject) {
         $.get("license.txt", null, null, "text")
         .done( function (data, textStatus, jqXHR) {
