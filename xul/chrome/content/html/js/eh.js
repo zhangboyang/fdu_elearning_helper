@@ -61,7 +61,13 @@ var preventdefaultfunc = function (e) { e.preventDefault(); };
 */
 function check_filename(filename)
 {
-    // FIXME: security risk, not implemented
+    // FIXME: is this enough?
+    var ilchar = "*|\\:\"<>?/";
+    for (var i = 0; i < ilchar.length; i++) {
+        if (filename.indexOf(ilchar.charAt(i)) >= 0) {
+            throw "illegal filename: " + filename;
+        }
+    }
 }
 /*
     check if fileuri inside baseuri
@@ -69,7 +75,12 @@ function check_filename(filename)
 */
 function check_path_with_base(fileuri, baseuri)
 {
-    // FIXME: security risk, not implemented
+    // FIXME: is this enough?
+    var npath = OS.Path.normalize(OS.Path.fromFileURI(fileuri));
+    var nbase = OS.Path.normalize(OS.Path.fromFileURI(baseuri));
+    if (!npath.startsWith(nbase)) {
+        throw "illegal path = " + fileuri + ", base = " + baseuri;
+    }
 }
 
 
@@ -1806,9 +1817,8 @@ function webdav_create_localpath(localbase, subpath)
 {
     if (subpath == "/") return;
 
-    // FIXME: security risk, should check if subpath is legal
-    
     var target_uri = localbase + subpath;
+    check_path_with_base(target_uri, localbase);
     var target_native = OS.Path.fromFileURI(target_uri);
     var base_native = OS.Path.fromFileURI(localbase);
     //show_msg("base=" + base_native + " target=" + target_native);
@@ -1926,7 +1936,6 @@ function webdav_sync(uuid, coursefolder, statuslist, report_progress)
     return new Promise( function (resolve, reject) {
         // create course folder
         var localbase = docfolder + coursefolder;
-        check_filename(coursefolder);
         check_path_with_base(localbase, docfolder);
         webdav_create_localpath(docfolder, coursefolder).then( function () {
             // download files, list dir first
@@ -2254,6 +2263,8 @@ var cur_semestername; // current semester name
 
 function get_coursefolder(cobj)
 {
+    check_filename(cur_semestername);
+    check_filename(cobj.cname);
     return "/" + cur_semestername + "/" + cobj.cname;
 }
 
