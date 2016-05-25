@@ -608,6 +608,7 @@ function assert(x)
 // =============== page switching related functions ======================
 
 
+var current_page = "";
 
 function go_back()
 {
@@ -648,6 +649,7 @@ function show_page_with_width(page_name, min_left_width, left_width, max_left_wi
 
 function hide_all_pages()
 {
+    $("#about_page").hide();
     $("#login_page").hide();
     $("#main_page").hide();
     $("#calendar_page").hide();
@@ -657,6 +659,7 @@ function hide_all_pages()
 
 function show_page(page_name)
 {
+    current_page = page_name;
     hide_all_pages();
     if (page_name == "login") {
         show_page_with_width("login", "0px", "0px", "0px", "0px", "0px", "0px");
@@ -668,10 +671,21 @@ function show_page(page_name)
         show_page_with_width("viewfile", "200px", "200px", "200px", "250px", "20%", "100%");
     } else if (page_name == "filenav") {
         show_page_with_width("filenav", "0px", "0px", "0px", "0px", "0px", "0px");
+    } else if (page_name == "about") {
+        show_page_with_width("about", "0px", "0px", "0px", "0px", "0px", "0px");
     } else {
         abort("unknown page_name");
     }
 }
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1356,6 +1370,7 @@ $("document").ready( function () {
     // initp_* returns promises
     initp_filetype_icon();
     initp_tools();
+    initp_about();
 
 
     if (el_username == "" || el_password == "" || !el_rememberme) {
@@ -2805,6 +2820,44 @@ function eh_logout()
     init_login_page();
 }
 
+
+
+
+
+
+
+
+
+
+// ======================= about page related function ===================
+
+var aboutpage_lastpage = "";
+function aboutpage_goback() { show_page(aboutpage_lastpage); }
+function show_about()
+{
+    // remember where we come from
+    aboutpage_lastpage = current_page;
+    show_page("about");
+}
+
+
+function show_debug_tools()
+{
+    ////
+}
+
+function initp_about()
+{
+    return new Promise( function (resolve, reject) {
+        $.get("license.txt", null, null, "text")
+        .done( function (data, textStatus, jqXHR) {
+            $("#about_licensebox").text(data);
+            resolve();
+        }).fail ( function (xhr, textStatus, errorThrown) {
+            reject("can't load license text: " + textStatus + ", " + errorThrown);
+        });
+    });
+}
 
 
 
