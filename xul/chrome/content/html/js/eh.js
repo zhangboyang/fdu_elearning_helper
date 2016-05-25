@@ -66,7 +66,7 @@ function write_string_to_fileuri(str, fileuri)
 }
 function write_json_to_fileuri(obj, fileuri)
 {
-    return write_string_to_fileuri(JSON.stringify(obj), fileuri);
+    return write_string_to_fileuri(JSON.stringify({ app: "elearninghelper", ver: eh_version, obj: obj }), fileuri);
 }
 
 /*
@@ -89,7 +89,8 @@ function read_json_from_fileuri(fileuri)
     return new Promise( function (resolve, reject) {
         read_string_from_fileuri(fileuri).then( function (str) {
             try {
-                resolve(JSON.parse(str));
+                var data = JSON.parse(str);
+                resolve(data.obj);
             } catch (e) {
                 reject("JSON parse failed: " + e.message);
             }
@@ -155,7 +156,7 @@ function get_filetype_iconuri(ext)
                 var addtoset = function (ext) {
                     if (!filetype_icon_set.has(ext)) {
                         filetype_icon_set.add(ext);
-                        var f = OS.Path.toFileURI(OS.Path.join(datafolder, "fileicons", "knowntypes.json"));
+                        var f = OS.Path.toFileURI(OS.Path.join(datafolder, "fileicons", "known.json"));
                         write_json_to_fileuri([ext for (ext of filetype_icon_set)], f);
                     }
                 }
@@ -175,7 +176,7 @@ function get_filetype_iconuri(ext)
 function initp_filetype_icon()
 {
     return new Promise( function (resolve, reject) {
-        var f = OS.Path.toFileURI(OS.Path.join(datafolder, "fileicons", "knowntypes.json"));
+        var f = OS.Path.toFileURI(OS.Path.join(datafolder, "fileicons", "known.json"));
         read_json_from_fileuri(f).then( function (obj) {
             filetype_icon_set = new Set(obj);
             resolve();
@@ -355,16 +356,22 @@ function format_filesize(sz)
 }
 
 /*
-    fetch the user-friendly part of reject message
-    reject("some-user-friendly-message####some-internal-message")
+    grab the user-friendly part
+    reject("some-header####some-user-friendly-message####some-internal-message")
 */
-function friendly_rejectmsg(msg)
+function get_friendly_part(msg)
 {
     var idx = msg.indexOf("####");
     if (idx < 0) {
         return "内部错误: " + msg;
     } else {
-        return msg.substr(0, idx);
+        var msg2 = msg.substr(idx + 4);
+        var idx2 = msg2.indexOf("####");
+        if (idx2 < 0) {
+            return "内部错误: " + msg;
+        } else {
+            return msg2.substr(0, idx2);
+        }
     }
 }
 
@@ -382,12 +389,6 @@ function dump_cookies(domain)
         console.log(cookie.host + ";" + cookie.name + "=" + cookie.value + "\n");
     }
 }
-
-
-// generic ajax error handler
-var el_ajax_errfunc =   function (xhr, textStatus, errorThrown) {
-                            abort("AJAX: " + textStatus + ", " + errorThrown + ", " + xhr.status);
-                        };
 
 
 // create universal key-value div
@@ -553,8 +554,9 @@ function show_msg(str)
 }
 function abort(str)
 {
-    show_error(str);
-    throw str;
+    msg = get_friendly_part(str);
+    show_error(msg);
+    throw msg;
 }
 
 
@@ -1306,7 +1308,7 @@ $("document").ready( function () {
     prefs = window.parent.prefs;
     OS = window.parent.OS;
     Services = window.parent.Services;
-    el_version = window.parent.xulinfo.version;
+    eh_version = window.parent.xulinfo.version;
     
     load_prefs();
     
@@ -1729,7 +1731,7 @@ function webdav_listall(uuid)
                             });
                         },
             error: function (xhr, textStatus, errorThrown) {
-                reject("PROPFIND failed: " + textStatus + ", " + errorThrown + ", " + xhr.status);
+                reject("####网络连接失败####PROPFIND failed: " + textStatus + ", " + errorThrown + ", " + xhr.status);
             },
         });
     });
@@ -1902,7 +1904,7 @@ function webdav_sync(uuid, coursefolder, statuslist, report_progress)
         webdav_create_localpath(docfolder, coursefolder).then( function () {
             // download files, list dir first
             var lsstatus = statuslist_appendprogress(statuslist, "正在列目录");
-            webdav_listall(uuid).then(function (lobj) {
+            webdav_listall(uuid).then( function (lobj) {
                 Promise.all(lobj.dlist.map( function (ditem) { return webdav_create_localpath(localbase, ditem.path); } ))
                     .then( function () {
                         statuslist_update(lsstatus, "完成", "green");
@@ -2003,14 +2005,14 @@ function uis_login()
                         //show_msg("Login to UIS - OK!");
                         resolve();
                     } else if (data.indexOf("用户名或密码错误") > -1) {
-                        reject("用户名或密码错误####UIS login check failed");
+                        reject("####用户名或密码错误####UIS login check failed");
                     } else if (data.indexOf("验证码错误") > -1) {
                         reject("captcha required");
                     } else {
                         reject("UIS login check failed");
                     }
                 }).fail( function (xhr, textStatus, errorThrown) {
-                    reject("网络连接失败####UIS login failed: " + textStatus + ", " + errorThrown);
+                    reject("####网络连接失败####UIS login failed: " + textStatus + ", " + errorThrown);
                 });
     });
 }
@@ -2222,7 +2224,6 @@ function urp_fetch_semesterdata()
 
 var clist; // course list
 var cdivlist; // div in course table
-var course_selected; // course index of selected course
 var cur_semestername; // current semester name
 
 function get_coursefolder(cobj)
@@ -2375,7 +2376,6 @@ function coursetable_select(cidx, x, y)
     });
 
 
-    course_selected = cidx;
     var cobj = clist[cidx];
     var ctimelist = new Array();    
     clist.forEach( function (element, index, array) {
@@ -2439,6 +2439,9 @@ function coursetable_enter(cidx, x, y)
         $("#filenav_showsyncdetails").unbind("click").click( function () {
             $("#filenav_syncdetails_box").toggle().scrollTop(0);
         });
+        $("#filenav_resync").hide().unbind("click").click( function () {
+            coursetable_enter(cidx, x, y)
+        });
 
         // prepare detail box
         $("#filenav_syncdetails_box").hide();
@@ -2461,6 +2464,7 @@ function coursetable_enter(cidx, x, y)
             $("#filenav_showfiles").show().unbind("click").click( function () { // open course folder
                 launch_fileuri(docfolder + coursefolder);
             });
+            $("#filenav_resync").show();
             
             obj.lobj.flist.sort( function (a, b) {
                 // sort by last_modified
@@ -2480,12 +2484,11 @@ function coursetable_enter(cidx, x, y)
             });
             
             tbodyobj.empty();
-            
+            console.log(obj);
             obj.lobj.flist.forEach( function (element, index, array) {
                 let fitem = element;
                 let fileuri = docfolder + coursefolder + fitem.path;
-
-                console.log(element);
+                
                 var rowobj = $(document.createElement('tr'))
 
                 // image
@@ -2554,7 +2557,8 @@ function coursetable_enter(cidx, x, y)
         }, function (reason) {
             $("#filenav_syncinprogresstext").hide();
             $("#filenav_syncfinishedtext").text("同步失败").show();
-            statuslist_append(statuslist, "同步失败: " + reason, "red");
+            statuslist_append(statuslist, "同步失败: " + get_friendly_part(reason), "red");
+            $("#filenav_resync").show();
         });
 
         
@@ -2736,13 +2740,13 @@ function login_to_eh()
     el_rememberme = $("#loginrememberme").prop("checked");
     $("#loginerrmsg").hide().text("");
     $("#loginbtn").text("正在登录").prop("disabled", true);
-    console.log(el_username, el_password, el_rememberme);
+    //console.log(el_username, el_password, el_rememberme);
     remove_all_cookies();
     uis_login().then( function () {
         save_prefs();
         init_main_page();
     }, function (reason) {
-        $("#loginerrmsg").show().text(friendly_rejectmsg(reason));
+        $("#loginerrmsg").show().text(get_friendly_part(reason));
         $("#loginbtn").text("登录").prop("disabled", false);
     });
 }

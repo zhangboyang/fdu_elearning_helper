@@ -163,7 +163,7 @@ var prefs = prefservice.getBranch("elearninghelper.");
 
 
 // override user agent
-prefservice.getBranch("general.").setCharPref("useragent.override", "elearninghelper/" + parent.xulinfo.version);
+prefservice.getBranch("general.").setCharPref("useragent.override", "elearninghelper/" + xulinfo.version);
 
 
 
