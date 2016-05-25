@@ -6,7 +6,7 @@ var prefs; // it's a copy of window.parent.prefs
 
 
 // prefs
-var el_debug, el_dbgremotelog;
+var eh_debug, eh_dbgremotelog;
 var el_username; // elearning username
 var el_password; // elearning password
 var el_rememberme;
@@ -15,8 +15,8 @@ var page_limit; // pdfviewer page limit
 
 function load_prefs()
 {
-    el_debug = prefs.getBoolPref("dbgremotelog");
-    el_dbgremotelog = prefs.getBoolPref("dbgremotelog");
+    eh_debug = prefs.getBoolPref("dbgremotelog");
+    eh_dbgremotelog = prefs.getBoolPref("dbgremotelog");
     
     el_username = prefs.getCharPref("username");
     el_password = prefs.getCharPref("password");
@@ -37,7 +37,7 @@ function save_prefs()
 
 
 
-var el_version; // app version string, a copy of window.parent.xulinfo.version
+var eh_version; // app version string, a copy of window.parent.xulinfo.version
 
 var docfolder; // document folder, FILE URI style, like file:///foo/bar....
 var datafolder; // internal data folder, NATIVE style, like C:\foo\bar.....
@@ -52,7 +52,7 @@ var preventdefaultfunc = function (e) { e.preventDefault(); };
 
 function local_log(msg)
 {
-    if (el_debug) {
+    if (eh_debug) {
         console.log("LOCAL LOG: " + msg);
         window.parent.mylog("LOCAL LOG: " + msg);
     }
@@ -60,10 +60,10 @@ function local_log(msg)
 
 function remote_log(msg)
 {
-    if (el_debug) {
+    if (eh_debug) {
         console.log("REMOTE LOG: " + msg);
         window.parent.mylog("REMOTE LOG: " + msg);
-        if (el_dbgremotelog) {
+        if (eh_dbgremotelog) {
             // FIXME
         }
     }
@@ -281,6 +281,20 @@ function format_filesize(sz)
         if (sz < 1024 * 1024 * 1024 * 1024) return (sz / (1024 * 1024 * 1024)).toFixed(2) + " GB";
     }
     return sz + " 字节";
+}
+
+/*
+    fetch the user-friendly part of reject message
+    reject("some-user-friendly-message####some-internal-message")
+*/
+function friendly_rejectmsg(msg)
+{
+    var idx = msg.indexOf("####");
+    if (idx < 0) {
+        return "内部错误: " + msg;
+    } else {
+        return msg.substr(0, idx);
+    }
 }
 
 // remove all cookies
@@ -1226,12 +1240,27 @@ $("document").ready( function () {
 
 
     if (el_username == "" || el_password == "" || !el_rememberme) {
-        show_page("login");
+        init_login_page();
     } else {
         init_main_page(); // load course table
     }
 });
 
+function init_notebox()
+{
+    // make paste become plain paste
+    // ref: http://stackoverflow.com/questions/12027137/javascript-trick-for-paste-as-plain-text-in-execcommand
+    document.getElementById('viewfile_notebox').addEventListener("paste", function (e) {
+        e.preventDefault();
+        if (e.clipboardData) {
+            content = (e.originalEvent || e).clipboardData.getData('text/plain');
+            document.execCommand('insertText', false, content);
+        } else if (window.clipboardData) {
+            content = window.clipboardData.getData('Text');
+            document.selection.createRange().pasteHTML(content);
+        }  
+    });
+}
 
 
 
@@ -1887,11 +1916,15 @@ function uis_login()
                     if (data.indexOf("Please Wait While Redirecting to console") > -1) {
                         //show_msg("Login to UIS - OK!");
                         resolve();
+                    } else if (data.indexOf("用户名或密码错误") > -1) {
+                        reject("用户名或密码错误####UIS login check failed");
+                    } else if (data.indexOf("验证码错误") > -1) {
+                        reject("captcha required");
                     } else {
                         reject("UIS login check failed");
                     }
                 }).fail( function (xhr, textStatus, errorThrown) {
-                    reject("UIS login failed: " + textStatus + ", " + errorThrown);
+                    reject("网络连接失败####UIS login failed: " + textStatus + ", " + errorThrown);
                 });
     });
 }
@@ -2589,21 +2622,50 @@ function helloworld2()
 
 
 
-function init_notebox()
+// ======================= login page related functions =======================
+
+function init_login_page()
 {
-    // make paste become plain paste
-    // ref: http://stackoverflow.com/questions/12027137/javascript-trick-for-paste-as-plain-text-in-execcommand
-    document.getElementById('viewfile_notebox').addEventListener("paste", function (e) {
-        e.preventDefault();
-        if (e.clipboardData) {
-            content = (e.originalEvent || e).clipboardData.getData('text/plain');
-            document.execCommand('insertText', false, content);
-        } else if (window.clipboardData) {
-            content = window.clipboardData.getData('Text');
-            document.selection.createRange().pasteHTML(content);
-        }  
+    $("#loginerrmsg").hide();
+    show_page("login");
+    $("#loginusername").val(el_username);
+    $("#loginpassword").val(el_password);
+    $("#loginrememberme").prop("checked", el_rememberme);
+    
+    var kpfn = function (e) {
+        if (e.keyCode == 13) {
+            login_to_eh();
+        }
+    };
+    $("#loginusername").keypress(kpfn);
+    $("#loginpassword").keypress(kpfn);
+    
+    $("#loginbtn").text("登录").prop("disabled", false);
+}
+
+function login_to_eh()
+{
+    el_username = $("#loginusername").val();
+    el_password = $("#loginpassword").val();
+    el_rememberme = $("#loginrememberme").prop("checked");
+    $("#loginerrmsg").hide().text("");
+    $("#loginbtn").text("正在登录").prop("disabled", true);
+    console.log(el_username, el_password, el_rememberme);
+    remove_all_cookies();
+    uis_login().then( function () {
+        save_prefs();
+        init_main_page();
+    }, function (reason) {
+        $("#loginerrmsg").show().text(friendly_rejectmsg(reason));
+        $("#loginbtn").text("登录").prop("disabled", false);
     });
 }
+
+
+
+
+
+
 
 
 
