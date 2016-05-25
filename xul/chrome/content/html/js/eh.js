@@ -1774,7 +1774,7 @@ function webdav_listall(uuid)
     return value is a promise
 */
 
-function webdav_binary_xhr(url)
+function webdav_binary_xhr(url, xhrprogresscallback)
 {
     return new Promise( function (resolve, reject) {
         var xhr = new XMLHttpRequest();
@@ -1795,6 +1795,10 @@ function webdav_binary_xhr(url)
         };
 
         // FIXME: we haven't send username and password!
+
+        if (xhrprogresscallback) {
+            xhr.addEventListener("progress", xhrprogresscallback, false);
+        }
         
         // note: elearning requests set user-agent to non-browser
         xhr.setRequestHeader("Translate", "f"); // requested by webdav
@@ -1836,7 +1840,7 @@ function webdav_create_localpath(localbase, subpath)
     fitem: single object in flist
     localbase: local file uri of current site
 */
-function webdav_download_single(fitem, localbase)
+function webdav_download_single(fitem, localbase, xhrprogresscallback)
 {
     var target_uri = localbase + fitem.path;
     check_path_with_base(target_uri, localbase);
@@ -1846,7 +1850,7 @@ function webdav_download_single(fitem, localbase)
         
         //show_msg("url=" + url + " file=" + target_native);
 
-        webdav_binary_xhr(url).then(function (data) { // onsuccess
+        webdav_binary_xhr(url, xhrprogresscallback).then(function (data) { // onsuccess
             OS.File.writeAtomic(target_native, data)
                 .then(function () {
                     var lmd = new Date(Date.parse(fitem.lastmodified));
@@ -1894,9 +1898,14 @@ function webdav_sync_single(fitem, localbase, fstatus, update_count_callback)
             if (reason instanceof OS.File.Error && reason.becauseNoSuchFile) {
                 // file not exists, we should download it
                 //console.log("file not exists, download: " + fitem.path);
-                statuslist_update(fstatus, "下载中", "blue", " (新)", "red");
+                statuslist_update(fstatus, "准备下载", "blue");
                 update_count_callback(0, 1);
-                webdav_download_single(fitem, localbase).then( function () {
+                webdav_download_single(fitem, localbase, function (e) { // xhrprogresscallback
+                    if (e.lengthComputable) {
+                        var v = Math.round((e.loaded / e.total) * 100);
+                        statuslist_update(fstatus, "下载中 (" + v.toString() + "%)", "blue");
+                    }
+                }).then( function () {
                     statuslist_update(fstatus, "下载成功", "green", " (新)", "red");
                     update_count_callback(1, 0);
                     fitem.is_new_file = true;
@@ -2474,14 +2483,15 @@ function coursetable_enter(cidx, x, y)
         $("#filenav_syncinprogresstext").show();
         $("#filenav_syncfinishedtext").empty().hide();
         $("#filenav_showsyncdetails").unbind("click").click( function () {
-            $("#filenav_syncdetails_box").toggle().scrollTop(0);
+            $("#filenav_syncdetails_fbox").toggle();
+            $("#filenav_syncdetails_box").scrollTop(0);
         });
         $("#filenav_resync").hide().unbind("click").click( function () {
             coursetable_enter(cidx, x, y)
         });
 
         // prepare detail box
-        $("#filenav_syncdetails_box").hide();
+        $("#filenav_syncdetails_fbox").hide();
         var statuslist = create_statuslist();
         $("#filenav_syncdetails").empty().append($(statuslist));
         $("#filenav_showfiles").hide();
