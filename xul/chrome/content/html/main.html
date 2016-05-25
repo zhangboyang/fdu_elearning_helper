@@ -30,7 +30,7 @@
         <p><label class="eh_formlabel" for="loginusername">学号</label><br><input type="text" id="loginusername" class="eh_textinput eh_login_textinput" autofocus="autofocus"></p>
         <p><label class="eh_formlabel" for="loginpassword">密码</label><br><input type="password" id="loginpassword" class="eh_textinput eh_login_textinput"></p>
         <p style="margin-top: 20px"><input type="checkbox" class="filled-in eh_login_checkbox" id="loginrememberme"><label class="eh_formlabel" for="loginrememberme"><span class="eh_formlabel_checkbox_span">记住我</span></label></p>
-        <p style="margin-top: 20px"><div id="loginerrmsg" style="color: red"></div><button id="loginbtn" class="light-green btn darken-2 z-depth-0 eh_login_submitbutton" onclick="login_to_eh()">登录</button></p>
+        <p style="margin-top: 20px"><div id="loginerrmsg" style="color: red"></div><button id="loginbtn" class="light-green btn darken-2 z-depth-0 eh_login_submitbutton" onclick="eh_login()">登录</button></p>
 	</div>
 </div>
 </div>
@@ -46,6 +46,8 @@
 
     <div id="main_header" class="eh_header"><div class="eh_header_content">
         <div class="eh_header_title blue-text text-darken-4">欢迎使用 eLearning 助手</div>
+        <div style="-moz-box-flex: 1;"></div>
+        <div class="eh_header_actionbox blue-text text-darken-4"><span onclick="eh_logout()">登出</span>&nbsp;&nbsp;&nbsp;<span>关于本程序</span></div>
     </div></div>
     
     <div class="eh_flexbox_fill_remaining_wrapper_ud"><div id="main_content" class="eh_page_content">

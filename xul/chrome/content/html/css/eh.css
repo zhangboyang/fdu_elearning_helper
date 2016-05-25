@@ -332,6 +332,7 @@ body {
     display: -moz-box;
     -moz-box-align: center;
     height: 100%;
+    width: 100%;
     font-size: 28;
 }
 
@@ -342,7 +343,20 @@ body {
 
 .eh_header_title {
     margin-left: 15px;
-    float: left;
+}
+
+.eh_header_actionbox {
+    display: block;
+    font-size: 14.5px;
+    margin-right: 15px;
+    font-weight: bold;
+    margin-top: 20px;
+}
+.eh_header_actionbox span {
+    cursor: pointer;
+}
+.eh_header_actionbox span:hover {
+    text-decoration: underline;
 }
 
 

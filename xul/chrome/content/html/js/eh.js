@@ -2771,7 +2771,7 @@ function init_login_page()
     
     var kpfn = function (e) {
         if (e.keyCode == 13) {
-            login_to_eh();
+            eh_login();
         }
     };
     $("#loginusername").keypress(kpfn);
@@ -2780,7 +2780,7 @@ function init_login_page()
     $("#loginbtn").text("登录").prop("disabled", false);
 }
 
-function login_to_eh()
+function eh_login()
 {
     el_username = $("#loginusername").val();
     el_password = $("#loginpassword").val();
@@ -2798,7 +2798,12 @@ function login_to_eh()
     });
 }
 
-
+function eh_logout()
+{
+    el_password = "";
+    save_prefs();
+    init_login_page();
+}
 
 
 
