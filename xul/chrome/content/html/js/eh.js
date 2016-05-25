@@ -1803,16 +1803,16 @@ function webdav_create_localpath(localbase, subpath)
     download single file
     return value is a promise
 
-    href: something like "/dav/24ea24fd-0c39-49de-adbe-641d1cf4a499"
+    fitem: single object in flist
     localbase: local file uri of current site
 */
-function webdav_download_single(href, localbase, fpath)
+function webdav_download_single(fitem, localbase)
 {
     // FIXME: security risk, should check if fpath is legal
 
     return new Promise( function (resolve, reject) {
-        var url = "http://elearning.fudan.edu.cn" + href;
-        var target_uri = localbase + fpath;
+        var url = "http://elearning.fudan.edu.cn" + fitem.href;
+        var target_uri = localbase + fitem.path;
         var target_native = OS.Path.fromFileURI(target_uri);
         
         //show_msg("url=" + url + " file=" + target_native);
@@ -1820,7 +1820,12 @@ function webdav_download_single(href, localbase, fpath)
         webdav_binary_xhr(url).then(function (data) { // onsuccess
             OS.File.writeAtomic(target_native, data)
                 .then(function () {
-                    resolve();
+                    var lmd = new Date(Date.parse(fitem.lastmodified));
+                    OS.File.setDates(target_native, lmd, lmd).then( function () {
+                        resolve();
+                    }, function (reason) {
+                        reject("OS.File.setDates failed: " + reason);
+                    });
                 }, function (reason) {
                     reject("OS.File.writeAtomic failed: " + reason);
                 });
@@ -1844,25 +1849,25 @@ function webdav_download_single(href, localbase, fpath)
         fstatus: statuslist item object
         update_count_callback(delta_finished, delta_total)
 */
-function webdav_sync_single(href, localbase, fpath, fstatus, update_count_callback)
+function webdav_sync_single(fitem, localbase, fstatus, update_count_callback)
 {
     // FIXME: security risk, should check if fpath is legal
 
     return new Promise( function (resolve, reject) {
-        var target_uri = localbase + fpath;
+        var target_uri = localbase + fitem.path;
         var target_native = OS.Path.fromFileURI(target_uri);
         OS.File.stat(target_native).then( function (info) {
             // file exists, no need to download
-            //console.log("file exists: " + fpath);
+            //console.log("file exists: " + fitem.path);
             statuslist_update(fstatus, "无需下载", "green");
             resolve(0);
         }, function (reason) {
             if (reason instanceof OS.File.Error && reason.becauseNoSuchFile) {
                 // file not exists, we should download it
-                //console.log("file not exists, download: " + fpath);
+                //console.log("file not exists, download: " + fitem.path);
                 statuslist_update(fstatus, "下载中", "blue", " (新)", "red");
                 update_count_callback(0, 1);
-                webdav_download_single(href, localbase, fpath).then( function () {
+                webdav_download_single(fitem, localbase).then( function () {
                     statuslist_update(fstatus, "下载成功", "green", " (新)", "red");
                     update_count_callback(1, 0);
                     resolve(1);
@@ -1916,7 +1921,7 @@ function webdav_sync(uuid, coursefolder, statuslist, report_progress)
                                 return new Promise( function (resolve, reject) {
                                     var fstatus = statuslist_appendprogress(statuslist, "正在同步 " + fitem.path);
                                     statuslist_update(fstatus, "正在检查", "blue");
-                                    webdav_sync_single(fitem.href, localbase, fitem.path, fstatus,
+                                    webdav_sync_single(fitem, localbase, fstatus,
                                         function (delta_count, delta_total) { // update_count_callback
                                             count += delta_count;
                                             total += delta_total;
