@@ -50,6 +50,57 @@ var ppt2pdf_path; // NATIVE path to ppt2pdf.vbs
 var chsweekday = ["日", "一", "二", "三", "四", "五", "六", "日"];
 var preventdefaultfunc = function (e) { e.preventDefault(); };
 
+
+
+
+
+/*
+    write string to file
+    return value is a promise
+*/
+function write_string_to_fileuri(str, fileuri)
+{
+    var encoder = new TextEncoder();
+    var array = encoder.encode(str);
+    return OS.File.writeAtomic(OS.Path.fromFileURI(fileuri), array);
+}
+function write_json_to_fileuri(obj, fileuri)
+{
+    return write_string_to_fileuri(JSON.stringify(obj), fileuri);
+}
+
+/*
+    read string from file
+    return valuse is a promise
+*/
+function read_string_from_fileuri(fileuri)
+{
+    var decoder = new TextDecoder();
+    return new Promise( function (resolve, reject) {
+        OS.File.read(OS.Path.fromFileURI(fileuri)).then( function (array) {
+            resolve(decoder.decode(array));
+        }, function (reason) {
+            reject("can't read string: " + reason);
+        });
+    });  
+}
+function read_json_from_fileuri(fileuri)
+{
+    return new Promise( function (resolve, reject) {
+        read_string_from_fileuri(fileuri).then( function (str) {
+            try {
+                resolve(JSON.parse(str));
+            } catch (e) {
+                reject("JSON parse failed: " + e.message);
+            }
+        }, function (reason) {
+            reject("read_string_from_fileuri() failed: " + reason);
+        });
+    });
+}
+
+
+
 function local_log(msg)
 {
     if (eh_debug) {
@@ -90,7 +141,7 @@ function get_filetype_remote_iconuri(ext)
     }
 }
 
-var filetype_icon_set = new Set();
+var filetype_icon_set;
 function get_filetype_iconuri(ext)
 {
     var remoteuri = get_filetype_remote_iconuri(ext);
@@ -100,19 +151,39 @@ function get_filetype_iconuri(ext)
         return OS.Path.toFileURI(filepath);
     } else {
         OS.File.exists(filepath).then( function (fe) {
-            if (!fe) {
-                OS.File.makeDir(OS.Path.join(datafolder, "fileicons"), { ignoreExisting: true, from: datafolder }).then( function () {
-                    install_file(remoteuri, filepath).then( function () {
+            OS.File.makeDir(OS.Path.join(datafolder, "fileicons"), { ignoreExisting: true, from: datafolder }).then( function () {
+                var addtoset = function (ext) {
+                    if (!filetype_icon_set.has(ext)) {
                         filetype_icon_set.add(ext);
+                        var f = OS.Path.toFileURI(OS.Path.join(datafolder, "fileicons", "knowntypes.json"));
+                        write_json_to_fileuri([ext for (ext of filetype_icon_set)], f);
+                    }
+                }
+                if (!fe) {
+                    install_file(remoteuri, filepath).then( function () {
+                        addtoset(ext);
                     });
-                });
-            } else {
-                filetype_icon_set.add(ext);
-            }
+                } else {
+                    addtoset(ext);
+                }
+            });
         });
         
         return remoteuri; // because we can't wait for promise, so we just return remoteuri
     }
+}
+function initp_filetype_icon()
+{
+    return new Promise( function (resolve, reject) {
+        var f = OS.Path.toFileURI(OS.Path.join(datafolder, "fileicons", "knowntypes.json"));
+        read_json_from_fileuri(f).then( function (obj) {
+            filetype_icon_set = new Set(obj);
+            resolve();
+        }, function () {
+            filetype_icon_set = new Set();
+            resolve();
+        });
+    });
 }
 
 
@@ -1216,6 +1287,21 @@ function init_canvas() // will be called once in global init function
 
 // ====================== the global init function ======================
 
+function initp_tools()
+{
+    return new Promise( function (resolve, reject) {
+        OS.File.makeDir(OS.Path.join(datafolder, "tools"), { ignoreExisting: true, from: datafolder }).then( function () {
+            ppt2pdf_path = OS.Path.join(datafolder, "tools", "ppt2pdf.vbs");
+            install_file("ppt2pdf.vbs", ppt2pdf_path).then( function () {
+                resolve();
+            }, function (reason) {
+                reject("install_file() failed: " + reason);
+            });
+        }, function (reason) {
+            reject("makeDir() failed: " + reason);
+        });
+    });
+}
 $("document").ready( function () {
     prefs = window.parent.prefs;
     OS = window.parent.OS;
@@ -1227,16 +1313,16 @@ $("document").ready( function () {
     docfolder = OS.Path.toFileURI(OS.Path.join(OS.Constants.Path.desktopDir, "ehdoc"));
     datafolder = OS.Path.join(OS.Constants.Path.desktopDir, "ehdata");
 
-    OS.File.makeDir(OS.Path.join(datafolder, "tools"), { ignoreExisting: true, from: datafolder }).then( function () {
-        ppt2pdf_path = OS.Path.join(datafolder, "tools", "ppt2pdf.vbs");
-        install_file("ppt2pdf.vbs", ppt2pdf_path);
-    });
     
     init_colorbox();
     init_thicknessbox();
     reset_dtype();
     init_canvas();
     init_notebox();
+
+    // initp_* returns promises
+    initp_filetype_icon();
+    initp_tools();
 
 
     if (el_username == "" || el_password == "" || !el_rememberme) {
