@@ -55,6 +55,25 @@ var preventdefaultfunc = function (e) { e.preventDefault(); };
 
 
 /*
+    check if filename is legal
+    filename can be a directory
+    throw exception when filename is illegal
+*/
+function check_filename(filename)
+{
+    // FIXME: security risk, not implemented
+}
+/*
+    check if fileuri inside baseuri
+    throw exception when fileuri is not inside baseuri
+*/
+function check_path_with_base(fileuri, baseuri)
+{
+    // FIXME: security risk, not implemented
+}
+
+
+/*
     write string to file
     return value is a promise
 */
@@ -361,6 +380,7 @@ function format_filesize(sz)
 */
 function get_friendly_part(msg)
 {
+    console.log(msg);
     var idx = msg.indexOf("####");
     if (idx < 0) {
         return "内部错误: " + msg;
@@ -1808,11 +1828,10 @@ function webdav_create_localpath(localbase, subpath)
 */
 function webdav_download_single(fitem, localbase)
 {
-    // FIXME: security risk, should check if fpath is legal
-
+    var target_uri = localbase + fitem.path;
+    check_path_with_base(target_uri, localbase);
     return new Promise( function (resolve, reject) {
         var url = "http://elearning.fudan.edu.cn" + fitem.href;
-        var target_uri = localbase + fitem.path;
         var target_native = OS.Path.fromFileURI(target_uri);
         
         //show_msg("url=" + url + " file=" + target_native);
@@ -1851,15 +1870,15 @@ function webdav_download_single(fitem, localbase)
 */
 function webdav_sync_single(fitem, localbase, fstatus, update_count_callback)
 {
-    // FIXME: security risk, should check if fpath is legal
-
+    var target_uri = localbase + fitem.path;
+    check_path_with_base(target_uri, localbase);
     return new Promise( function (resolve, reject) {
-        var target_uri = localbase + fitem.path;
         var target_native = OS.Path.fromFileURI(target_uri);
         OS.File.stat(target_native).then( function (info) {
             // file exists, no need to download
             //console.log("file exists: " + fitem.path);
             statuslist_update(fstatus, "无需下载", "green");
+            fitem.is_new_file = false;
             resolve(0);
         }, function (reason) {
             if (reason instanceof OS.File.Error && reason.becauseNoSuchFile) {
@@ -1870,6 +1889,7 @@ function webdav_sync_single(fitem, localbase, fstatus, update_count_callback)
                 webdav_download_single(fitem, localbase).then( function () {
                     statuslist_update(fstatus, "下载成功", "green", " (新)", "red");
                     update_count_callback(1, 0);
+                    fitem.is_new_file = true;
                     resolve(1);
                 }, function (reason) { // onerror
                     statuslist_update(fstatus, "下载失败", "red");
@@ -1906,6 +1926,8 @@ function webdav_sync(uuid, coursefolder, statuslist, report_progress)
     return new Promise( function (resolve, reject) {
         // create course folder
         var localbase = docfolder + coursefolder;
+        check_filename(coursefolder);
+        check_path_with_base(localbase, docfolder);
         webdav_create_localpath(docfolder, coursefolder).then( function () {
             // download files, list dir first
             var lsstatus = statuslist_appendprogress(statuslist, "正在列目录");
@@ -1939,7 +1961,6 @@ function webdav_sync(uuid, coursefolder, statuslist, report_progress)
                                 assert(dstat.length == lobj.flist.length);
                                 for (var i = 0; i < dstat.length; i++) {
                                     sum += dstat[i];
-                                    lobj.flist[i].is_new_file = dstat[i];
                                 }
                                 statuslist_append(statuslist, "同步完成，共有 " + sum + " 个新文件", "green");
                                 resolve({
