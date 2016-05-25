@@ -1,3 +1,6 @@
+##### eLearning Helper
+
+
 The MIT License (MIT)
 
 Copyright (c) 2016 Zhang Boyang
@@ -23,7 +26,7 @@ SOFTWARE.
 
 
 
-==============================================================================
+===========================================================================
 
 ##### Materialize, a CSS Framework based on Material Design
 ##### http://materializecss.com
@@ -54,7 +57,7 @@ SOFTWARE.
 
 
 
-==============================================================================
+===========================================================================
 
 ##### PDF.js
 ##### https://mozilla.github.io/pdf.js/
@@ -239,7 +242,7 @@ SOFTWARE.
 
 
 
-==============================================================================
+===========================================================================
 
 ##### jQuery
 ##### https://jquery.com/
@@ -281,3 +284,10 @@ All files located in the node_modules and external directories are
 externally maintained libraries used by this software which have their
 own licenses; we recommend you read them, as their terms may differ from
 the terms above.
+
+
+
+===========================================================================
+
+##### Firefox / XULRunner
+##### <span onclick="window.open('about:license', 'aboutlicense', 'chrome,width=1000,height=600')" class="eh_link">Show License</a>

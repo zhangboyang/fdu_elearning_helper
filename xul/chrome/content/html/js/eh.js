@@ -2838,12 +2838,17 @@ function show_about()
     // remember where we come from
     aboutpage_lastpage = current_page;
     show_page("about");
+    $("#about_licensebox").show();
+    $("#about_debugbox").hide();
+    $("#about_dbgtoolbtn").addClass("eh_link").text("打开调试工具");
 }
 
 
 function show_debug_tools()
 {
-    ////
+    $("#about_licensebox").hide();
+    $("#about_debugbox").show();
+    $("#about_dbgtoolbtn").removeClass("eh_link").text("调试工具已打开");
 }
 
 function initp_about()
@@ -2851,7 +2856,7 @@ function initp_about()
     return new Promise( function (resolve, reject) {
         $.get("license.txt", null, null, "text")
         .done( function (data, textStatus, jqXHR) {
-            $("#about_licensebox").text(data);
+            $("#about_licensetext").html(data);
             resolve();
         }).fail ( function (xhr, textStatus, errorThrown) {
             reject("can't load license text: " + textStatus + ", " + errorThrown);
@@ -2903,3 +2908,24 @@ function doc_exec_cmd(element, cmd)
 }
 
 
+/*
+    open url in browser (either external or builtin)
+    option:
+    {
+        use: "builtin" or "external" // override default setting
+    }
+*/
+function open_in_browser(url, opt)
+{
+    console.log("OPEN IN BROWSER", url, opt);
+    //FIXME
+}
+
+/*
+    onclick handler on eh_link spans
+*/
+function fake_link_handler(obj, opt)
+{
+    var url = $(obj).text();
+    open_in_browser(url, opt);
+}

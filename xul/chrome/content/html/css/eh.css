@@ -536,3 +536,26 @@ body {
 	margin-top: -3.5px;
 	display: inherit;
 }
+
+
+.eh_aboutbox div {
+    margin-bottom: 30px;
+}
+
+.eh_aboutbox strong {
+    font-weight: bold;
+}
+.eh_aboutbox ul {
+    padding-left: 20px;
+}
+.eh_aboutbox li {
+    list-style: disc;
+}
+
+.eh_aboutbox h1 {
+    font-weight: bold;
+    font-size: 20px;
+    margin: 10px 0px 0px 0px;
+}
+
+
