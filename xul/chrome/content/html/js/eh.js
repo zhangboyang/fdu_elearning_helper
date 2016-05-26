@@ -37,7 +37,8 @@ function save_prefs()
 
 
 
-var eh_version; // app version string, a copy of window.parent.xulinfo.version
+var eh_version; // app version string, a copy of window.parent.xulappinfo.version
+var eh_os; // "WINNT" / "Linux" / "Darwin", a copy of window.parent.xulruntime.OS
 
 var docfolder; // document folder, FILE URI style, like file:///foo/bar....
 var datafolder; // internal data folder, NATIVE style, like C:\foo\bar.....
@@ -1353,7 +1354,8 @@ $("document").ready( function () {
     prefs = window.parent.prefs;
     OS = window.parent.OS;
     Services = window.parent.Services;
-    eh_version = window.parent.xulinfo.version;
+    eh_version = window.parent.xulappinfo.version;
+    eh_os = window.parent.xulruntime.OS;
     
     load_prefs();
     
@@ -2883,6 +2885,7 @@ function show_debug_tools()
 function initp_about()
 {
     $("#about_versiontext").text(eh_version);
+    $("#about_sysinfo").text("Gecko " + window.parent.xulappinfo.platformVersion + " / " + eh_os);
     return new Promise( function (resolve, reject) {
         $.get("license.txt", null, null, "text")
         .done( function (data, textStatus, jqXHR) {

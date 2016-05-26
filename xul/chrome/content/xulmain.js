@@ -82,9 +82,10 @@ function mymenu_popupshowing(event)
 // =========================== vars ========================================
 
 /*
-    appinfo
+    appinfo and runtime
 */
-var xulinfo = Components.classes["@mozilla.org/xre/app-info;1"].getService(Components.interfaces.nsIXULAppInfo);
+var xulappinfo = Components.classes["@mozilla.org/xre/app-info;1"].getService(Components.interfaces.nsIXULAppInfo);
+var xulruntime = Components.classes["@mozilla.org/xre/app-info;1"].getService(Components.interfaces.nsIXULRuntime);
 
 
 /*
@@ -163,7 +164,7 @@ var prefs = prefservice.getBranch("elearninghelper.");
 
 
 // override user agent
-prefservice.getBranch("general.").setCharPref("useragent.override", "elearninghelper/" + xulinfo.version);
+prefservice.getBranch("general.").setCharPref("useragent.override", "elearninghelper/" + xulappinfo.version);
 
 
 
