@@ -552,9 +552,12 @@ ul li {
      border: 2px solid #7cb342;
 }
 .eh_formlabel_checkbox_span {
-	margin-top: -3.5px;
+	margin-top: -4px;
 	display: inherit;
 }
+
+
+
 
 
 .eh_aboutbox div {
@@ -572,3 +575,22 @@ ul li {
 }
 
 
+
+
+
+#settingsbox div {
+    padding: 15px 0px 15px 0px;
+}
+
+#settingsdescbox strong {
+    font-weight: bold;
+}
+#settingsdescbox p {
+    font-weight: bold;
+    color: navy;
+    margin: 0px 0px 20px 0px;
+}
+#settingsdescbox span {
+    font-weight: bold;
+    color: navy;
+}

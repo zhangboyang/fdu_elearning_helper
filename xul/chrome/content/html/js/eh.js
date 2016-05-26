@@ -12,6 +12,8 @@ var el_password; // elearning password
 var el_rememberme;
 var usebuiltinviewer; // use builtin pdfviewer or not
 var page_limit; // pdfviewer page limit
+var usebuiltinbrowser; // use builtin browser or not
+var syncoverwrite; // overwrite files while sync or not
 
 function load_prefs()
 {
@@ -23,6 +25,8 @@ function load_prefs()
     el_rememberme = prefs.getBoolPref("rememberme");
     usebuiltinviewer = prefs.getBoolPref("usebuiltinviewer");
     page_limit = prefs.getIntPref("pagelimit");
+    usebuiltinbrowser = prefs.getBoolPref("usebuiltinbrowser");
+    syncoverwrite = prefs.getBoolPref("syncoverwrite");
 }
 
 function save_prefs()
@@ -32,6 +36,8 @@ function save_prefs()
     prefs.setBoolPref("rememberme", el_rememberme);
     prefs.setBoolPref("usebuiltinviewer", usebuiltinviewer);
     prefs.setIntPref("pagelimit", page_limit);
+    prefs.setBoolPref("usebuiltinbrowser", usebuiltinbrowser);
+    prefs.setBoolPref("syncoverwrite", syncoverwrite);
 }
 
 
@@ -49,7 +55,7 @@ var ppt2pdf_path; // NATIVE path to ppt2pdf.vbs
 
 
 var chsweekday = ["日", "一", "二", "三", "四", "五", "六", "日"];
-var preventdefaultfunc = function (e) { e.preventDefault(); };
+function preventdefaultfunc (e) { e.preventDefault(); };
 
 
 
@@ -683,6 +689,7 @@ function hide_all_pages()
     $("#calendar_page").hide();
     $("#viewfile_page").hide();
     $("#filenav_page").hide();
+    $("#settings_page").hide();
 }
 
 function show_page(page_name)
@@ -701,6 +708,8 @@ function show_page(page_name)
         show_page_with_width("filenav", "0px", "0px", "0px", "0px", "0px", "0px");
     } else if (page_name == "about") {
         show_page_with_width("about", "0px", "0px", "0px", "0px", "0px", "0px");
+    } else if (page_name == "settings") {
+        show_page_with_width("settings", "0px", "0px", "0px", "0px", "0px", "0px");
     } else {
         abort("unknown page_name");
     }
@@ -1984,7 +1993,11 @@ function webdav_sync_single(fitem, sdfitem, localbase, fstatus, update_count_cal
                     }
                 });
             }).then( function (fexists) {
-                // FIXME: if (fexists && notoverwrite) ...
+                if (fexists && !syncoverwrite) {
+                    // file exists, and user requires no overwrite
+                    resolve(false);
+                    return;
+                }
                 if (!sdfitem) {
                     // no current file in previous data, download it
                     resolve(true);
@@ -3021,6 +3034,68 @@ function initp_about()
         });
     });
 }
+
+
+
+
+
+
+
+
+
+
+// ======================= settings page related function ===================
+
+
+
+function show_settings()
+{
+    var ch = $("#settingsdescbox").children("div");
+    var resetfunc = function () {
+        ch.hide();
+        ch.filter("[data-sdescref='empty']").show();
+        $("#settingsdesctitle").empty().hide();
+    };
+    resetfunc();
+
+    var cch = $("#settingsbox").children("div");
+    cch.unbind('mouseenter mouseleave change');
+    load_settings(cch);
+    cch.each( function (index, element) {
+        let ref = $(element).attr("data-sdescref");
+        let title = $(element).children("label").text();
+        $(element).hover( function () {
+            ch.hide();
+            ch.filter("[data-sdescref='" + ref + "']").show();
+            $("#settingsdesctitle").text(title).show();
+        }, resetfunc);
+        $(element).change( function () {
+            save_settings(cch);
+        });
+    });
+
+    $("#settingssaved").hide();
+    show_page("settings");
+}
+function load_settings(cch)
+{
+    cch.filter("[data-sdescref='ubv']").children("input").prop("checked", usebuiltinviewer);
+    cch.filter("[data-sdescref='ubb']").children("input").prop("checked", usebuiltinbrowser);
+    cch.filter("[data-sdescref='sow']").children("input").prop("checked", syncoverwrite);
+}
+function save_settings(cch)
+{
+    usebuiltinviewer = cch.filter("[data-sdescref='ubv']").children("input").prop("checked");
+    usebuiltinbrowser = cch.filter("[data-sdescref='ubb']").children("input").prop("checked");
+    syncoverwrite = cch.filter("[data-sdescref='sow']").children("input").prop("checked");
+    $("#settingssaved").show();
+}
+
+
+
+
+
+
 
 
 

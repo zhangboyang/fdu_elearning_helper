@@ -47,12 +47,100 @@
 
 
 
+
+
+
+
+
+
+
+
+
+<div id="settings_page" class="eh_page">
+    <div id="settings_header" class="eh_header"><div class="eh_header_content">
+        <div class="eh_header_backbtn"><a class="btn-floating btn blue darken-3 z-depth-0" onclick="go_back()"><i class="material-icons">arrow_back</i></a></div>
+        <div class="eh_header_title blue-text text-darken-4">设置</div>
+    </div></div>
+    <div class="eh_flexbox_fill_remaining_wrapper_ud"><div id="settings_content" class="eh_page_content">
+        <div id="settings_left" style="display: none;"></div>
+        <div class="eh_flexbox_fill_remaining_wrapper_lr"><div id="settings_mid" class="eh_page_main" style="display: flex; flex-direction: row;">
+        <div style="flex: 0 1 auto; width: 50%"><div style="height: 100%; width: 100%; padding: 10px 5px 10px 10px; display: flex; flex-direction: column;">
+<div class="lime eh_sidebar" style="display: flex; flex-direction: column; padding: 0px 2px 2px 2px; height: 100%">
+    <div class="eh_sidebar_title">说明</div>
+	<div class="lime lighten-5" style="flex: 1 1 auto; height: 0px;">
+		<div style="overflow-y: auto; height: 100%; padding: 10px;">
+		<div style="margin-bottom: 10px">
+<div id="settingsdescbox" style="margin: 30px; font-size: 16px;">
+<div data-sdescref="empty">
+鼠标到移动选项上方，可查看选项说明。
+</div>
+<p id="settingsdesctitle" style="margin-bottom: 20px"><!-- setting title --></p>
+<div data-sdescref="ubv">
+<span>使用内置的查看器查看 PDF、PPT 文件，而不是使用系统自带的 PDF 阅读器、PowerPoint 打开。</span><br><br>
+<strong>注：</strong>非 Windows 系统不支持 PPT 自动转换 PDF，因此不能使用内置查看器查看 PPT 幻灯片。
+</div>
+<div data-sdescref="ubb">
+<span>使用内置浏览器打开网页（例如 eLearning 作业页面等）。</span><br><br>
+<strong>注：</strong>由于技术限制，若不使用内置浏览器打开网页，打开 eLearning 等需要 UIS 认证的网站时需要重新输入用户名密码登陆。
+</div>
+<div data-sdescref="sow">
+<span>同步时，若站点有文件更新，则不提醒而直接覆盖本地文件。</span><br><br>
+<strong>注：</strong>打开此选项后，请不要在本地文件上做修改，一旦站点更新了文件，本地文件上的修改将完全丢失。
+</div>
+</div>
+		</div>
+		</div>
+    </div>
+</div>
+
+        </div></div>
+        <div class="eh_flexbox_fill_remaining_wrapper_lr"><div style="height: 100%; width: 100%; padding: 10px 10px 10px 5px;">
+
+        <div class="light-green eh_sidebar" style="display: flex; flex-direction: column; padding: 0px 2px 2px 2px; height: 100%">
+        <div class="eh_sidebar_title">选项</div>
+        <div class="light-green lighten-5" style="flex: 1 1 auto; height: 0px;">
+            <div style="overflow-y: auto; height: 100%; padding: 10px;">
+            <div style="margin-bottom: 10px">
+<div id="settingsbox" style="margin: 30px 0px 0px 30px">
+<div data-sdescref="ubv"><input type="checkbox" class="filled-in eh_login_checkbox" id="settings_usebuiltinviewer"><label class="eh_formlabel" for="settings_usebuiltinviewer"><span class="eh_formlabel_checkbox_span">使用内置文件查看器</span></label></div>
+<div data-sdescref="ubb"><input type="checkbox" class="filled-in eh_login_checkbox" id="settings_usebuiltinbrowser"><label class="eh_formlabel" for="settings_usebuiltinbrowser"><span class="eh_formlabel_checkbox_span">使用内置浏览器</span></label></div>
+<div data-sdescref="sow"><input type="checkbox" class="filled-in eh_login_checkbox" id="settings_syncoverwrite"><label class="eh_formlabel" for="settings_syncoverwrite"><span class="eh_formlabel_checkbox_span">同步时覆盖已存在文件</span></label></div>
+</div>
+<div id="settingssaved" style="margin: 20px 0px 0px 30px">
+    <span style="color: red; font-size: 16px;">设置已保存</span>
+</div>
+            </div>
+            </div>
+        </div>
+        </div>
+        </div></div>
+
+        </div></div>
+        <div id="settings_right" style="display: none;"></div>
+    </div></div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <div id="main_page" class="eh_page">
 
     <div id="main_header" class="eh_header"><div class="eh_header_content">
         <div class="eh_header_title blue-text text-darken-4">欢迎使用 eLearning 助手</div>
         <div style="-moz-box-flex: 1;"></div>
-        <div class="eh_header_actionbox blue-text text-darken-4"><span onclick="eh_logout()">登出</span>&nbsp;&nbsp;&nbsp;<span onclick="show_about()">关于本程序</span></div>
+        <div class="eh_header_actionbox blue-text text-darken-4"><span onclick="show_settings()">设置</span>&nbsp;&nbsp;&nbsp;<span onclick="eh_logout()">登出</span>&nbsp;&nbsp;&nbsp;<span onclick="show_about()">关于本程序</span></div>
     </div></div>
     
     <div class="eh_flexbox_fill_remaining_wrapper_ud"><div id="main_content" class="eh_page_content">
