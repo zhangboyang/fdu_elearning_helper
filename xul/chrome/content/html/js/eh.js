@@ -47,6 +47,7 @@ var eh_version; // app version string, a copy of window.parent.xulappinfo.versio
 var eh_os; // "WINNT" / "Linux" / "Darwin", a copy of window.parent.xulruntime.OS
 
 var docfolder; // document folder, FILE URI style, like file:///foo/bar....
+var ndocfolder; // document folder, NATIVE style, like C:\foo\bar.....
 var datafolder; // internal data folder, NATIVE style, like C:\foo\bar.....
 
 
@@ -143,28 +144,40 @@ function read_json_from_fileuri(fileuri)
     create the dirname part of a fileuri
     return valuse is promise
 */
-function create_dirname_with_base(fileuri, baseuri)
+function create_dirname(fileuri, baseuri)
 {
     var file_native = OS.Path.fromFileURI(fileuri);
-    var base_native = OS.Path.fromFileURI(baseuri);
     var target_native = OS.Path.dirname(file_native);
-    return OS.File.makeDir(target_native, {
-        ignoreExisting: true,
-        from: base_native
-    });
+    if (baseuri) {
+        var base_native = OS.Path.fromFileURI(baseuri);
+        return OS.File.makeDir(target_native, {
+            ignoreExisting: true,
+            from: base_native
+        });
+    } else {
+        return OS.File.makeDir(target_native, {
+            ignoreExisting: true
+        });
+    }
 }
 /*
     create the dir by diruri
     return valuse is promise
 */
-function create_dir_with_base(diruri, baseuri)
+function create_dir(diruri, baseuri)
 {
-    var base_native = OS.Path.fromFileURI(baseuri);
     var target_native = OS.Path.fromFileURI(diruri);
-    return OS.File.makeDir(target_native, {
-        ignoreExisting: true,
-        from: base_native
-    });
+    if (baseuri) {
+        var base_native = OS.Path.fromFileURI(baseuri);
+        return OS.File.makeDir(target_native, {
+            ignoreExisting: true,
+            from: base_native
+        });
+    } else {
+        return OS.File.makeDir(target_native, {
+            ignoreExisting: true
+        });
+    }
 }
 
 
@@ -1381,7 +1394,6 @@ function init_canvas() // will be called once in global init function
 */
 function initp_createdirs()
 {
-    var ndocfolder = OS.Path.fromFileURI(docfolder);
     var p = new Array();
     p.push(OS.File.makeDir(OS.Path.join(datafolder, "tools"), { ignoreExisting: true, from: datafolder }));
     p.push(OS.File.makeDir(OS.Path.join(datafolder, "fileicons"), { ignoreExisting: true, from: datafolder }));
@@ -1391,7 +1403,6 @@ function initp_createdirs()
 
 function initp_tools()
 {
-    var ndocfolder = OS.Path.fromFileURI(docfolder);
     var p = new Array();
 
     ppt2pdf_path = OS.Path.join(datafolder, "tools", "ppt2pdf.vbs");
@@ -1409,27 +1420,70 @@ $("document").ready( function () {
     eh_os = window.parent.xulruntime.OS;
     
     load_prefs();
-    
-    docfolder = OS.Path.toFileURI(OS.Path.join(OS.Constants.Path.desktopDir, "ehdoc"));
-    datafolder = OS.Path.join(OS.Constants.Path.desktopDir, "ehdata");
 
-    
-    init_colorbox();
-    init_thicknessbox();
-    reset_dtype();
-    init_canvas();
-    init_notebox();
+    // configure datafolder first
 
-    initp_createdirs().then( function () {
-        // initp_* returns promises
-        Promise.all([initp_filetype_icon(), initp_tools(), initp_about()]).then ( function () {
+    datafolder = prefs.getCharPref("datafolder");
+    if (datafolder == "") {
+        datafolder = OS.Path.join(OS.Constants.Path.profileDir, "ehdata");
+        prefs.setCharPref("datafolder", datafolder);
+    }
 
-            $("#splashdiv").hide();
-            if (el_username == "" || el_password == "" || !el_rememberme) {
-                init_login_page();
-            } else {
-                init_main_page(); // load course table
-            }
+    // use promise to configure docfolder
+    new Promise( function (resolve, reject) {
+        ndocfolder = prefs.getCharPref("docfolder");
+        if (ndocfolder == "") {
+            var basearr = [
+                OS.Path.join(OS.Constants.Path.homeDir, "Documents"),
+                OS.Path.join(OS.Constants.Path.homeDir, "My Documents"),
+                OS.Path.join(OS.Constants.Path.homeDir, "文档"),
+                OS.Constants.Path.desktopDir];
+            Promise.all(basearr.map( function (base) { return OS.File.exists(base); })).then( function (fearr) {
+                console.log(basearr, fearr);
+                for (var i = 0; i < fearr.length; i++) {
+                    if (fearr[i]) {
+                        ndocfolder = OS.Path.join(basearr[i], "eLearning Helper");
+                        docfolder = OS.Path.toFileURI(ndocfolder);
+                        prefs.setCharPref("docfolder", ndocfolder);
+                        resolve();
+                        return;
+                    }
+                }
+                reject("can't find suitable docfolder");
+            }, function (reason) {
+                reject("OS.File.exists failed: " + reason);
+            });
+        } else {
+            docfolder = OS.Path.toFileURI(ndocfolder);
+            resolve();
+        }
+    }).then( function () {
+        Promise.all([
+            OS.File.makeDir(ndocfolder, { ignoreExisting: true }),
+            OS.File.makeDir(datafolder, { ignoreExisting: true, from: OS.Constants.Path.profileDir })
+        ]).then( function () {
+            init_colorbox();
+            init_thicknessbox();
+            reset_dtype();
+            init_canvas();
+            init_notebox();
+
+            initp_createdirs().then( function () {
+                // initp_* returns promises
+                Promise.all([
+                    initp_filetype_icon(),
+                    initp_tools(),
+                    initp_about()
+                ]).then ( function () {
+
+                    $("#splashdiv").hide();
+                    if (el_username == "" || el_password == "" || !el_rememberme) {
+                        init_login_page();
+                    } else {
+                        init_main_page(); // load course table
+                    }
+                });
+            });
         });
     });
 });
@@ -3034,13 +3088,15 @@ function show_debug_tools()
 function initp_about()
 {
     $("#about_versiontext").text(eh_version);
+    $("#about_sysinfo").text("Gecko " + window.parent.xulappinfo.platformVersion + " / " + eh_os);
     $("#about_pathinfo").text(
         "libxul: " + OS.Constants.Path.libxul + "\n" +
         "profileDir: " + OS.Constants.Path.profileDir + "\n" +
         "homeDir: " + OS.Constants.Path.homeDir + "\n" +
-        "desktopDir: " + OS.Constants.Path.desktopDir + "\n");
-        
-    $("#about_sysinfo").text("Gecko " + window.parent.xulappinfo.platformVersion + " / " + eh_os);
+        "desktopDir: " + OS.Constants.Path.desktopDir + "\n" +
+        "docfolder: " + ndocfolder + "\n" +
+        "datafolder: " + datafolder + "\n");
+    
     return new Promise( function (resolve, reject) {
         $.get("license.txt", null, null, "text")
         .done( function (data, textStatus, jqXHR) {
