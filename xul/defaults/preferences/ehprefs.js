@@ -14,8 +14,8 @@ pref("elearninghelper.syncoverwrite", true); // syncoverwrite
 pref("elearninghelper.datafolder", ""); // datafolder, native style
 pref("elearninghelper.docfolder", ""); // docfolder, native style
 
-pref("elearninghelper.debug", true); // global debug switch
-pref("elearninghelper.dbgserver", true); // remote debug server, no longer works when gecko version >= 44
-pref("elearninghelper.dbgremotelog", true); // send logs to remote
+pref("elearninghelper.debug", false); // global debug switch
+pref("elearninghelper.dbgserver", false); // remote debug server, no longer works when gecko version >= 44
+pref("elearninghelper.dbgremotelog", false); // send logs to remote
 
 

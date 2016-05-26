@@ -3161,6 +3161,7 @@ function save_settings(cch)
     usebuiltinviewer = cch.filter("[data-sdescref='ubv']").children("input").prop("checked");
     usebuiltinbrowser = cch.filter("[data-sdescref='ubb']").children("input").prop("checked");
     syncoverwrite = cch.filter("[data-sdescref='sow']").children("input").prop("checked");
+    save_prefs();
     $("#settingssaved").show();
 }
 
@@ -3221,6 +3222,7 @@ function doc_exec_cmd(element, cmd)
         use: "builtin" or "external" // override default setting
     }
 */
+
 function open_in_browser(url, opt)
 {
     console.log("OPEN IN BROWSER", url, opt);
