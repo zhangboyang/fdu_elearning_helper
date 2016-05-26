@@ -3034,6 +3034,12 @@ function show_debug_tools()
 function initp_about()
 {
     $("#about_versiontext").text(eh_version);
+    $("#about_pathinfo").text(
+        "libxul: " + OS.Constants.Path.libxul + "\n" +
+        "profileDir: " + OS.Constants.Path.profileDir + "\n" +
+        "homeDir: " + OS.Constants.Path.homeDir + "\n" +
+        "desktopDir: " + OS.Constants.Path.desktopDir + "\n");
+        
     $("#about_sysinfo").text("Gecko " + window.parent.xulappinfo.platformVersion + " / " + eh_os);
     return new Promise( function (resolve, reject) {
         $.get("license.txt", null, null, "text")

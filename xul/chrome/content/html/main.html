@@ -499,7 +499,7 @@
 		<div style="text-align: center" class="eh_aboutbox">
 <p>
     <strong>彩蛋</strong><br>
-    <img src="jtxj.jpg"><br>
+    <img src="jtxj.jpg" style="margin: 5px; border-radius: 10px;"><br>
     <strong>雪见：</strong>程序里怎么还有 BUG 没修！<br>
     <strong>景天：</strong>是是是，我修就是了。。。<br>
 </p>
@@ -507,6 +507,14 @@
     <strong>调试工具</strong><br>
     <span class="eh_link" onclick="window.open('about:config', 'aboutconfig', 'chrome,width=1000,height=600')">about:config</span><br>
     <span class="eh_link" onclick="window.open('about:about', 'aboutabout', 'chrome,width=1000,height=600')">about:about</span><br>
+</p>
+<p>
+    <strong>系统信息</strong><br>
+    <span id="about_sysinfo"></span>
+</p>
+<p>
+    <strong>目录</strong><br>
+    <span id="about_pathinfo" style="white-space: pre-line;"></span>
 </p>
         </div>
 		</div>
@@ -545,7 +553,7 @@
         </div>
         <div>
             <p>
-                <strong>系统信息：</strong><span id="about_sysinfo"></span>&nbsp;&nbsp;<span id="about_dbgtoolbtn" style="color: blue;" onclick="show_debug_tools()"><!-- open debug tools --></span>
+                <span id="about_dbgtoolbtn" style="color: blue;" onclick="show_debug_tools()"><!-- open debug tools --></span>
             </p>
         </div>
     </div>
