@@ -448,6 +448,17 @@ body {
     outline: 0px solid transparent;
 }
 
+.eh_notebox:empty:before {
+    content: attr(placeholder);
+    color: #555; 
+}
+
+.eh_notebox:empty:focus:before {
+    content: "\00A0";
+}
+
+
+
 #textcolor_dropdown {
     width: 39px;
     min-width: 39px;
