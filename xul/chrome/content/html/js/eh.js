@@ -222,7 +222,9 @@ function get_filetype_iconuri(ext)
                 if (!filetype_icon_set.has(ext)) {
                     filetype_icon_set.add(ext);
                     var f = OS.Path.toFileURI(OS.Path.join(datafolder, "fileicons", "known.json"));
-                    write_json_to_fileuri([ext for (ext of filetype_icon_set)], f);
+                    var arr = new Array();
+                    for (var val of filetype_icon_set) arr.push(val);
+                    write_json_to_fileuri(arr, f);
                 }
             }
             if (!fe) {
@@ -1383,21 +1385,21 @@ function initp_createdirs()
     var p = new Array();
     p.push(OS.File.makeDir(OS.Path.join(datafolder, "tools"), { ignoreExisting: true, from: datafolder }));
     p.push(OS.File.makeDir(OS.Path.join(datafolder, "fileicons"), { ignoreExisting: true, from: datafolder }));
-    p.push(OS.File.makeDir(OS.Path.join(ndocfolder, "syncdata"), { ignoreExisting: true, from: ndocfolder }));
+    p.push(OS.File.makeDir(OS.Path.join(ndocfolder, "ehdb", "syncdata"), { ignoreExisting: true, from: ndocfolder }));
     return Promise.all(p);
 }
 
 function initp_tools()
 {
-    return new Promise( function (resolve, reject) {
-        ppt2pdf_path = OS.Path.join(datafolder, "tools", "ppt2pdf.vbs");
-        install_file("ppt2pdf.vbs", ppt2pdf_path).then( function () {
-            resolve();
-        }, function (reason) {
-            reject("install_file() failed: " + reason);
-        });
-    });
+    var ndocfolder = OS.Path.fromFileURI(docfolder);
+    var p = new Array();
+    
+    p.push(install_file("ppt2pdf.vbs", OS.Path.join(datafolder, "tools", "ppt2pdf.vbs")));
+    p.push(install_file("ehdb_readme.txt", OS.Path.join(ndocfolder, "ehdb", "README.txt")));
+
+    return Promise.all(p);
 }
+
 $("document").ready( function () {
     prefs = window.parent.prefs;
     OS = window.parent.OS;
@@ -2441,7 +2443,7 @@ function get_coursefolder(cobj)
 function get_syncdatafile(sobj)
 {
     check_filename(sobj.uuid);
-    var diruri = docfolder + "/syncdata/" + sobj.uuid + ".json";
+    var diruri = docfolder + "/ehdb/syncdata/" + sobj.uuid + ".json";
     check_path_with_base(diruri, docfolder);
     return diruri;
 }
