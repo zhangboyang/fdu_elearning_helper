@@ -1669,7 +1669,7 @@ function pdfviewer_show(fitem, coursefolder)
                         file.initWithPath("c:\\windows\\system32\\cscript.exe");
                         var process = Components.classes["@mozilla.org/process/util;1"].createInstance(Components.interfaces.nsIProcess);
                         process.init(file);
-                        process.runw(true, ["//Nologo", ppt2pdf_path, OS.Path.fromFileURI(fileuri), pdfpath], 4);
+                        process.runw(true, ["//Nologo", ppt2pdf_path, OS.Path.fromFileURI(fileuri), pdfpath], 4); // crash?
                         resolve(pdfuri);
                     } else {
                         // other error
@@ -1893,6 +1893,7 @@ function webdav_binary_xhr(url, xhrprogresscallback)
         // note: elearning requests set user-agent to non-browser
         xhr.setRequestHeader("Translate", "f"); // requested by webdav
         xhr.send();
+
     });
 }
 
@@ -2967,6 +2968,9 @@ function eh_login()
     el_password = $("#loginpassword").val();
     el_rememberme = $("#loginrememberme").prop("checked");
     $("#loginerrmsg").hide().text("");
+    $("#loginusername").prop("disabled", true);
+    $("#loginpassword").prop("disabled", true);
+    $("#loginrememberme").prop("disabled", true);
     $("#loginbtn").text("正在登录").prop("disabled", true);
     //console.log(el_username, el_password, el_rememberme);
     remove_all_cookies();
@@ -2975,6 +2979,9 @@ function eh_login()
         init_main_page();
     }, function (reason) {
         $("#loginerrmsg").show().text(get_friendly_part(reason));
+        $("#loginusername").prop("disabled", false);
+        $("#loginpassword").prop("disabled", false);
+        $("#loginrememberme").prop("disabled", false);
         $("#loginbtn").text("登录").prop("disabled", false);
     });
 }
