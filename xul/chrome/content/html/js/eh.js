@@ -1602,7 +1602,7 @@ function pdfviewer_show(fitem, coursefolder)
             resolve(fileuri);
         } else {
             // this file is not PDF, should convert to PDF
-            if (fileext == "ppt" || fileext == "pptx") {
+            if (eh_os == "WINNT" && (fileext == "ppt" || fileext == "pptx")) { // FIXME: Windows Only Code
 
                 var pdfuri = fileuri + ".pdf";
                 var pdfpath = OS.Path.fromFileURI(pdfuri);
@@ -1614,7 +1614,6 @@ function pdfviewer_show(fitem, coursefolder)
                     if (reason instanceof OS.File.Error && reason.becauseNoSuchFile) {
                         // pdf file not exists, we need convert
                         // start ppt2pdf.vbs to convert
-                        // FIXME: Windows Only Code
                         var file = Components.classes["@mozilla.org/file/local;1"].createInstance(Components.interfaces["nsILocalFile"]);
                         file.initWithPath("c:\\windows\\system32\\cscript.exe");
                         var process = Components.classes["@mozilla.org/process/util;1"].createInstance(Components.interfaces.nsIProcess);
@@ -1656,7 +1655,11 @@ function pdfviewer_issupported(fitem)
 {
     if (!usebuiltinviewer) return false;
     var fileext = get_file_ext(fitem.filename);
-    return fileext == "pdf" || fileext == "ppt" || fileext == "pptx";
+    if (eh_os == "WINNT") {
+        return fileext == "pdf" || fileext == "ppt" || fileext == "pptx";
+    } else {
+        return fileext == "pdf"; // we not support converting PPT to PDF on non-windows systems
+    }
 }
 
 
