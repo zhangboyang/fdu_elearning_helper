@@ -97,7 +97,9 @@ function write_string_to_fileuri(str, fileuri)
 }
 function write_json_to_fileuri(obj, fileuri)
 {
-    return write_string_to_fileuri(JSON.stringify({ app: "elearninghelper", ver: eh_version, obj: obj }), fileuri);
+    var jsonobj = { app: "elearninghelper", ver: eh_version, obj: obj };
+    var jsonstr = eh_debug ? JSON.stringify(jsonobj, null, " ") : JSON.stringify(jsonobj);
+    return write_string_to_fileuri(jsonstr, fileuri);
 }
 
 /*
@@ -131,6 +133,33 @@ function read_json_from_fileuri(fileuri)
     });
 }
 
+/*
+    create the dirname part of a fileuri
+    return valuse is promise
+*/
+function create_dirname_with_base(fileuri, baseuri)
+{
+    var file_native = OS.Path.fromFileURI(fileuri);
+    var base_native = OS.Path.fromFileURI(baseuri);
+    var target_native = OS.Path.dirname(file_native);
+    return OS.File.makeDir(target_native, {
+        ignoreExisting: true,
+        from: base_native
+    });
+}
+/*
+    create the dir by diruri
+    return valuse is promise
+*/
+function create_dir_with_base(diruri, baseuri)
+{
+    var base_native = OS.Path.fromFileURI(baseuri);
+    var target_native = OS.Path.fromFileURI(diruri);
+    return OS.File.makeDir(target_native, {
+        ignoreExisting: true,
+        from: base_native
+    });
+}
 
 
 function local_log(msg)
@@ -183,22 +212,20 @@ function get_filetype_iconuri(ext)
         return OS.Path.toFileURI(filepath);
     } else {
         OS.File.exists(filepath).then( function (fe) {
-            OS.File.makeDir(OS.Path.join(datafolder, "fileicons"), { ignoreExisting: true, from: datafolder }).then( function () {
-                var addtoset = function (ext) {
-                    if (!filetype_icon_set.has(ext)) {
-                        filetype_icon_set.add(ext);
-                        var f = OS.Path.toFileURI(OS.Path.join(datafolder, "fileicons", "known.json"));
-                        write_json_to_fileuri([ext for (ext of filetype_icon_set)], f);
-                    }
+            var addtoset = function (ext) {
+                if (!filetype_icon_set.has(ext)) {
+                    filetype_icon_set.add(ext);
+                    var f = OS.Path.toFileURI(OS.Path.join(datafolder, "fileicons", "known.json"));
+                    write_json_to_fileuri([ext for (ext of filetype_icon_set)], f);
                 }
-                if (!fe) {
-                    install_file(remoteuri, filepath).then( function () {
-                        addtoset(ext);
-                    });
-                } else {
+            }
+            if (!fe) {
+                install_file(remoteuri, filepath).then( function () {
                     addtoset(ext);
-                }
-            });
+                });
+            } else {
+                addtoset(ext);
+            }
         });
         
         return remoteuri; // because we can't wait for promise, so we just return remoteuri
@@ -1335,18 +1362,30 @@ function init_canvas() // will be called once in global init function
 
 // ====================== the global init function ======================
 
+/*
+    create necessory dirs used by elearning helper
+    must be called:
+        AFTER docfolder and datafolder is created
+        BEFORE any other function that use dirs
+*/
+function initp_createdirs()
+{
+    var ndocfolder = OS.Path.fromFileURI(docfolder);
+    var p = new Array();
+    p.push(OS.File.makeDir(OS.Path.join(datafolder, "tools"), { ignoreExisting: true, from: datafolder }));
+    p.push(OS.File.makeDir(OS.Path.join(datafolder, "fileicons"), { ignoreExisting: true, from: datafolder }));
+    p.push(OS.File.makeDir(OS.Path.join(ndocfolder, "syncdata"), { ignoreExisting: true, from: ndocfolder }));
+    return Promise.all(p);
+}
+
 function initp_tools()
 {
     return new Promise( function (resolve, reject) {
-        OS.File.makeDir(OS.Path.join(datafolder, "tools"), { ignoreExisting: true, from: datafolder }).then( function () {
-            ppt2pdf_path = OS.Path.join(datafolder, "tools", "ppt2pdf.vbs");
-            install_file("ppt2pdf.vbs", ppt2pdf_path).then( function () {
-                resolve();
-            }, function (reason) {
-                reject("install_file() failed: " + reason);
-            });
+        ppt2pdf_path = OS.Path.join(datafolder, "tools", "ppt2pdf.vbs");
+        install_file("ppt2pdf.vbs", ppt2pdf_path).then( function () {
+            resolve();
         }, function (reason) {
-            reject("makeDir() failed: " + reason);
+            reject("install_file() failed: " + reason);
         });
     });
 }
@@ -1369,17 +1408,18 @@ $("document").ready( function () {
     init_canvas();
     init_notebox();
 
-    // initp_* returns promises
-    initp_filetype_icon();
-    initp_tools();
-    initp_about();
+    initp_createdirs().then( function () {
+        // initp_* returns promises
+        Promise.all([initp_filetype_icon(), initp_tools(), initp_about()]).then ( function () {
 
-
-    if (el_username == "" || el_password == "" || !el_rememberme) {
-        init_login_page();
-    } else {
-        init_main_page(); // load course table
-    }
+            $("#splashdiv").hide();
+            if (el_username == "" || el_password == "" || !el_rememberme) {
+                init_login_page();
+            } else {
+                init_main_page(); // load course table
+            }
+        });
+    });
 });
 
 function init_notebox()
@@ -1918,24 +1958,54 @@ function webdav_download_single(fitem, localbase, xhrprogresscallback)
 
     parameters:
         see webdav_download_single() for details
+        sdfitem: last sync data item with same path
         fstatus: statuslist item object
         update_count_callback(delta_finished, delta_total)
 */
-function webdav_sync_single(fitem, localbase, fstatus, update_count_callback)
+function webdav_sync_single(fitem, sdfitem, localbase, fstatus, update_count_callback)
 {
     var target_uri = localbase + fitem.path;
     check_path_with_base(target_uri, localbase);
     return new Promise( function (resolve, reject) {
-        var target_native = OS.Path.fromFileURI(target_uri);
-        OS.File.stat(target_native).then( function (info) {
-            // file exists, no need to download
-            //console.log("file exists: " + fitem.path);
-            statuslist_update(fstatus, "无需下载", "green");
-            fitem.is_new_file = false;
-            resolve(0);
-        }, function (reason) {
-            if (reason instanceof OS.File.Error && reason.becauseNoSuchFile) {
-                // file not exists, we should download it
+        // check whether we should download this file
+        new Promise( function (resolve, reject) {
+            // first, check file exists
+            new Promise( function (resolve, reject) {
+                var target_native = OS.Path.fromFileURI(target_uri);
+                OS.File.stat(target_native).then( function (info) {
+                    // file exists
+                    resolve(true);
+                }, function (reason) {
+                    if (reason instanceof OS.File.Error && reason.becauseNoSuchFile) {
+                        // file not exists
+                        resolve(false);
+                    } else {
+                        reject("unknown stat() error: " + reason);
+                    }
+                });
+            }).then( function (fexists) {
+                // FIXME: if (fexists && notoverwrite) ...
+                if (!sdfitem) {
+                    // no current file in previous data, download it
+                    resolve(true);
+                    return;
+                }
+                if (sdfitem.lastmodified != fitem.lastmodified || sdfitem.etag != fitem.etag) {
+                    // file changed (etag, lastmodified), download it
+                    resolve(true);
+                    return;
+                }
+                if (!fexists) {
+                    // file not exists (may be deleted), download it
+                    resolve(true);
+                    return;
+                }
+                resolve(false);
+            }, function (reason) {
+                reject("can't check file existance: " + reason);
+            });
+        }).then( function (shoulddownload) {
+            if (shoulddownload) {
                 //console.log("file not exists, download: " + fitem.path);
                 statuslist_update(fstatus, "准备下载", "blue");
                 update_count_callback(0, 1);
@@ -1954,8 +2024,12 @@ function webdav_sync_single(fitem, localbase, fstatus, update_count_callback)
                     reject("download single failed: " + reason);
                 });
             } else {
-                reject("unknown stat() error: " + reason);
+                statuslist_update(fstatus, "无需下载", "green");
+                fitem.is_new_file = false;
+                resolve(0);
             }
+        }, function (reason) {
+            reject("can't judge download status: " + reason);
         });
     });
 }
@@ -1976,63 +2050,99 @@ function webdav_sync_single(fitem, localbase, fstatus, update_count_callback)
     
     uuid: site uuid
     course folder: course folder, must start with "/", some thing like "/2015-2016春季学期/离散数学"
+    syncdatafile: sync data file, used for checking lastmodified date, etc.  
+                  in fileuri format, something like "file:// ... /ehdb/syncdata/UUIDUUIDUUID.json"
+                  file may not exist, but path must exist
+                  the path is trusted
     statuslist: see create_statuslist()
     report_progress(finished_count, total_count)
 */
-function webdav_sync(uuid, coursefolder, statuslist, report_progress)
+function webdav_sync(uuid, coursefolder, syncdatafile, statuslist, report_progress)
 {
     return new Promise( function (resolve, reject) {
         // create course folder
         var localbase = docfolder + coursefolder;
         check_path_with_base(localbase, docfolder);
         webdav_create_localpath(docfolder, coursefolder).then( function () {
-            // download files, list dir first
-            var lsstatus = statuslist_appendprogress(statuslist, "正在列目录");
-            webdav_listall(uuid).then( function (lobj) {
-                Promise.all(lobj.dlist.map( function (ditem) { return webdav_create_localpath(localbase, ditem.path); } ))
-                    .then( function () {
-                        statuslist_update(lsstatus, "完成", "green");
-                        // directory created, start downloading files
-                        var count = 0;
-                        var total = 0;
-                        report_progress(count, total);
-                        Promise.all(lobj.flist.map( function (fitem) {
-                                return new Promise( function (resolve, reject) {
-                                    var fstatus = statuslist_appendprogress(statuslist, "正在同步 " + fitem.path);
-                                    statuslist_update(fstatus, "正在检查", "blue");
-                                    webdav_sync_single(fitem, localbase, fstatus,
-                                        function (delta_count, delta_total) { // update_count_callback
-                                            count += delta_count;
-                                            total += delta_total;
-                                            report_progress(count, total);
-                                        }
-                                    ).then( function (dstat) {
-                                        resolve(dstat);
-                                    }, function (reason) {
-                                        statuslist_update(fstatus, "下载失败", red);
-                                        reject("can't download " + fitem.filename + ": " + reason);
+            // read previous sync data
+            var sdstatus = statuslist_appendprogress(statuslist, "正在检查同步状态");
+            new Promise(function (resolve, reject) {
+                read_json_from_fileuri(syncdatafile).then( function (obj) {
+                    // read ok, use the data as syncdata
+                    statuslist_update(sdstatus, "上次同步于 " + format_date(new Date(obj.timestamp), "do"), "green");
+                    resolve(obj);
+                }, function () {
+                    // read failed, create a new syncdata
+                    statuslist_update(sdstatus, "首次同步", "green");
+                    resolve({ flist: [], dlist: [] });
+                });
+            }).then( function (syncdata) {
+                // process syncdata into a map object
+                var sdfmap = new Map(); // sync data flist map
+                syncdata.flist.forEach( function (fitem) { sdfmap.set(fitem.path, fitem); });
+                // list dir
+                var lsstatus = statuslist_appendprogress(statuslist, "正在列目录");
+                webdav_listall(uuid).then( function (lobj) {
+                    Promise.all(lobj.dlist.map( function (ditem) { return webdav_create_localpath(localbase, ditem.path); } ))
+                        .then( function () {
+                            statuslist_update(lsstatus, "完成", "green");
+                            // directory created, start downloading files
+                            var count = 0;
+                            var total = 0;
+                            report_progress(count, total);
+                            Promise.all(lobj.flist.map( function (fitem) {
+                                    return new Promise( function (resolve, reject) {
+                                        var fstatus = statuslist_appendprogress(statuslist, "正在同步 " + fitem.path);
+                                        statuslist_update(fstatus, "正在检查", "blue");
+                                        webdav_sync_single(fitem, sdfmap.get(fitem.path), localbase, fstatus,
+                                            function (delta_count, delta_total) { // update_count_callback
+                                                count += delta_count;
+                                                total += delta_total;
+                                                report_progress(count, total);
+                                            }
+                                        ).then( function (dstat) {
+                                            resolve(dstat);
+                                        }, function (reason) {
+                                            statuslist_update(fstatus, "下载失败", red);
+                                            reject("can't download " + fitem.filename + ": " + reason);
+                                        });
                                     });
+                                })).then( function (dstat) {
+                                    var sum = 0;
+                                    assert(dstat.length == lobj.flist.length);
+                                    for (var i = 0; i < dstat.length; i++) {
+                                        sum += dstat[i];
+                                    }
+                                    if (sum == 0) {
+                                        // we have no new files, we should set fitem.is_new_file to previous status
+                                        lobj.flist.forEach( function (fitem) {
+                                            var sdfitem = sdfmap.get(fitem.path);
+                                            assert(sdfitem != undefined);
+                                            fitem.is_new_file = sdfitem.is_new_file;
+                                        });
+                                    }
+                                    
+                                    statuslist_append(statuslist, "同步完成，共有 " + sum + " 个新文件", "green");
+                                    lobj.timestamp = new Date().getTime();
+                                    console.log(syncdatafile);
+                                    write_json_to_fileuri(lobj, syncdatafile).then( function () {
+                                        resolve({
+                                            lobj: lobj,
+                                            sum: sum,
+                                        });
+                                    }, function (reason) {
+                                        reject("can't write sync result: " + reason);
+                                    });
+                                }, function (reason) {
+                                    reject("can't download file: " + reason);
                                 });
-                            })).then( function (dstat) {
-                                var sum = 0;
-                                assert(dstat.length == lobj.flist.length);
-                                for (var i = 0; i < dstat.length; i++) {
-                                    sum += dstat[i];
-                                }
-                                statuslist_append(statuslist, "同步完成，共有 " + sum + " 个新文件", "green");
-                                resolve({
-                                    lobj: lobj,
-                                    sum: sum,
-                                });
-                            }, function (reason) {
-                                reject("can't download file: " + reason);
-                            });
-                    }, function (reason) {
-                        reject("can't create directory: " + reason);
-                    });
-            }, function (reason) {
-                statuslist_update(lsstatus, "失败", "red");
-                reject("can't list files: " + reason);
+                        }, function (reason) {
+                            reject("can't create directory: " + reason);
+                        });
+                }, function (reason) {
+                    statuslist_update(lsstatus, "失败", "red");
+                    reject("can't list files: " + reason);
+                });
             });
         }, function (reason) {
             reject("can't create course folder: " + reason);
@@ -2315,6 +2425,13 @@ function get_coursefolder(cobj)
     check_filename(cobj.cname);
     return "/" + cur_semestername + "/" + cobj.cname;
 }
+function get_syncdatafile(sobj)
+{
+    check_filename(sobj.uuid);
+    var diruri = docfolder + "/syncdata/" + sobj.uuid + ".json";
+    check_path_with_base(diruri, docfolder);
+    return diruri;
+}
 
 /*
     load data and draw course table using clist to main screen
@@ -2518,6 +2635,7 @@ function coursetable_enter(cidx, x, y)
         let cobj = clist[cidx];
         let sobj = slist[sidx];
         let coursefolder = get_coursefolder(cobj);
+        let syncdatafile = get_syncdatafile(sobj);
         $("#filenav_sitetitle").text(sobj.sname);
 
         // load data
@@ -2544,7 +2662,7 @@ function coursetable_enter(cidx, x, y)
         $("#filenav_syncdetails").empty().append($(statuslist));
         $("#filenav_showfiles").hide();
 
-        webdav_sync(sobj.uuid, coursefolder, statuslist,
+        webdav_sync(sobj.uuid, coursefolder, syncdatafile, statuslist,
             function (finished, total) { // report_progress
                 // update status bar
                 $("#filenav_syncprogress").text(finished.toString() + "/" + total.toString());
