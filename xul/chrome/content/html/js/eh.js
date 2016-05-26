@@ -2381,8 +2381,9 @@ function coursetable_load(clist_input)
         trobj.appendTo(tobj);
     }
 
-    $("#main_coursetable").empty();
-    tobj.appendTo($("#main_coursetable"));
+    $("#main_coursetable").empty().append(tobj);
+
+    $("#main_course_details").html("提示：<ul><li>单击课程可以查看课程详细信息</li><li>双击课程可以进入课程文件列表</li></ul>");
 }
 
 /*
@@ -2520,7 +2521,7 @@ function coursetable_enter(cidx, x, y)
             .html("<tr><td></td><td>加载中 ...</td><td></td></tr>");
         
         // prepare for status bar
-        $("#filenav_deatils").empty();
+        $("#filenav_deatils").empty().html("提示：<ul><li>单击文件可以查看详细信息</li><li>双击文件来打开</li></ul>");;
         $("#filenav_syncprogress").empty();
         $("#filenav_syncinprogresstext").show();
         $("#filenav_syncfinishedtext").empty().hide();

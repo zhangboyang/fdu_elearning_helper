@@ -36,6 +36,14 @@ body {
     /*overflow: hidden;*/
 }
 
+ul {
+    margin: 3px 0px;
+    padding-left: 20px;
+}
+ul li {
+    list-style: disc;
+}
+
 
 .btn {
     padding-top: 2px !important; /* ugly fix for Windows */
@@ -555,12 +563,6 @@ body {
 
 .eh_aboutbox strong {
     font-weight: bold;
-}
-.eh_aboutbox ul {
-    padding-left: 20px;
-}
-.eh_aboutbox li {
-    list-style: disc;
 }
 
 .eh_aboutbox h1 {
