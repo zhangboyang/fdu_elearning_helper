@@ -594,7 +594,7 @@ function abort(str)
 function friendly_error(str)
 {
     str = "错误: " + str;
-    do_output(str);
+    alert(str);
 }
 
 function assert(x)
@@ -1445,11 +1445,12 @@ function init_pdf(pdf_path)
         
         pdf_thumbnail_div_list = new Array();
         selected_pdf_page = 1;
-        
+
+        var canvasarray = new Array();
         for (var i = 1; i <= pdf.numPages; i++) {
             // append an canvas to our thumbnail list
 
-            let cur_canvas = document.createElement('canvas');
+            let cur_canvas = canvasarray[i] = document.createElement('canvas');
 
             let page_id = i;
 
@@ -1468,34 +1469,49 @@ function init_pdf(pdf_path)
                         }
                       )
                 .appendTo('#pdf_page_list');
-
-            if (i == 1) show_pdf_jumpto(pdf, 1);
-            
-            pdf.getPage(i).then( function (page) {
-                var scale = 1.0;
-                var viewport = page.getViewport(scale);
-
-                var cur_canvas_width = parseInt($(cur_canvas).css("width")) - 2;
-                
-                scale = cur_canvas_width / viewport.width;
-                viewport = page.getViewport(scale);
-
-                // Prepare canvas using PDF page dimensions.
-                var canvas = cur_canvas;
-                var context = canvas.getContext('2d');
-                canvas.height = viewport.height;
-                canvas.width = viewport.width;
-
-                // Render PDF page into canvas context.
-                var renderContext = {
-                    canvasContext: context,
-                    viewport: viewport
-                };
-                
-                page.render(renderContext);
-                //show_msg(page_id);
-            });
         }
+
+        var load_thumbnail = function (page_id) {
+            return new Promise( function (resolve, reject) {
+                pdf.getPage(page_id).then( function (page) {
+                    var scale = 1.0;
+                    var viewport = page.getViewport(scale);
+                    var cur_canvas = canvasarray[page_id];
+                    var cur_canvas_width = parseInt($(cur_canvas).css("width")) - 2;
+                    
+                    scale = cur_canvas_width / viewport.width;
+                    viewport = page.getViewport(scale);
+
+                    // Prepare canvas using PDF page dimensions.
+                    var canvas = cur_canvas;
+                    var context = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+
+                    // Render PDF page into canvas context.
+                    var renderContext = {
+                        canvasContext: context,
+                        viewport: viewport
+                    };
+                    
+                    page.render(renderContext);
+                    //show_msg(page_id);
+                    resolve();
+                });
+            });
+        };
+
+        var load_thumbnail_all = function (cur) {
+            if (cur <= pdf.numPages) {
+                load_thumbnail(cur).then( function () {
+                    load_thumbnail_all(cur + 1);
+                });
+            }
+        }
+        
+        show_pdf_jumpto(pdf, 1).then( function () {
+            load_thumbnail_all(1);
+        });
 
         $('#pdf_page_list').scrollTop(0);
     });
@@ -1520,44 +1536,47 @@ var show_pdf_switchpage;
 */
 function show_pdf_jumpto(pdf, page_id)
 {
-    if (pdf_page_loading) return;
-    
-    $(pdf_thumbnail_div_list[selected_pdf_page]).removeClass("eh_selected");
-    $(pdf_thumbnail_div_list[selected_pdf_page = page_id]).addClass("eh_selected");
-
-    pdf_page_loading = true;
-
-    canvas_clearpage();
-    
-    pdf.getPage(page_id).then(function (page) {
-        var space_ratio = 0.03;
+    return new Promise( function (resolve, reject) {
+        if (pdf_page_loading) { resolve(); return; }
         
-        var scale = 1.0;
-        var viewport = page.getViewport(scale);
-        var wrapper_width = Math.floor(parseInt($("#pdf_page_view_wrapper").css("width")) * (1.0 - space_ratio));
-        var wrapper_height = Math.floor(parseInt($("#pdf_page_view_wrapper").css("height")) * (1.0 - space_ratio));
-        
-        scale = Math.min(wrapper_width / viewport.width, wrapper_height / viewport.height);
-        //show_msg(scale);
-        viewport = page.getViewport(scale);
+        $(pdf_thumbnail_div_list[selected_pdf_page]).removeClass("eh_selected");
+        $(pdf_thumbnail_div_list[selected_pdf_page = page_id]).addClass("eh_selected");
 
-        // Prepare canvas using PDF page dimensions.
+        pdf_page_loading = true;
 
-        var canvasdraw = document.getElementById('pdf_page_draw');
-        var canvastemp = document.getElementById('pdf_page_temp');
-        var canvas = document.getElementById('pdf_page_view');
-        var context = canvas.getContext('2d');
-        canvasdraw.height = canvastemp.height = canvas.height = viewport.height;
-        canvasdraw.width = canvastemp.width = canvas.width = viewport.width;
+        canvas_clearpage();
         
-        // Render PDF page into canvas context.
-        var renderContext = {
-            canvasContext: context,
-            viewport: viewport
-        };
-        
-        page.render(renderContext).then( function () {
-            pdf_page_loading = false;
+        pdf.getPage(page_id).then(function (page) {
+            var space_ratio = 0.03;
+            
+            var scale = 1.0;
+            var viewport = page.getViewport(scale);
+            var wrapper_width = Math.floor(parseInt($("#pdf_page_view_wrapper").css("width")) * (1.0 - space_ratio));
+            var wrapper_height = Math.floor(parseInt($("#pdf_page_view_wrapper").css("height")) * (1.0 - space_ratio));
+            
+            scale = Math.min(wrapper_width / viewport.width, wrapper_height / viewport.height);
+            //show_msg(scale);
+            viewport = page.getViewport(scale);
+
+            // Prepare canvas using PDF page dimensions.
+
+            var canvasdraw = document.getElementById('pdf_page_draw');
+            var canvastemp = document.getElementById('pdf_page_temp');
+            var canvas = document.getElementById('pdf_page_view');
+            var context = canvas.getContext('2d');
+            canvasdraw.height = canvastemp.height = canvas.height = viewport.height;
+            canvasdraw.width = canvastemp.width = canvas.width = viewport.width;
+            
+            // Render PDF page into canvas context.
+            var renderContext = {
+                canvasContext: context,
+                viewport: viewport
+            };
+            
+            page.render(renderContext).then( function () {
+                pdf_page_loading = false;
+                resolve();
+            });
         });
     });
 }
@@ -2468,7 +2487,15 @@ function coursetable_select(cidx, x, y)
     if (sidx >= 0) {
         var actobj = $(document.createElement('span'));
         $(document.createElement('span')).addClass("eh_link").text("打开课程文件夹").click( function () {
-            launch_fileuri(docfolder + get_coursefolder(cobj));
+            var diruri = docfolder + get_coursefolder(cobj);
+            check_path_with_base(diruri, docfolder);
+            OS.File.exists(OS.Path.fromFileURI(diruri)).then( function (fe) {
+                if (fe) {
+                    launch_fileuri(diruri);
+                } else {
+                    friendly_error("请先进入该站点一次，以进行首次同步。");
+                }
+            });
         }).appendTo(actobj);
 
         detailobj.append($(create_kvdiv_with_obj("操作: ", actobj)));
