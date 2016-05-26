@@ -2992,7 +2992,10 @@ function show_about()
     $("#about_licensebox").show();
     $("#about_debugbox").hide();
     $("#about_dbgtoolbtn").addClass("eh_link").text("打开调试工具");
+
     show_page("about");
+    $("#about_licensesbox").scrollTop(0);
+    $("#about_aboutsbox").scrollTop(0);
 }
 
 
@@ -3001,6 +3004,7 @@ function show_debug_tools()
     $("#about_licensebox").hide();
     $("#about_debugbox").show();
     $("#about_dbgtoolbtn").removeClass("eh_link").text("调试工具已打开");
+    $("#about_debugsbox").scrollTop(0);
 }
 
 function initp_about()
