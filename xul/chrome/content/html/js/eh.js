@@ -1393,8 +1393,9 @@ function initp_tools()
 {
     var ndocfolder = OS.Path.fromFileURI(docfolder);
     var p = new Array();
-    
-    p.push(install_file("ppt2pdf.vbs", OS.Path.join(datafolder, "tools", "ppt2pdf.vbs")));
+
+    ppt2pdf_path = OS.Path.join(datafolder, "tools", "ppt2pdf.vbs");
+    p.push(install_file("ppt2pdf.vbs", ppt2pdf_path));
     p.push(install_file("ehdb_readme.txt", OS.Path.join(ndocfolder, "ehdb", "README.txt")));
 
     return Promise.all(p);
@@ -1669,7 +1670,8 @@ function pdfviewer_show(fitem, coursefolder)
                         file.initWithPath("c:\\windows\\system32\\cscript.exe");
                         var process = Components.classes["@mozilla.org/process/util;1"].createInstance(Components.interfaces.nsIProcess);
                         process.init(file);
-                        process.runw(true, ["//Nologo", ppt2pdf_path, OS.Path.fromFileURI(fileuri), pdfpath], 4); // crash?
+                        // process.runw() will crash if argv[] has undefined value in it
+                        process.runw(true, ["//Nologo", ppt2pdf_path, OS.Path.fromFileURI(fileuri), pdfpath], 4);
                         resolve(pdfuri);
                     } else {
                         // other error
