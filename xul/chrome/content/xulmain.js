@@ -176,7 +176,30 @@ prefservice.getBranch("general.").setCharPref("useragent.override", "elearninghe
 
 
 
+/* set or reset runtime debug options */
+do {
+    var dbgon = prefs.getBoolPref("debug");
+    var prefstree = prefservice.getBranch("");
+    prefstree.setBoolPref("devtools.chrome.enabled", dbgon);
+    prefstree.setBoolPref("devtools.debugger.remote-enabled", dbgon);
+    prefstree.setBoolPref("browser.dom.window.dump.enabled", dbgon);
+    prefstree.setBoolPref("javascript.options.showInConsole", dbgon);
+    prefstree.setBoolPref("javascript.options.strict", dbgon);
+    prefstree.setBoolPref("nglayout.debug.disable_xul_cache", dbgon);
+    prefstree.setBoolPref("nglayout.debug.disable_xul_fastload", dbgon);
+} while (0);
 
+
+
+
+
+
+
+/* open jsconsole if needed */
+if (prefs.getBoolPref("debug") && prefs.getBoolPref("dbgjsconsole")) {
+    window.open('chrome://global/content/console.xul', '_blank',
+        'chrome,extrachrome,menubar,resizable,scrollbars,status,toolbar');
+}
 
 
 

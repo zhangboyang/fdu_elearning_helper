@@ -16,6 +16,7 @@ pref("elearninghelper.docfolder", ""); // docfolder, native style
 
 pref("elearninghelper.debug", false); // global debug switch
 pref("elearninghelper.dbgserver", false); // remote debug server, no longer works when gecko version >= 44
-pref("elearninghelper.dbgremotelog", false); // send logs to remote
+pref("elearninghelper.dbglocallog", false); // log actions to logfile on desktop
+pref("elearninghelper.dbgjsconsole", false); // open jsconsole on start
 
 

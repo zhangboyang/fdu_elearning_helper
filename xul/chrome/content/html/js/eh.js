@@ -6,7 +6,7 @@ var prefs; // it's a copy of window.parent.prefs
 
 
 // prefs
-var eh_debug, eh_dbgremotelog;
+var eh_debug, eh_dbglocallog;
 var el_username; // elearning username
 var el_password; // elearning password
 var el_rememberme;
@@ -17,8 +17,8 @@ var syncoverwrite; // overwrite files while sync or not
 
 function load_prefs()
 {
-    eh_debug = prefs.getBoolPref("dbgremotelog");
-    eh_dbgremotelog = prefs.getBoolPref("dbgremotelog");
+    eh_debug = prefs.getBoolPref("debug");
+    eh_dbglocallog = prefs.getBoolPref("dbglocallog");
     
     el_username = prefs.getCharPref("username");
     el_password = prefs.getCharPref("password");
@@ -48,8 +48,11 @@ var eh_os; // "WINNT" / "Linux" / "Darwin", a copy of window.parent.xulruntime.O
 
 var docfolder; // document folder, FILE URI style, like file:///foo/bar....
 var ndocfolder; // document folder, NATIVE style, like C:\foo\bar.....
+var dbfolder; // db folder, FILE URI style, like file:///foo/bar....
+var ndbfolder; // db folder, NATIVE style, like C:\foo\bar.....
 var datafolder; // internal data folder, NATIVE style, like C:\foo\bar.....
 
+var eh_logfile; // NATIVE path to local log file
 
 var ppt2pdf_path; // NATIVE path to ppt2pdf.vbs
 
@@ -183,22 +186,33 @@ function create_dir(diruri, baseuri)
 
 function local_log(msg)
 {
-    if (eh_debug) {
-        console.log("LOCAL LOG: " + msg);
-        window.parent.mylog("LOCAL LOG: " + msg);
+    if (eh_debug && eh_dbglocallog) {
+        var c = new Date();
+        return new Promise( function (resolve, reject) {
+            console.log("LOCAL LOG: " + msg);
+            window.parent.mylog("LOCAL LOG: " + msg);
+            OS.File.open(eh_logfile, { write: true, append: true }).then( function (f) {
+                var str = "[" + format_date(c, "dtsm") + "] " + msg + "\n";
+                var encoder = new TextEncoder();
+                var array = encoder.encode(str);
+                f.write(array).then( function (len) {
+                    f.close().then( function () {
+                        resolve(len);
+                    }, function (reason) {
+                        reject("f.close() failed: " + reason);
+                    });
+                }, function (reason) {
+                    reject("f.write() failed: " + reason);
+                });
+            }, function (reason) {
+                reject("OS.File.open() failed: " + reason);
+            });
+        });
+    } else {
+        return 0;
     }
 }
 
-function remote_log(msg)
-{
-    if (eh_debug) {
-        console.log("REMOTE LOG: " + msg);
-        window.parent.mylog("REMOTE LOG: " + msg);
-        if (eh_dbgremotelog) {
-            // FIXME
-        }
-    }
-}
 
 function get_filetype_remote_iconuri(ext)
 {
@@ -398,13 +412,21 @@ function date_offset(d)
 
 /*
     format date
-    fmt: d -> date, t -> time, w -> weekday, o -> offset
+    fmt: d -> date, t -> time, s->show seconds, m->show ms, w -> weekday, o -> offset
 */
 function format_date(d, fmt)
 {
     var base = "";
     if (fmt.indexOf("d") !== -1) base += " " + d.getFullYear().toString() + "/" + (d.getMonth() + 1).toString() + "/" + d.getDate().toString();
-    if (fmt.indexOf("t") !== -1) base += " " + ("0" + d.getHours().toString()).slice(-2) + ":" + ("0" + d.getMinutes().toString()).slice(-2);
+    if (fmt.indexOf("t") !== -1) {
+        base += " " + ("0" + d.getHours().toString()).slice(-2) + ":" + ("0" + d.getMinutes().toString()).slice(-2);
+        if (fmt.indexOf("s") !== -1) {
+            base += ":" + ("0" + d.getSeconds().toString()).slice(-2);
+            if (fmt.indexOf("m") !== -1) {
+                base += "." + ("00" + d.getMilliseconds().toString()).slice(-3);
+            }
+        }
+    }
     if (base != "") base = base.slice(1);
     
     var desc = "";
@@ -632,8 +654,10 @@ function show_msg(str)
 {
     do_output("MSG: " + str);
 }
+
 function abort(str)
 {
+    local_log("abort: " + str);
     msg = get_friendly_part(str);
     show_error(msg);
     throw msg;
@@ -643,6 +667,7 @@ function abort(str)
 function friendly_error(str)
 {
     str = "错误: " + str;
+    local_log("friendly_error: " + str);
     alert(str);
 }
 
@@ -661,6 +686,7 @@ var current_page = "";
 
 function go_back()
 {
+    local_log("[main] go back to main page");
     show_page("main");
 }
 
@@ -835,6 +861,7 @@ function redraw_colorbox()
 function select_color(id, shouldcallback)
 {
     if (id < 1 || id > colorlist.length) return;
+    local_log("[pdfviewer] select color (id = " + id.toString() + ", type = " + get_color(id) + ")");
     color_selected = id;
     redraw_colorbox();
     $("#viewfile_colorbox" + id).css("border-color", colorbox_boxbgcolor_hover);
@@ -909,6 +936,8 @@ function redraw_thicknessbox()
 function select_thickness(id, shouldcallback)
 {
     if (id < 1 || id > thicknesslist.length) return;
+    local_log("[pdfviewer] select thickness (id = " + id.toString() + ", type = " + get_thickness(id) + ")");
+    
     thickness_selected = id;
     redraw_thicknessbox();
     $("#viewfile_thicknessbox" + id).css("border-color", thicknessbox_boxbgcolor_hover);
@@ -949,6 +978,7 @@ function get_dtype(id)
 }
 function select_dtype(id)
 {
+    local_log("[pdfviewer] select dtype (id = " + id.toString() + ", type = " + get_dtype(id) + ")");
     dtype_selected = id;
     $(
         $("#viewfile_dtypelist").children("a")
@@ -1229,6 +1259,7 @@ function canvas_selectobject(ccoord)
 function canvas_removeselected()
 {
     if (did_selected < 0) return;
+    local_log("[draw] remove object (id = " + did_selected + ")");
     drawlist.splice(did_selected, 1);
     canvas_resetselected();
     lastdraw = 0;
@@ -1257,6 +1288,7 @@ function canvas_mouseselect(mcoord)
     }
 
     did_selected = did;
+    local_log("[draw] select object (id = " + did_selected + ")");
 
     console.log(drawlist[did]);
     
@@ -1329,8 +1361,9 @@ function init_canvas() // will be called once in global init function
 
         is_painting = true;
 
+        local_log("[draw] drawing mousedown (" + dtype + ", " + get_color(color_selected) + ", " + get_thickness(thickness_selected) + ")");
         tmp_lastdraw = -1;
-        
+
         tmp_dobj = new_dobj(dtype, get_color(color_selected), get_thickness(thickness_selected));
         var mcoord = { x: e.pageX, y: e.pageY };
         canvas_addmousedata(mcoord);
@@ -1356,6 +1389,7 @@ function init_canvas() // will be called once in global init function
             canvas_clearsingle('pdf_page_temp');
             canvas_shrink_dobj(tmp_dobj);
             drawlist.push(tmp_dobj);
+            local_log("[draw] drawing mouseup (id = " + (drawlist.length - 1).toString() + ")");
             lastdraw = canvas_redraw(lastdraw);
         }
         is_painting = false;
@@ -1397,7 +1431,7 @@ function initp_createdirs()
     var p = new Array();
     p.push(OS.File.makeDir(OS.Path.join(datafolder, "tools"), { ignoreExisting: true, from: datafolder }));
     p.push(OS.File.makeDir(OS.Path.join(datafolder, "fileicons"), { ignoreExisting: true, from: datafolder }));
-    p.push(OS.File.makeDir(OS.Path.join(ndocfolder, "ehdb", "syncdata"), { ignoreExisting: true, from: ndocfolder }));
+    p.push(OS.File.makeDir(OS.Path.join(ndbfolder, "syncdata"), { ignoreExisting: true, from: ndocfolder }));
     return Promise.all(p);
 }
 
@@ -1407,7 +1441,7 @@ function initp_tools()
 
     ppt2pdf_path = OS.Path.join(datafolder, "tools", "ppt2pdf.vbs");
     p.push(install_file("ppt2pdf.vbs", ppt2pdf_path));
-    p.push(install_file("ehdb_readme.txt", OS.Path.join(ndocfolder, "ehdb", "README.txt")));
+    p.push(install_file("ehdb_readme.txt", OS.Path.join(ndbfolder, "README.txt")));
 
     return Promise.all(p);
 }
@@ -1420,6 +1454,20 @@ $("document").ready( function () {
     eh_os = window.parent.xulruntime.OS;
     
     load_prefs();
+
+    if (eh_debug) {
+        var str = "";
+        str += "调试模式已打开\n";
+        str += "v" + eh_version + " with Gecko " + window.parent.xulappinfo.platformVersion + " on " + eh_os + "\n";
+        if (eh_dbglocallog) {
+            str += "日志模式已打开，您的操作将会被记录到本地文件中\n";
+            str += "但您的隐私信息（例如密码）并不会被记录\n";
+        }
+        $("#dbgwarningbox").text(str).show();
+    } else {
+        $("#dbgwarningbox").hide();
+    }
+
 
     // configure datafolder first
 
@@ -1443,7 +1491,6 @@ $("document").ready( function () {
                 for (var i = 0; i < fearr.length; i++) {
                     if (fearr[i]) {
                         ndocfolder = OS.Path.join(basearr[i], "eLearning Helper");
-                        docfolder = OS.Path.toFileURI(ndocfolder);
                         prefs.setCharPref("docfolder", ndocfolder);
                         resolve();
                         return;
@@ -1454,10 +1501,16 @@ $("document").ready( function () {
                 reject("OS.File.exists failed: " + reason);
             });
         } else {
-            docfolder = OS.Path.toFileURI(ndocfolder);
             resolve();
         }
     }).then( function () {
+        // set other folders
+        docfolder = OS.Path.toFileURI(ndocfolder);
+        ndbfolder = OS.Path.join(ndocfolder, "ehdb");
+        dbfolder = OS.Path.toFileURI(ndbfolder);
+
+        eh_logfile = OS.Path.join(ndbfolder, "ehlog.txt");
+        
         Promise.all([
             OS.File.makeDir(ndocfolder, { ignoreExisting: true }),
             OS.File.makeDir(datafolder, { ignoreExisting: true, from: OS.Constants.Path.profileDir })
@@ -1477,6 +1530,8 @@ $("document").ready( function () {
                 ]).then ( function () {
 
                     $("#splashdiv").hide();
+                    local_log("========= init ok ==========");
+                    
                     if (el_username == "" || el_password == "" || !el_rememberme) {
                         init_login_page();
                     } else {
@@ -1518,6 +1573,23 @@ function init_notebox()
 
 
 
+// ====================== notebox related functions ======================
+function notebox_execcmd(arg1, arg2, arg3)
+{
+    local_log("[notebox] exec command (arg1 = " + arg1 + ", arg2 = " + arg2 + ", arg3 = " + arg3 + ")");
+    document.execCommand(arg1, arg2, arg3);
+}
+
+
+
+
+
+
+
+
+
+
+
 // ====================== PDF related functions =======================
 
 var pdf_thumbnail_div_list;
@@ -1535,12 +1607,15 @@ function init_pdf(pdf_path)
     $('#pdf_page_list').empty();
     canvas_clearsingle("pdf_page_view");
     reset_dtype();
+
+    local_log("[pdfviewer] open document (path = " + pdf_path + ")");
     
     // this function is call when user enters "viewfile" page
     PDFJS.getDocument(pdf_path).then( function (pdf) {
         //show_pdf_jumpto(pdf, 1);
 
         show_pdf_switchpage = function (delta) {
+            local_log("[pdfviewer] switch page (delta = " + delta.toString() + ")");
             if (selected_pdf_page + delta < 1 || selected_pdf_page + delta > pdf.numPages) return;
             show_pdf_jumpto(pdf, selected_pdf_page + delta);
             pdf_thumbnail_div_list[selected_pdf_page].scrollIntoView();
@@ -1614,6 +1689,8 @@ function init_pdf(pdf_path)
                 load_thumbnail(cur).then( function () {
                     load_thumbnail_all(cur + 1);
                 });
+            } else {
+                local_log("[pdfviewer] open finished (path = " + pdf_path + ")");
             }
         }
         
@@ -1644,8 +1721,14 @@ var show_pdf_switchpage;
 */
 function show_pdf_jumpto(pdf, page_id)
 {
+    local_log("[pdfviewer] jump to page (page_id = " + page_id.toString() + ")");
+    
     return new Promise( function (resolve, reject) {
-        if (pdf_page_loading) { resolve(); return; }
+        if (pdf_page_loading) {
+            local_log("[pdfviewer] jump to page canceled because of loading another page (page_id = " + page_id.toString() + ")");
+            resolve();
+            return;
+        }
         
         $(pdf_thumbnail_div_list[selected_pdf_page]).removeClass("eh_selected");
         $(pdf_thumbnail_div_list[selected_pdf_page = page_id]).addClass("eh_selected");
@@ -1715,17 +1798,20 @@ function pdfviewer_show(fitem, coursefolder)
 
                 OS.File.stat(pdfpath).then( function (info) {
                     // pdf file exists, no need to convert
+                    local_log("[pdfviewer] PPT2PDF using old pdf");
                     resolve(pdfuri);
                 }, function (reason) {
                     if (reason instanceof OS.File.Error && reason.becauseNoSuchFile) {
                         // pdf file not exists, we need convert
                         // start ppt2pdf.vbs to convert
+                        local_log("[pdfviewer] PPT2PDF convert start");
                         var file = Components.classes["@mozilla.org/file/local;1"].createInstance(Components.interfaces["nsILocalFile"]);
                         file.initWithPath("c:\\windows\\system32\\cscript.exe");
                         var process = Components.classes["@mozilla.org/process/util;1"].createInstance(Components.interfaces.nsIProcess);
                         process.init(file);
                         // process.runw() will crash if argv[] has undefined value in it
                         process.runw(true, ["//Nologo", ppt2pdf_path, OS.Path.fromFileURI(fileuri), pdfpath], 4);
+                        local_log("[pdfviewer] PPT2PDF convert OK");
                         resolve(pdfuri);
                     } else {
                         // other error
@@ -1744,6 +1830,7 @@ function pdfviewer_show(fitem, coursefolder)
         // register back button click function
         $("#viewfile_backbtn").unbind("click");
         $("#viewfile_backbtn").click( function () {
+            local_log("[pdfviewer] go back to filenav page");
             show_page("filenav");
         });
         show_page("viewfile");
@@ -2504,7 +2591,7 @@ function get_coursefolder(cobj)
 function get_syncdatafile(sobj)
 {
     check_filename(sobj.uuid);
-    var diruri = docfolder + "/ehdb/syncdata/" + sobj.uuid + ".json";
+    var diruri = dbfolder + "/syncdata/" + sobj.uuid + ".json";
     check_path_with_base(diruri, docfolder);
     return diruri;
 }
@@ -2565,7 +2652,10 @@ function coursetable_load(clist_input)
                 let x_cb = x;
                 let y_cb = y;
                 tdobj.click(function () { coursetable_select(cidx_cb, x_cb, y_cb); })
-                     .dblclick(function () { coursetable_enter(cidx_cb, x_cb, y_cb); })
+                     .dblclick(function () {
+                        local_log("[mainpage] enter course site by double click (cidx = " + cidx_cb.toString() + ")");
+                        coursetable_enter(cidx_cb, x_cb, y_cb);
+                     })
                      .mousedown(preventdefaultfunc)
                      .css("cursor", "pointer");
                 $(cdivlist[cidx] = document.createElement('div'))
@@ -2664,6 +2754,8 @@ function coursetable_select(cidx, x, y)
         }
     });
 
+    local_log("[mainpage] select course: (cidx = " + cidx.toString() + ") " + cobj.cname + " (" + cobj.cid + ")");
+    
     var sidx = match_cname_sname(cidx);
     
     var detailobj = $("#main_course_details").empty();
@@ -2673,6 +2765,7 @@ function coursetable_select(cidx, x, y)
         let x_cb = x;
         let y_cb = y;
         $(create_kvdiv("名称: ", cobj.cname + " (" + cobj.cid + ")", function () {
+            local_log("[mainpage] enter course site by clicking link (cidx = " + cidx.toString() + ")");
             coursetable_enter(cidx_cb, x_cb, y_cb);
         })).appendTo("#main_course_details");
     } else {
@@ -2688,6 +2781,7 @@ function coursetable_select(cidx, x, y)
         $(document.createElement('span')).addClass("eh_link").text("打开课程文件夹").click( function () {
             var diruri = docfolder + get_coursefolder(cobj);
             check_path_with_base(diruri, docfolder);
+            local_log("[mainpage] open course folder: " + diruri);
             OS.File.exists(OS.Path.fromFileURI(diruri)).then( function (fe) {
                 if (fe) {
                     launch_fileuri(diruri);
@@ -2729,6 +2823,7 @@ function coursetable_enter(cidx, x, y)
             $("#filenav_syncdetails_box").scrollTop(0);
         });
         $("#filenav_resync").hide().unbind("click").click( function () {
+            local_log("[filenav] resync (cname = " + cobj.cname + ", uuid = " + sobj.uuid + ")");
             coursetable_enter(cidx, x, y)
         });
 
@@ -2738,12 +2833,16 @@ function coursetable_enter(cidx, x, y)
         $("#filenav_syncdetails").empty().append($(statuslist));
         $("#filenav_showfiles").hide();
 
+        local_log("[sync] start (cname = " + cobj.cname + ", uuid = " + sobj.uuid + ")");
+
         webdav_sync(sobj.uuid, coursefolder, syncdatafile, statuslist,
             function (finished, total) { // report_progress
                 // update status bar
                 $("#filenav_syncprogress").text(finished.toString() + "/" + total.toString());
             }
         ).then( function (obj) {
+            local_log("[sync] finished (cname = " + cobj.cname + ", uuid = " + sobj.uuid + ")");
+            
             $("#filenav_syncinprogresstext").hide();
             if (obj.sum == 0) {
                 $("#filenav_syncfinishedtext").text("同步完成").show();
@@ -2751,6 +2850,7 @@ function coursetable_enter(cidx, x, y)
                 $("#filenav_syncfinishedtext").text("同步完成，共 " + obj.sum.toString() + " 个新文件").show();
             }
             $("#filenav_showfiles").show().unbind("click").click( function () { // open course folder
+                local_log("[filenav] open course folder (coursefolder = " + coursefolder + ")");
                 launch_fileuri(docfolder + coursefolder);
             });
             $("#filenav_resync").show();
@@ -2806,6 +2906,8 @@ function coursetable_enter(cidx, x, y)
                     }
                 };
                 var selectfunc = function (e) { // user select file
+                    local_log("[filenav] select file (fpath = " + fitem.path + ")");
+                    
                     //$(this).parent().parent().find("span").filter(".eh_link3").removeClass("eh_link3").addClass("eh_link2");
                     //$(this).parent().find("span").filter(".eh_link2").removeClass("eh_link2").addClass("eh_link3");
                     $(this).parent().children("tr").removeClass("eh_selected");
@@ -2816,7 +2918,10 @@ function coursetable_enter(cidx, x, y)
                     }).appendTo(actobj);
                     var detaildiv = $("#filenav_deatils");
                     detaildiv.empty()
-                        .append($(create_kvdiv("名称: ", fitem.filename, openfunc)))
+                        .append($(create_kvdiv("名称: ", fitem.filename, function () {
+                                    local_log("[filenav] open file by click link (fpath = " + fitem.path + ")");
+                                    openfunc();
+                                })))
                         .append($(create_kvdiv("修改时间: ", format_date(new Date(Date.parse(fitem.lastmodified)), "dto"))))
                         .append($(create_kvdiv("大小: ", format_filesize(fitem.contentlength))))
                         .append($(create_kvdiv_with_obj("操作: ", actobj)));
@@ -2841,13 +2946,21 @@ function coursetable_enter(cidx, x, y)
                     ).appendTo(rowobj);
                 }
 
-                rowobj.mousedown(preventdefaultfunc).dblclick(openfunc).click(selectfunc).appendTo(tbodyobj);
+                rowobj.mousedown(preventdefaultfunc)
+                    .dblclick(openfunc)
+                    .dblclick( function () {
+                            local_log("[filenav] open file by double click (fpath = " + fitem.path + ")");
+                        })
+                    .click(selectfunc)
+                    .appendTo(tbodyobj);
             });
         }, function (reason) {
             $("#filenav_syncinprogresstext").hide();
             $("#filenav_syncfinishedtext").text("同步失败").show();
             statuslist_append(statuslist, "同步失败: " + get_friendly_part(reason), "red");
+            local_log("[sync] failed (reason = " + get_friendly_part(reason) + ")");
             $("#filenav_resync").show();
+            tbodyobj.html("<tr><td></td><td>同步失败</td><td></td></tr>");
         });
 
         
@@ -2894,6 +3007,12 @@ function match_cname_sname(cidx)
 
 function init_main_page()
 {
+    $("#main_coursetable").html(
+        '<table><tr><th></th><th>周一</th><th>周二</th><th>周三</th><th>周四</th><th>周五</th></tr>' +
+        '<tr><td>1</td><td rowspan="14" colspan="5"><span id="main_loadprogress" style="font-weight: normal;">加载中</span> ... </td></tr>' +
+        '<tr><td>2</td></tr><tr><td>3</td></tr><tr><td>4</td></tr><tr><td>5</td></tr><tr><td>6</td></tr><tr><td>7</td></tr><tr><td>8</td></tr>' +
+        '<tr><td>9</td></tr><tr><td>10</td></tr><tr><td>11</td></tr><tr><td>12</td></tr><tr><td>13</td></tr><tr><td>14</td></tr></table>'
+    );
     show_page("main");
     remove_all_cookies();
 
@@ -2904,22 +3023,28 @@ function init_main_page()
     */
     var progressobj = $("#main_loadprogress");
     progressobj.text("登录 UIS 中");
+    local_log("[maininit] login to UIS");
     uis_login().then( function () {
         // uis login OK, we should login to elearning
         progressobj.text("登录 eLearning 中");
+        local_log("[maininit] login to elearning");
         elearning_login().then( function () {
             // elearning login OK, we should fetch sitelist
             progressobj.text("获取站点数据");
+            local_log("[maininit] fetch sitelist");
             elearning_fetch_sitelist().then( function (slist_input) {
                 slist = slist_input; // save fetched slite to global var
                 // slist fetched OK, we should query for course table
                 progressobj.text("获取学期数据");
+                local_log("[maininit] fetch semester data");
                 urp_fetch_semesterdata().then( function (semesterdata) {
                     // current semester is saved in semesterdata.cursid
                     progressobj.text("获取课程表数据");
+                    local_log("[maininit] fetch course table");
                     cur_semestername = semesterdata.smap[semesterdata.cursid];
                     urp_fetch_coursetable(semesterdata.cursid).then( function (clist) {
                         // load clist data
+                        local_log("[maininit] init OK");
                         coursetable_load(clist);
                         //show_msg("load clist OK");
                     }, function (reason) {
@@ -3026,6 +3151,7 @@ function init_login_page()
 
 function eh_login()
 {
+    
     el_username = $("#loginusername").val();
     el_password = $("#loginpassword").val();
     el_rememberme = $("#loginrememberme").prop("checked");
@@ -3035,11 +3161,14 @@ function eh_login()
     $("#loginrememberme").prop("disabled", true);
     $("#loginbtn").text("正在登录").prop("disabled", true);
     //console.log(el_username, el_password, el_rememberme);
+    local_log("[login] login start (rememberme = " + el_rememberme + ")");
     remove_all_cookies();
     uis_login().then( function () {
         save_prefs();
+        local_log("[login] login OK");
         init_main_page();
     }, function (reason) {
+        local_log("[login] login failed (reason = " + get_friendly_part(reason) + ")");
         $("#loginerrmsg").show().text(get_friendly_part(reason));
         $("#loginusername").prop("disabled", false);
         $("#loginpassword").prop("disabled", false);
@@ -3050,6 +3179,7 @@ function eh_login()
 
 function eh_logout()
 {
+    local_log("[logout] logout");
     el_password = "";
     save_prefs();
     init_login_page();
@@ -3067,9 +3197,10 @@ function eh_logout()
 // ======================= about page related function ===================
 
 var aboutpage_lastpage = "";
-function aboutpage_goback() { show_page(aboutpage_lastpage); }
+function aboutpage_goback() { local_log("[about] goback"); show_page(aboutpage_lastpage); }
 function show_about()
 {
+    local_log("[about] enter");
     // remember where we come from
     aboutpage_lastpage = current_page;
     
@@ -3085,6 +3216,7 @@ function show_about()
 
 function show_debug_tools()
 {
+    local_log("[about] show debug tools");
     $("#about_licensebox").hide();
     $("#about_debugbox").show();
     $("#about_dbgtoolbtn").removeClass("eh_link").text("调试工具已打开");
@@ -3101,7 +3233,8 @@ function initp_about()
         "homeDir: " + OS.Constants.Path.homeDir + "\n" +
         "desktopDir: " + OS.Constants.Path.desktopDir + "\n" +
         "docfolder: " + ndocfolder + "\n" +
-        "datafolder: " + datafolder + "\n");
+        "datafolder: " + datafolder + "\n" + 
+        "logfile: " + eh_logfile + "\n");
     
     return new Promise( function (resolve, reject) {
         $.get("license.txt", null, null, "text")
@@ -3129,6 +3262,7 @@ function initp_about()
 
 function show_settings()
 {
+    local_log("[settings] enter");
     var ch = $("#settingsdescbox").children("div");
     var resetfunc = function () {
         ch.hide();
@@ -3147,8 +3281,10 @@ function show_settings()
             ch.hide();
             ch.filter("[data-sdescref='" + ref + "']").show();
             $("#settingsdesctitle").text(title).show();
+            local_log("[settings] hover (ref = " + ref + ", title = " + title + ")");
         }, resetfunc);
         $(element).change( function () {
+            local_log("[settings] change (value = " + cch.filter("[data-sdescref='" + ref + "']").children("input").prop("checked") + ", title = " + title + ")");
             save_settings(cch);
         });
     });

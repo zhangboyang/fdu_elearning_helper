@@ -33,7 +33,7 @@ body {
     -webkit-text-size-adjust: none; 
     -ms-text-size-adjust: none;
     background-color: white;
-    /*overflow: hidden;*/
+    overflow: hidden;
 }
 
 ul {
@@ -594,3 +594,20 @@ ul li {
     font-weight: bold;
     color: navy;
 }
+
+
+
+
+
+#dbgwarningbox {
+    position: absolute;
+    bottom: 0px;
+    right: 0px;
+    margin: 10px;
+    font-size: 16px;
+    font-weight: bold;
+    color: red;
+    white-space: pre-line;
+    text-align: right;
+}
+

@@ -19,6 +19,8 @@
 
 <div id="login_page" class="eh_page">
 
+    <div id="dbgwarningbox"></div>
+    
     <div id="login_header" class="eh_header"><div class="eh_header_content">
         <div class="eh_header_title blue-text text-darken-4">欢迎使用 eLearning 助手</div>
         <div style="-moz-box-flex: 1;"></div>
@@ -174,23 +176,7 @@
 	<div class="light-green lighten-5" style="flex: 1 1 auto; height: 0px;">
 		<div style="overflow-y: auto; height: 100%; padding: 10px;">
 <div class="eh_coursetable" id="main_coursetable" style="margin-bottom: 10px";>
-<table>
-<tr><th></th><th>周一</th><th>周二</th><th>周三</th><th>周四</th><th>周五</th></tr>
-<tr><td>1</td><td rowspan="14" colspan="5"><span id="main_loadprogress" style="font-weight: normal;">加载中</span> ... </td></tr>
-<tr><td>2</td></tr>
-<tr><td>3</td></tr>
-<tr><td>4</td></tr>
-<tr><td>5</td></tr>
-<tr><td>6</td></tr>
-<tr><td>7</td></tr>
-<tr><td>8</td></tr>
-<tr><td>9</td></tr>
-<tr><td>10</td></tr>
-<tr><td>11</td></tr>
-<tr><td>12</td></tr>
-<tr><td>13</td></tr>
-<tr><td>14</td></tr>
-</table>
+<!-- course table -->
 </div>
 		</div>
 	</div>
@@ -238,7 +224,7 @@
 <div id="filenav_page" class="eh_page">
     <div id="filenav_header" class="eh_header"><div class="eh_header_content">
         <div class="eh_header_backbtn"><a class="btn-floating btn blue darken-3 z-depth-0" onclick="go_back()"><i class="material-icons">arrow_back</i></a></div>
-        <div id="filenav_sitetitle" class="eh_header_title blue-text text-darken-4"><!-- site name will automaticly filled here --></div>
+        <div id="filenav_sitetitle" class="eh_header_title blue-text text-darken-4" style="width: 100%; text-overflow: ellipsis;"><!-- site name will automaticly filled here --></div>
     </div></div>
     <div class="eh_flexbox_fill_remaining_wrapper_ud"><div id="filenav_content" class="eh_page_content">
         <div id="filenav_left" style="display: none;"></div>
@@ -431,18 +417,18 @@
 <div class="light-green eh_sidebar" style="flex: 1 1 auto;">
     <div class="eh_sidebar_title">笔记</div>
 	<div class="eh_toolbar light-green lighten-3">
-    	<a class="light-green waves-effect waves-light btn darken-3 z-depth-0 eh_toolbar_button_small" onclick="document.execCommand('bold', false, undefined);"><i class="material-icons">format_bold</i></a>
-    	<a class="light-green waves-effect waves-light btn darken-3 z-depth-0 eh_toolbar_button_small" onclick="document.execCommand('italic', false, undefined);"><i class="material-icons">format_italic</i></a>
-    	<a class="light-green waves-effect waves-light btn darken-3 z-depth-0 eh_toolbar_button_small" onclick="document.execCommand('underline', false, undefined);"><i class="material-icons">format_underlined</i></a>
-    	<a class="light-green waves-effect waves-light btn darken-3 z-depth-0 eh_toolbar_button_small" onclick="document.execCommand('undo', false, undefined);"><i class="material-icons">undo</i></a>
+    	<a class="light-green waves-effect waves-light btn darken-3 z-depth-0 eh_toolbar_button_small" onclick="notebox_execcmd('bold', false, undefined);"><i class="material-icons">format_bold</i></a>
+    	<a class="light-green waves-effect waves-light btn darken-3 z-depth-0 eh_toolbar_button_small" onclick="notebox_execcmd('italic', false, undefined);"><i class="material-icons">format_italic</i></a>
+    	<a class="light-green waves-effect waves-light btn darken-3 z-depth-0 eh_toolbar_button_small" onclick="notebox_execcmd('underline', false, undefined);"><i class="material-icons">format_underlined</i></a>
+    	<a class="light-green waves-effect waves-light btn darken-3 z-depth-0 eh_toolbar_button_small" onclick="notebox_execcmd('undo', false, undefined);"><i class="material-icons">undo</i></a>
         <a class="light-green waves-effect waves-light dropdown-button btn darken-3 z-depth-0 eh_toolbar_button_small" href='#' data-activates="textcolor_dropdown"><i class="material-icons">format_color_text</i></a>
-        <a class="light-green waves-effect waves-light btn darken-3 z-depth-0 eh_toolbar_button_small" onclick="document.execCommand('removeformat', false, undefined);"><i class="material-icons">format_clear</i></a>
+        <a class="light-green waves-effect waves-light btn darken-3 z-depth-0 eh_toolbar_button_small" onclick="notebox_execcmd('removeformat', false, undefined);"><i class="material-icons">format_clear</i></a>
     	
         <div id="textcolor_dropdown" class="dropdown-content" onclick="return false;" onmousedown="return false;">
-            <a class="waves-effect waves-light btn darken-3 z-depth-0" onclick="document.execCommand('forecolor', false, '#ff0000');" style="background-color: #ff0000;"></a></li>
-            <a class="waves-effect waves-light btn darken-3 z-depth-0" onclick="document.execCommand('forecolor', false, '#0000ff');" style="background-color: #0000ff;"></a></li>
-            <a class="waves-effect waves-light btn darken-3 z-depth-0" onclick="document.execCommand('forecolor', false, '#ff00ff');" style="background-color: #ff00ff;"></a></li>
-            <a class="waves-effect waves-light btn darken-3 z-depth-0" onclick="document.execCommand('forecolor', false, '#000000');" style="background-color: #000000;"></a></li>
+            <a class="waves-effect waves-light btn darken-3 z-depth-0" onclick="notebox_execcmd('forecolor', false, '#ff0000');" style="background-color: #ff0000;"></a></li>
+            <a class="waves-effect waves-light btn darken-3 z-depth-0" onclick="notebox_execcmd('forecolor', false, '#0000ff');" style="background-color: #0000ff;"></a></li>
+            <a class="waves-effect waves-light btn darken-3 z-depth-0" onclick="notebox_execcmd('forecolor', false, '#ff00ff');" style="background-color: #ff00ff;"></a></li>
+            <a class="waves-effect waves-light btn darken-3 z-depth-0" onclick="notebox_execcmd('forecolor', false, '#000000');" style="background-color: #000000;"></a></li>
         </div>
     </div>
 	<div class="light-green lighten-4" style="flex: 1 1 auto; height: 0px;">
@@ -513,7 +499,7 @@
     <span id="about_sysinfo"></span>
 </p>
 <p>
-    <strong>目录</strong><br>
+    <strong>文件与目录</strong><br>
     <span id="about_pathinfo" style="white-space: pre-line;"></span>
 </p>
         </div>
