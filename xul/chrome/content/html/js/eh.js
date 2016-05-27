@@ -1653,6 +1653,7 @@ function init_notebox()
 var pdf_thumbnail_div_list;
 var selected_pdf_page;
 var pdf_note_data;
+var pdf_file_task_id = 0; // task id for loading a pdf file
 
 
 var pdf_page_loading_task_id = 0; // previous task id
@@ -1679,6 +1680,7 @@ var save_pdf_notes;
 */
 function init_pdf(pdf_path)
 {
+    var cur_task_id = ++pdf_file_task_id;
     return new Promise(function (resolve, reject) {
         $('#pdf_page_list').empty();
         canvas_clearsingle("pdf_page_view");
@@ -1705,6 +1707,7 @@ function init_pdf(pdf_path)
         }).then( function () {
             // this function is call when user enters "viewfile" page
             PDFJS.getDocument(pdf_path).then( function (pdf) {
+                if (pdf_file_task_id != cur_task_id) { resolve(); return; }
                 //show_pdf_jumpto(pdf, 1);
 
                 show_pdf_switchpage = function (delta) {
@@ -1748,7 +1751,9 @@ function init_pdf(pdf_path)
 
                 var load_thumbnail = function (page_id) {
                     return new Promise( function (resolve, reject) {
+                        if (pdf_file_task_id != cur_task_id) { resolve(); return; }
                         pdf.getPage(page_id).then( function (page) {
+                            if (pdf_file_task_id != cur_task_id) { resolve(); return; }
                             var scale = 1.0;
                             var viewport = page.getViewport(scale);
                             var cur_canvas = canvasarray[page_id];
@@ -1769,14 +1774,15 @@ function init_pdf(pdf_path)
                                 viewport: viewport
                             };
                             
-                            page.render(renderContext);
-                            //show_msg(page_id);
-                            resolve();
+                            page.render(renderContext).then( function () {
+                                resolve();
+                            });
                         });
                     });
                 };
 
                 var load_thumbnail_all = function (cur) {
+                    if (pdf_file_task_id != cur_task_id) { return; }
                     if (cur <= pdf.numPages) {
                         load_thumbnail(cur).then( function () {
                             load_thumbnail_all(cur + 1);
@@ -1921,6 +1927,16 @@ function show_pdf_jumpto(pdf, page_id)
 }
 
 
+/*
+    function is called when go back to filenav
+*/
+function pdfviewer_cleanup()
+{
+    pdf_file_task_id++; // increase task id to cancel current task
+    $('#pdf_page_list').empty();
+    canvas_clearsingle("pdf_page_view");
+    canvas_clearpage();
+}
 
 /*
     switch to pdf viewer and load file
@@ -1979,6 +1995,7 @@ function pdfviewer_show(fitem, coursefolder)
             $("#viewfile_backbtn").unbind("click");
             $("#viewfile_backbtn").click( function () {
                 local_log("[pdfviewer] go back to filenav page");
+                pdfviewer_cleanup();
                 save_pdf_notes().then( function () {
                     show_page("filenav");
                 });
