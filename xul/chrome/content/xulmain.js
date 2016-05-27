@@ -88,6 +88,15 @@ var xulappinfo = Components.classes["@mozilla.org/xre/app-info;1"].getService(Co
 var xulruntime = Components.classes["@mozilla.org/xre/app-info;1"].getService(Components.interfaces.nsIXULRuntime);
 
 
+
+/*
+    sysinfo: see https://developer.mozilla.org/en-US/docs/Mozilla/Tech/XPCOM/Reference/Interface/nsIPropertyBag
+*/
+var sysinfo = Components.classes["@mozilla.org/system-info;1"].getService(Components.interfaces.nsIPropertyBag2);
+
+
+
+
 /*
     import Services
 */

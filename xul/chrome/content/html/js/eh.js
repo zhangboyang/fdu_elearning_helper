@@ -3460,7 +3460,12 @@ function show_debug_tools()
 function initp_about()
 {
     $("#about_versiontext").text(eh_version);
-    $("#about_sysinfo").text("Gecko " + window.parent.xulappinfo.platformVersion + " / " + eh_os);
+    $("#about_sysinfo").text(
+        "Gecko " + window.parent.xulappinfo.platformVersion + " / " + eh_os + "\n" +
+        "name: " + window.parent.sysinfo.getProperty("name") + "\n" +
+        "version: " + window.parent.sysinfo.getProperty("version") + "\n" +
+        "arch: " + window.parent.sysinfo.getProperty("arch") + "\n" + 
+        "host: " + window.parent.sysinfo.getProperty("host") + "\n");
     $("#about_pathinfo").text(
         "libxul: " + OS.Constants.Path.libxul + "\n" +
         "profileDir: " + OS.Constants.Path.profileDir + "\n" +
