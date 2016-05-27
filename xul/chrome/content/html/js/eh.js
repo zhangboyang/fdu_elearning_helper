@@ -1394,6 +1394,7 @@ function init_canvas() // will be called once in global init function
     });
     $('#pdf_page_front').click( function (e) {
         var dtype = get_dtype(dtype_selected);
+        local_log("[draw] click (dtype = " + dtype + ")");
         if (dtype == "navigate") {
             show_pdf_switchpage(1);
         } else if (dtype == "select") {
@@ -1418,6 +1419,17 @@ function init_canvas() // will be called once in global init function
         }
         is_painting = false;
     });
+
+    // scroll detection: https://developer.mozilla.org/en-US/Add-ons/Code_snippets/Miscellaneous
+    document.getElementById("pdf_page_front").addEventListener("DOMMouseScroll", function (e) {
+        var x = e.detail; // scroll value
+        console.log("scrolling " + x + " lines");
+        if (x > 0) {
+            show_pdf_switchpage(1);
+        } else if (x < 0) {
+            show_pdf_switchpage(-1);
+        }
+    }, false);
 }
 
 
