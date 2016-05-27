@@ -1651,8 +1651,16 @@ function init_notebox()
 
 var pdf_thumbnail_div_list;
 var selected_pdf_page;
-var pdf_page_loading = false;
 var pdf_note_data;
+
+
+var pdf_page_loading_task_id = 0; // previous task id
+
+var pdf_page_loading_status = {
+    page_id: -1, // the page now rendering
+    task_id: 0, // unique task id, increased when creating a new task
+    rtask: undefined // rtask: current render task
+};
 
 
 /*
@@ -1800,6 +1808,8 @@ var show_pdf_switchpage;
 /*
     jump to a pdf page
 
+    WARNING: return promise MAY resolve before finish loading page
+             when there are multiple jumpto requests with same page_id
     pdf: the loaded pdf object
     page_id: target page id, start from 1
     
@@ -1807,19 +1817,39 @@ var show_pdf_switchpage;
 function show_pdf_jumpto(pdf, page_id)
 {
     local_log("[pdfviewer] jump to page (page_id = " + page_id.toString() + ")");
+
+    /* task status machine
+        FINISHED       ->    STAGE 1       ->    STAGE 2     ->   FINISHED
+        task_id = a         task_id = a+1      task_id = a+1     task_id = a+1
+        page_id = -1        page_id = p2       page_id = p2      page_id = -1
+        rtask = undefined   rtask = undefined  rtask = taskobj   rtask = undefined
+    */
+
+    var cur_task_id = ++pdf_page_loading_task_id;
     
     return Promise.all([
         new Promise( function (resolve, reject) {
-            if (pdf_page_loading) {
-                local_log("[pdfviewer] jump to page canceled because of loading another page (page_id = " + page_id.toString() + ")");
+            if (pdf_page_loading_status.page_id == page_id) {
+                // loading same page, just resolve this promise now
+                // note: this will cause promise resolved BEFORE render finish
                 resolve();
                 return;
             }
-            
+            if (pdf_page_loading_status.page_id != -1 && pdf_page_loading_status.rtask !== undefined) {
+                // another page is in stage2, cancel it
+                local_log("[pdfviewer] cancel previous render task (last = " + pdf_page_loading_status.page_id + ")");
+                console.log(pdf_page_loading_status.rtask);
+                pdf_page_loading_status.rtask.cancel();
+            }
+            // set new task status
+            pdf_page_loading_status.task_id = cur_task_id;
+            pdf_page_loading_status.page_id = page_id;
+            pdf_page_loading_status.rtask = undefined;
+
+            // start stage 1
             $(pdf_thumbnail_div_list[selected_pdf_page]).removeClass("eh_selected");
             $(pdf_thumbnail_div_list[selected_pdf_page = page_id]).addClass("eh_selected");
 
-            pdf_page_loading = true;
 
             if (typeof pdf_note_data[page_id.toString()] === "undefined") {
                 pdf_note_data[page_id.toString()] = {
@@ -1831,6 +1861,14 @@ function show_pdf_jumpto(pdf, page_id)
             load_notebox_data(ndata.note);
 
             pdf.getPage(page_id).then(function (page) {
+                // start stage 2
+                // check if we should continue
+                if (pdf_page_loading_status.task_id != cur_task_id) {
+                    // task has canceled
+                    resolve();
+                    return;
+                }
+                
                 var space_ratio = 0.03;
                 
                 var scale = 1.0;
@@ -1857,11 +1895,20 @@ function show_pdf_jumpto(pdf, page_id)
                     viewport: viewport
                 };
                 
-                page.render(renderContext).then( function () {
-                    // we must load canvas data until page render complete
-                    canvas_loaddata(ndata.draw);
-                    
-                    pdf_page_loading = false;
+                // set status to stage 2
+                pdf_page_loading_status.rtask = page.render(renderContext);
+                pdf_page_loading_status.rtask.then( function () {
+                    if (pdf_page_loading_status.task_id == cur_task_id) {
+                        // check again for sure
+                        // we must load canvas data until page render complete
+                        canvas_loaddata(ndata.draw);
+                        // set render status to no task
+                        pdf_page_loading_status.page_id = -1;
+                        pdf_page_loading_status.rtask = undefined;
+                    }
+                    resolve();
+                }, function (reason) {
+                    // may be canceled, so just resolve
                     resolve();
                 });
             });
