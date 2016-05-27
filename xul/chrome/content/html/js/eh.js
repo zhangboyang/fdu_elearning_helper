@@ -652,13 +652,17 @@ function do_output(str)
     Materialize.toast(str, 10000);
     console.log(str);
 }
+
 function show_error(str)
 {
-    do_output("ERROR: " + str);
+    local_log("error: " + str);
+    do_output("错误: " + str);
 }
+
 function show_msg(str)
 {
-    do_output("MSG: " + str);
+    local_log("msg: " + str);
+    do_output(str);
 }
 
 function abort(str)
@@ -672,8 +676,8 @@ function abort(str)
 
 function friendly_error(str)
 {
-    str = "错误: " + str;
     local_log("friendly_error: " + str);
+    str = "错误: " + str;
     alert(str);
 }
 
@@ -2493,6 +2497,7 @@ function webdav_sync(uuid, coursefolder, syncdatafile, statuslist, report_progre
 
 
 
+
 // ====================== eLearning related functions =============================
 
 
@@ -3052,6 +3057,16 @@ function coursetable_enter(cidx, x, y)
 {
     var sidx = match_cname_sname(cidx);
     if (sidx >= 0) {
+        var webdav_sync_complete = false;
+        // prepare backbtn
+        $("#filenav_backbtn").unbind("click").click( function () {
+            if (webdav_sync_complete) {
+                go_back();
+            } else {
+                show_msg("请等待同步完成");
+            }
+        });  
+        
         // found matched site
         show_page("filenav");
 
@@ -3086,6 +3101,9 @@ function coursetable_enter(cidx, x, y)
         $("#filenav_syncdetails").empty().append($(statuslist));
         $("#filenav_showfiles").hide();
 
+
+
+         
         local_log("[sync] start (cname = " + cobj.cname + ", uuid = " + sobj.uuid + ")");
 
         webdav_sync(sobj.uuid, coursefolder, syncdatafile, statuslist,
@@ -3209,6 +3227,7 @@ function coursetable_enter(cidx, x, y)
                         })
                     .click(selectfunc)
                     .appendTo(tbodyobj);
+                webdav_sync_complete = true;
             });
         }, function (reason) {
             $("#filenav_syncinprogresstext").hide();
@@ -3217,6 +3236,7 @@ function coursetable_enter(cidx, x, y)
             local_log("[sync] failed (reason = " + get_friendly_part(reason) + ")");
             $("#filenav_resync").show();
             tbodyobj.html("<tr><td></td><td>同步失败</td><td></td></tr>");
+            webdav_sync_complete = true;
         });
 
         
