@@ -2361,13 +2361,17 @@ function urp_fetch_coursetable(semester_id)
 {
     return new Promise( function (resolve, reject) {
         //Services.cookies.add("jwfw.fudan.edu.cn", "/eams", "semester.id", semester_id, false, true, false, 0x7fffffff);
-        $.get("http://jwfw.fudan.edu.cn/eams/courseTableForStd!index.action").done( function () {
+        $.get("http://jwfw.fudan.edu.cn/eams/courseTableForStd!index.action").done( function (data) {
+            // grep ids
+            var ids = data.match(/bg\.form\.addInput\(form,"ids","(\d+)"\);/)[1];
+            if (!ids) { reject("parse error: can't find ids"); return; }
+            
             $.post("http://jwfw.fudan.edu.cn/eams/courseTableForStd!courseTable.action", {
                 "ignoreHead": "1",
                 "setting.kind": "std",
                 "startWeek": "1",
                 "semester.id": semester_id,
-                "ids": "311358", // what's the magic number 311358 ?
+                "ids": ids, // what's the magic number 311358 ?
             }, null, "text").done( function (data, textStatus, jqXHR) {
                 // begin parse data
 
@@ -2916,8 +2920,10 @@ function init_main_page()
                     cur_semestername = semesterdata.smap[semesterdata.cursid];
                     urp_fetch_coursetable(semesterdata.cursid).then( function (clist) {
                         // load clist data
-                        coursetable_load(clist)
+                        coursetable_load(clist);
                         //show_msg("load clist OK");
+                    }, function (reason) {
+                        abort("can't fetch urp coursetable");
                     })
                 }, function (reason) {
                     abort("can't fetch semesterdata: " + reason);
