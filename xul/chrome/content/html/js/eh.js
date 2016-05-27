@@ -1423,7 +1423,7 @@ function init_canvas() // will be called once in global init function
     // scroll detection: https://developer.mozilla.org/en-US/Add-ons/Code_snippets/Miscellaneous
     document.getElementById("pdf_page_front").addEventListener("DOMMouseScroll", function (e) {
         var x = e.detail; // scroll value
-        console.log("scrolling " + x + " lines");
+        local_log("[pdfviewer] mouse scroll event (lines = " + x + ")");
         if (x > 0) {
             show_pdf_switchpage(1);
         } else if (x < 0) {
@@ -1838,7 +1838,6 @@ function show_pdf_jumpto(pdf, page_id)
             if (pdf_page_loading_status.page_id != -1 && pdf_page_loading_status.rtask !== undefined) {
                 // another page is in stage2, cancel it
                 local_log("[pdfviewer] cancel previous render task (last = " + pdf_page_loading_status.page_id + ")");
-                console.log(pdf_page_loading_status.rtask);
                 pdf_page_loading_status.rtask.cancel();
             }
             // set new task status
