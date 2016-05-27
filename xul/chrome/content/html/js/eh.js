@@ -3137,6 +3137,12 @@ function init_login_page()
     $("#loginusername").val(el_username);
     $("#loginpassword").val(el_password);
     $("#loginrememberme").prop("checked", el_rememberme);
+
+    if (el_username == "") {
+        $("#loginusername").focus();
+    } else {
+        $("#loginpassword").focus();
+    }
     
     var kpfn = function (e) {
         if (e.keyCode == 13) {
