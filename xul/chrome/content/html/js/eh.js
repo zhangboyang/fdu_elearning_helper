@@ -468,6 +468,7 @@ function format_filesize(sz)
 function get_friendly_part(msg)
 {
     console.log(msg);
+    local_log("get_friendly_part: " + msg);
     var idx = msg.indexOf("####");
     if (idx < 0) {
         return "内部错误: " + msg;
@@ -1678,119 +1679,122 @@ var save_pdf_notes;
 */
 function init_pdf(pdf_path)
 {
-    $('#pdf_page_list').empty();
-    canvas_clearsingle("pdf_page_view");
-    reset_dtype();
+    return new Promise(function (resolve, reject) {
+        $('#pdf_page_list').empty();
+        canvas_clearsingle("pdf_page_view");
+        reset_dtype();
 
-    local_log("[pdfviewer] open document (path = " + pdf_path + ")");
+        local_log("[pdfviewer] open document (path = " + pdf_path + ")");
 
-    var ndata_path = pdf_path + ".ehnotes";
+        var ndata_path = pdf_path + ".ehnotes";
 
-    // generate save_pdf_notes() function
-    save_pdf_notes = function () {
-        return write_json_to_fileuri(pdf_note_data, ndata_path);
-    };
-    
-    // load pdf_note_data first
-    new Promise(function (resolve, reject) {
-        read_json_from_fileuri(ndata_path).then( function (obj) {
-            pdf_note_data = obj;
-            resolve();
-        }, function () {
-            pdf_note_data = {};
-            resolve();
-        });
-    }).then( function () {
-        // this function is call when user enters "viewfile" page
-        PDFJS.getDocument(pdf_path).then( function (pdf) {
-            //show_pdf_jumpto(pdf, 1);
-
-            show_pdf_switchpage = function (delta) {
-                local_log("[pdfviewer] switch page (delta = " + delta.toString() + ")");
-                if (selected_pdf_page + delta < 1 || selected_pdf_page + delta > pdf.numPages) return;
-                show_pdf_jumpto(pdf, selected_pdf_page + delta);
-                pdf_thumbnail_div_list[selected_pdf_page].scrollIntoView();
-            };
-
-            if (pdf.numPages > page_limit) {
-                friendly_error("文件页数过多，无法打开");
-                return;
-            }
-            
-            pdf_thumbnail_div_list = new Array();
-            selected_pdf_page = 1;
-
-            var canvasarray = new Array();
-            for (var i = 1; i <= pdf.numPages; i++) {
-                // append an canvas to our thumbnail list
-
-                let cur_canvas = canvasarray[i] = document.createElement('canvas');
-
-                let page_id = i;
-                
-                $(pdf_thumbnail_div_list[i] = document.createElement('div'))
-                    .addClass('eh_pdf_list_item')
-                    .append($(document.createElement('span'))
-                                .html(i.toString())
-                           )
-                    .append($(document.createElement('div'))
-                                .addClass("eh_flexbox_fill_remaining_wrapper_lr")
-                                .append($(cur_canvas))
-                           )
-                    .click( function (event) {
-                                show_pdf_jumpto(pdf, page_id);
-                            }
-                          )
-                    .appendTo('#pdf_page_list');
-            }
-
-            var load_thumbnail = function (page_id) {
-                return new Promise( function (resolve, reject) {
-                    pdf.getPage(page_id).then( function (page) {
-                        var scale = 1.0;
-                        var viewport = page.getViewport(scale);
-                        var cur_canvas = canvasarray[page_id];
-                        var cur_canvas_width = parseInt($(cur_canvas).css("width")) - 2;
-                        
-                        scale = cur_canvas_width / viewport.width;
-                        viewport = page.getViewport(scale);
-
-                        // Prepare canvas using PDF page dimensions.
-                        var canvas = cur_canvas;
-                        var context = canvas.getContext('2d');
-                        canvas.height = viewport.height;
-                        canvas.width = viewport.width;
-
-                        // Render PDF page into canvas context.
-                        var renderContext = {
-                            canvasContext: context,
-                            viewport: viewport
-                        };
-                        
-                        page.render(renderContext);
-                        //show_msg(page_id);
-                        resolve();
-                    });
-                });
-            };
-
-            var load_thumbnail_all = function (cur) {
-                if (cur <= pdf.numPages) {
-                    load_thumbnail(cur).then( function () {
-                        load_thumbnail_all(cur + 1);
-                    });
-                } else {
-                    local_log("[pdfviewer] open finished (path = " + pdf_path + ")");
-                }
-            }
-            
-            show_pdf_jumpto(pdf, 1).then( function () {
-                load_thumbnail_all(1);
+        // generate save_pdf_notes() function
+        save_pdf_notes = function () {
+            return write_json_to_fileuri(pdf_note_data, ndata_path);
+        };
+        
+        // load pdf_note_data first
+        new Promise(function (resolve, reject) {
+            read_json_from_fileuri(ndata_path).then( function (obj) {
+                pdf_note_data = obj;
+                resolve();
+            }, function () {
+                pdf_note_data = {};
+                resolve();
             });
+        }).then( function () {
+            // this function is call when user enters "viewfile" page
+            PDFJS.getDocument(pdf_path).then( function (pdf) {
+                //show_pdf_jumpto(pdf, 1);
 
-            $('#pdf_page_list').scrollTop(0);
-        }, function (reason) {
-            abort("can't open pdf: " + reason);
+                show_pdf_switchpage = function (delta) {
+                    local_log("[pdfviewer] switch page (delta = " + delta.toString() + ")");
+                    if (selected_pdf_page + delta < 1 || selected_pdf_page + delta > pdf.numPages) return;
+                    show_pdf_jumpto(pdf, selected_pdf_page + delta);
+                    pdf_thumbnail_div_list[selected_pdf_page].scrollIntoView();
+                };
+
+                if (pdf.numPages > page_limit) {
+                    reject("####文件页数过多，无法打开####");
+                    return;
+                }
+                
+                pdf_thumbnail_div_list = new Array();
+                selected_pdf_page = 1;
+
+                var canvasarray = new Array();
+                for (var i = 1; i <= pdf.numPages; i++) {
+                    // append an canvas to our thumbnail list
+
+                    let cur_canvas = canvasarray[i] = document.createElement('canvas');
+
+                    let page_id = i;
+                    
+                    $(pdf_thumbnail_div_list[i] = document.createElement('div'))
+                        .addClass('eh_pdf_list_item')
+                        .append($(document.createElement('span'))
+                                    .html(i.toString())
+                               )
+                        .append($(document.createElement('div'))
+                                    .addClass("eh_flexbox_fill_remaining_wrapper_lr")
+                                    .append($(cur_canvas))
+                               )
+                        .click( function (event) {
+                                    show_pdf_jumpto(pdf, page_id);
+                                }
+                              )
+                        .appendTo('#pdf_page_list');
+                }
+
+                var load_thumbnail = function (page_id) {
+                    return new Promise( function (resolve, reject) {
+                        pdf.getPage(page_id).then( function (page) {
+                            var scale = 1.0;
+                            var viewport = page.getViewport(scale);
+                            var cur_canvas = canvasarray[page_id];
+                            var cur_canvas_width = parseInt($(cur_canvas).css("width")) - 2;
+                            
+                            scale = cur_canvas_width / viewport.width;
+                            viewport = page.getViewport(scale);
+
+                            // Prepare canvas using PDF page dimensions.
+                            var canvas = cur_canvas;
+                            var context = canvas.getContext('2d');
+                            canvas.height = viewport.height;
+                            canvas.width = viewport.width;
+
+                            // Render PDF page into canvas context.
+                            var renderContext = {
+                                canvasContext: context,
+                                viewport: viewport
+                            };
+                            
+                            page.render(renderContext);
+                            //show_msg(page_id);
+                            resolve();
+                        });
+                    });
+                };
+
+                var load_thumbnail_all = function (cur) {
+                    if (cur <= pdf.numPages) {
+                        load_thumbnail(cur).then( function () {
+                            load_thumbnail_all(cur + 1);
+                        });
+                    } else {
+                        local_log("[pdfviewer] open finished (path = " + pdf_path + ")");
+                    }
+                }
+                
+                show_pdf_jumpto(pdf, 1).then( function () {
+                    load_thumbnail_all(1);
+                });
+
+                $('#pdf_page_list').scrollTop(0);
+                resolve();
+            }, function (reason) {
+                reject("####无法打开 PDF 文件####can't open pdf: " + reason);
+            });
         });
     });
 }
@@ -1926,65 +1930,69 @@ function show_pdf_jumpto(pdf, page_id)
 
 function pdfviewer_show(fitem, coursefolder)
 {
-    var promise = new Promise( function (resolve, reject) {
-        var fileuri = docfolder + coursefolder + fitem.path;
-        var fileext = get_file_ext(fileuri);
-        
-        if (fileext == "pdf") {
-            // this file is already PDF, no need to convert
-            resolve(fileuri);
-        } else {
-            // this file is not PDF, should convert to PDF
-            if (eh_os == "WINNT" && (fileext == "ppt" || fileext == "pptx")) { // FIXME: Windows Only Code
-
-                var pdfuri = fileuri + ".pdf";
-                var pdfpath = OS.Path.fromFileURI(pdfuri);
-
-                OS.File.stat(pdfpath).then( function (info) {
-                    // pdf file exists, no need to convert
-                    local_log("[pdfviewer] PPT2PDF using old pdf");
-                    resolve(pdfuri);
-                }, function (reason) {
-                    if (reason instanceof OS.File.Error && reason.becauseNoSuchFile) {
-                        // pdf file not exists, we need convert
-                        // start ppt2pdf.vbs to convert
-                        local_log("[pdfviewer] PPT2PDF convert start");
-                        var file = Components.classes["@mozilla.org/file/local;1"].createInstance(Components.interfaces["nsILocalFile"]);
-                        file.initWithPath("c:\\windows\\system32\\cscript.exe");
-                        var process = Components.classes["@mozilla.org/process/util;1"].createInstance(Components.interfaces.nsIProcess);
-                        process.init(file);
-                        // process.runw() will crash if argv[] has undefined value in it
-                        process.runw(true, ["//Nologo", ppt2pdf_path, OS.Path.fromFileURI(fileuri), pdfpath], 4);
-                        // FIXME: check if we have successfully converted
-                        local_log("[pdfviewer] PPT2PDF convert OK");
-                        resolve(pdfuri);
-                    } else {
-                        // other error
-                        reject("unknown stat() error: " + reason);
-                    }
-                });
+    return new Promise( function (resolve, reject) {
+        new Promise( function (resolve, reject) {
+            var fileuri = docfolder + coursefolder + fitem.path;
+            var fileext = get_file_ext(fileuri);
+            
+            if (fileext == "pdf") {
+                // this file is already PDF, no need to convert
+                resolve(fileuri);
             } else {
-                reject("不支持该文件格式");
+                // this file is not PDF, should convert to PDF
+                if (eh_os == "WINNT" && (fileext == "ppt" || fileext == "pptx")) { // FIXME: Windows Only Code
+
+                    var pdfuri = fileuri + ".pdf";
+                    var pdfpath = OS.Path.fromFileURI(pdfuri);
+
+                    OS.File.stat(pdfpath).then( function (info) {
+                        // pdf file exists, no need to convert
+                        local_log("[pdfviewer] PPT2PDF using old pdf");
+                        resolve(pdfuri);
+                    }, function (reason) {
+                        if (reason instanceof OS.File.Error && reason.becauseNoSuchFile) {
+                            // pdf file not exists, we need convert
+                            // start ppt2pdf.vbs to convert
+                            local_log("[pdfviewer] PPT2PDF convert start");
+                            var file = Components.classes["@mozilla.org/file/local;1"].createInstance(Components.interfaces["nsILocalFile"]);
+                            file.initWithPath("c:\\windows\\system32\\cscript.exe");
+                            var process = Components.classes["@mozilla.org/process/util;1"].createInstance(Components.interfaces.nsIProcess);
+                            process.init(file);
+                            // process.runw() will crash if argv[] has undefined value in it
+                            process.runw(true, ["//Nologo", ppt2pdf_path, OS.Path.fromFileURI(fileuri), pdfpath], 4);
+                            // FIXME: check if we have successfully converted
+                            local_log("[pdfviewer] PPT2PDF convert OK");
+                            resolve(pdfuri);
+                        } else {
+                            // other error
+                            reject("unknown stat() error: " + reason);
+                        }
+                    });
+                } else {
+                    reject("####不支持该文件格式####");
+                }
             }
-        }
-    });
+        }).then( function (pdfuri) {
+            $("#viewfile_filetitle").text(fitem.filename);
 
-    promise.then( function (pdfuri) {
-        $("#viewfile_filetitle").text(fitem.filename);
-
-        // register back button click function
-        $("#viewfile_backbtn").unbind("click");
-        $("#viewfile_backbtn").click( function () {
-            local_log("[pdfviewer] go back to filenav page");
-            save_pdf_notes().then( function () {
-                show_page("filenav");
+            // register back button click function
+            $("#viewfile_backbtn").unbind("click");
+            $("#viewfile_backbtn").click( function () {
+                local_log("[pdfviewer] go back to filenav page");
+                save_pdf_notes().then( function () {
+                    show_page("filenav");
+                });
             });
+            show_page("viewfile");
+            canvas_clearpage();
+            init_pdf(pdfuri).then( function () {
+                resolve();
+            }, function (reason) {
+                reject("init_pdf failed: " + reason);
+            });
+        }, function (reason) {
+            reject(reason);
         });
-        show_page("viewfile");
-        init_pdf(pdfuri);
-        canvas_clearpage();
-    }, function (reason) {
-        friendly_error(reason);
     });
 }
 
@@ -3130,7 +3138,10 @@ function coursetable_enter(cidx, x, y)
                     if (openoutside) { // user dblclick file
                         launch_fileuri(fileuri);
                     } else {
-                        pdfviewer_show(fitem, coursefolder);
+                        pdfviewer_show(fitem, coursefolder).catch( function (reason) {
+                            show_error("无法用内置查看器打开: " + get_friendly_part(reason));
+                            launch_fileuri(fileuri);
+                        });
                     }
                 };
                 var selectfunc = function (e) { // user select file
