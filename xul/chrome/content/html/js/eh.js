@@ -1488,6 +1488,8 @@ function initp_tools()
 }
 
 $("document").ready( function () {
+    //$.fx.off = true;
+    
     prefs = window.parent.prefs;
     OS = window.parent.OS;
     Services = window.parent.Services;
@@ -3239,6 +3241,7 @@ function coursetable_enter(cidx, x, y)
             webdav_sync_complete = true;
         });
 
+
         
     } else {
         // no matching site
@@ -3408,32 +3411,35 @@ function helloworld2()
 
 function init_login_page()
 {
-    $("#loginerrmsg").hide();
-    show_page("login");
+    $("#loginerrmsg").hide().text("");
+    $("#loginusername").prop("disabled", false);
+    $("#loginpassword").prop("disabled", false);
+    $("#loginrememberme").prop("disabled", false);
+    $("#loginbtn").text("登录").prop("disabled", false);
+    
     $("#loginusername").val(el_username);
     $("#loginpassword").val(el_password);
     $("#loginrememberme").prop("checked", el_rememberme);
 
+    var kpfn = function (e) {
+        if (e.keyCode == 13 && !$("#loginbtn").prop("disabled")) {
+            eh_login();
+        }
+    };
+    $("#loginusername").unbind("keypress").keypress(kpfn);
+    $("#loginpassword").unbind("keypress").keypress(kpfn);
+    
+    show_page("login");
+    
     if (el_username == "") {
         $("#loginusername").focus();
     } else {
         $("#loginpassword").focus();
     }
-    
-    var kpfn = function (e) {
-        if (e.keyCode == 13) {
-            eh_login();
-        }
-    };
-    $("#loginusername").keypress(kpfn);
-    $("#loginpassword").keypress(kpfn);
-    
-    $("#loginbtn").text("登录").prop("disabled", false);
 }
 
 function eh_login()
 {
-    
     el_username = $("#loginusername").val();
     el_password = $("#loginpassword").val();
     el_rememberme = $("#loginrememberme").prop("checked");
