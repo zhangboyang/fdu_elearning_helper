@@ -683,7 +683,6 @@ function assert(x)
 
 
 var current_page = "";
-
 function go_back()
 {
     local_log("[main] go back to main page");
@@ -1145,6 +1144,10 @@ function canvas_redraw_single(ctx, dobj, startfrom)
 function canvas_redraw(startfrom)
 {
     if (drawlist) {
+        // get canvas size, for redraw
+        var canvas = document.getElementById('pdf_page_temp');
+        canvas_size = { x: canvas.width, y: canvas.height };
+                    
         var st = typeof(startfrom) != "undefined" ? startfrom : 0;
         var canvas = document.getElementById("pdf_page_draw");
         if (st == 0) {
@@ -1180,14 +1183,30 @@ function canvas_clearcanvas(canvas) { canvas_clearcontext(canvas.getContext("2d"
 function canvas_clearsingle(idstr) { canvas_clearcanvas(document.getElementById(idstr)); }
 
 
-// called when loading a new page
+function new_canvas_data()
+{
+    return new Array();
+}
+
+// clear canvas
 function canvas_clearpage()
 {
-    drawlist = new Array();
+    drawlist = new_canvas_data();
     lastdraw = 0;
     canvas_resetselected();
     canvas_clearsingle('pdf_page_draw');
     canvas_clearsingle('pdf_page_temp');
+}
+
+// called when loading a new page
+function canvas_loaddata(data)
+{
+    drawlist = data;
+    lastdraw = 0;
+    canvas_resetselected();
+    canvas_clearsingle('pdf_page_draw');
+    canvas_clearsingle('pdf_page_temp');
+    canvas_redraw();
 }
 
 
@@ -1543,21 +1562,6 @@ $("document").ready( function () {
     });
 });
 
-function init_notebox()
-{
-    // make paste become plain paste
-    // ref: http://stackoverflow.com/questions/12027137/javascript-trick-for-paste-as-plain-text-in-execcommand
-    document.getElementById('viewfile_notebox').addEventListener("paste", function (e) {
-        e.preventDefault();
-        if (e.clipboardData) {
-            content = (e.originalEvent || e).clipboardData.getData('text/plain');
-            document.execCommand('insertText', false, content);
-        } else if (window.clipboardData) {
-            content = window.clipboardData.getData('Text');
-            document.selection.createRange().pasteHTML(content);
-        }  
-    });
-}
 
 
 
@@ -1574,14 +1578,50 @@ function init_notebox()
 
 
 // ====================== notebox related functions ======================
+var notebox_data;
+
 function notebox_execcmd(arg1, arg2, arg3)
 {
     local_log("[notebox] exec command (arg1 = " + arg1 + ", arg2 = " + arg2 + ", arg3 = " + arg3 + ")");
     document.execCommand(arg1, arg2, arg3);
 }
 
+function new_notebox_data()
+{
+    return { html: "" };
+}
 
+function load_notebox_data(data)
+{
+    notebox_data = data;
+    $("#viewfile_notebox").scrollTop(0).html(notebox_data.html);
+    window.getSelection().removeAllRanges();
+}
 
+function save_notebox_data()
+{
+    if (notebox_data) {
+        notebox_data.html = $("#viewfile_notebox").html();
+    }
+}
+
+function init_notebox()
+{
+    // make paste become plain paste
+    // ref: http://stackoverflow.com/questions/12027137/javascript-trick-for-paste-as-plain-text-in-execcommand
+    document.getElementById('viewfile_notebox').addEventListener("paste", function (e) {
+        e.preventDefault();
+        if (e.clipboardData) {
+            content = (e.originalEvent || e).clipboardData.getData('text/plain');
+            document.execCommand('insertText', false, content);
+        } else if (window.clipboardData) {
+            content = window.clipboardData.getData('Text');
+            document.selection.createRange().pasteHTML(content);
+        }  
+    });
+
+    document.getElementById('viewfile_notebox').addEventListener("input", save_notebox_data, false);
+}
 
 
 
@@ -1595,6 +1635,15 @@ function notebox_execcmd(arg1, arg2, arg3)
 var pdf_thumbnail_div_list;
 var selected_pdf_page;
 var pdf_page_loading = false;
+var pdf_note_data;
+
+
+/*
+    save current notes
+    function is dynamicly generated in init_pdf
+*/
+var save_pdf_notes;
+
 
 /*
     initialize pdf viewer
@@ -1609,96 +1658,115 @@ function init_pdf(pdf_path)
     reset_dtype();
 
     local_log("[pdfviewer] open document (path = " + pdf_path + ")");
+
+    var ndata_path = pdf_path + ".ehnotes";
+
+    // generate save_pdf_notes() function
+    save_pdf_notes = function () {
+        return write_json_to_fileuri(pdf_note_data, ndata_path);
+    };
     
-    // this function is call when user enters "viewfile" page
-    PDFJS.getDocument(pdf_path).then( function (pdf) {
-        //show_pdf_jumpto(pdf, 1);
-
-        show_pdf_switchpage = function (delta) {
-            local_log("[pdfviewer] switch page (delta = " + delta.toString() + ")");
-            if (selected_pdf_page + delta < 1 || selected_pdf_page + delta > pdf.numPages) return;
-            show_pdf_jumpto(pdf, selected_pdf_page + delta);
-            pdf_thumbnail_div_list[selected_pdf_page].scrollIntoView();
-        };
-
-        if (pdf.numPages > page_limit) {
-            friendly_error("文件页数过多，无法打开");
-            return;
-        }
-        
-        pdf_thumbnail_div_list = new Array();
-        selected_pdf_page = 1;
-
-        var canvasarray = new Array();
-        for (var i = 1; i <= pdf.numPages; i++) {
-            // append an canvas to our thumbnail list
-
-            let cur_canvas = canvasarray[i] = document.createElement('canvas');
-
-            let page_id = i;
-
-            
-            $(pdf_thumbnail_div_list[i] = document.createElement('div'))
-                .addClass('eh_pdf_list_item')
-                .append($(document.createElement('span'))
-                            .html(i.toString())
-                       )
-                .append($(document.createElement('div'))
-                            .addClass("eh_flexbox_fill_remaining_wrapper_lr")
-                            .append($(cur_canvas))
-                       )
-                .click( function (event) {
-                            show_pdf_jumpto(pdf, page_id);
-                        }
-                      )
-                .appendTo('#pdf_page_list');
-        }
-
-        var load_thumbnail = function (page_id) {
-            return new Promise( function (resolve, reject) {
-                pdf.getPage(page_id).then( function (page) {
-                    var scale = 1.0;
-                    var viewport = page.getViewport(scale);
-                    var cur_canvas = canvasarray[page_id];
-                    var cur_canvas_width = parseInt($(cur_canvas).css("width")) - 2;
-                    
-                    scale = cur_canvas_width / viewport.width;
-                    viewport = page.getViewport(scale);
-
-                    // Prepare canvas using PDF page dimensions.
-                    var canvas = cur_canvas;
-                    var context = canvas.getContext('2d');
-                    canvas.height = viewport.height;
-                    canvas.width = viewport.width;
-
-                    // Render PDF page into canvas context.
-                    var renderContext = {
-                        canvasContext: context,
-                        viewport: viewport
-                    };
-                    
-                    page.render(renderContext);
-                    //show_msg(page_id);
-                    resolve();
-                });
-            });
-        };
-
-        var load_thumbnail_all = function (cur) {
-            if (cur <= pdf.numPages) {
-                load_thumbnail(cur).then( function () {
-                    load_thumbnail_all(cur + 1);
-                });
-            } else {
-                local_log("[pdfviewer] open finished (path = " + pdf_path + ")");
-            }
-        }
-        
-        show_pdf_jumpto(pdf, 1).then( function () {
-            load_thumbnail_all(1);
+    // load pdf_note_data first
+    new Promise(function (resolve, reject) {
+        read_json_from_fileuri(ndata_path).then( function (obj) {
+            pdf_note_data = obj;
+            resolve();
+        }, function () {
+            pdf_note_data = {};
+            resolve();
         });
+    }).then( function () {
+        // this function is call when user enters "viewfile" page
+        PDFJS.getDocument(pdf_path).then( function (pdf) {
+            //show_pdf_jumpto(pdf, 1);
 
-        $('#pdf_page_list').scrollTop(0);
+            show_pdf_switchpage = function (delta) {
+                local_log("[pdfviewer] switch page (delta = " + delta.toString() + ")");
+                if (selected_pdf_page + delta < 1 || selected_pdf_page + delta > pdf.numPages) return;
+                show_pdf_jumpto(pdf, selected_pdf_page + delta);
+                pdf_thumbnail_div_list[selected_pdf_page].scrollIntoView();
+            };
+
+            if (pdf.numPages > page_limit) {
+                friendly_error("文件页数过多，无法打开");
+                return;
+            }
+            
+            pdf_thumbnail_div_list = new Array();
+            selected_pdf_page = 1;
+
+            var canvasarray = new Array();
+            for (var i = 1; i <= pdf.numPages; i++) {
+                // append an canvas to our thumbnail list
+
+                let cur_canvas = canvasarray[i] = document.createElement('canvas');
+
+                let page_id = i;
+                
+                $(pdf_thumbnail_div_list[i] = document.createElement('div'))
+                    .addClass('eh_pdf_list_item')
+                    .append($(document.createElement('span'))
+                                .html(i.toString())
+                           )
+                    .append($(document.createElement('div'))
+                                .addClass("eh_flexbox_fill_remaining_wrapper_lr")
+                                .append($(cur_canvas))
+                           )
+                    .click( function (event) {
+                                show_pdf_jumpto(pdf, page_id);
+                            }
+                          )
+                    .appendTo('#pdf_page_list');
+            }
+
+            var load_thumbnail = function (page_id) {
+                return new Promise( function (resolve, reject) {
+                    pdf.getPage(page_id).then( function (page) {
+                        var scale = 1.0;
+                        var viewport = page.getViewport(scale);
+                        var cur_canvas = canvasarray[page_id];
+                        var cur_canvas_width = parseInt($(cur_canvas).css("width")) - 2;
+                        
+                        scale = cur_canvas_width / viewport.width;
+                        viewport = page.getViewport(scale);
+
+                        // Prepare canvas using PDF page dimensions.
+                        var canvas = cur_canvas;
+                        var context = canvas.getContext('2d');
+                        canvas.height = viewport.height;
+                        canvas.width = viewport.width;
+
+                        // Render PDF page into canvas context.
+                        var renderContext = {
+                            canvasContext: context,
+                            viewport: viewport
+                        };
+                        
+                        page.render(renderContext);
+                        //show_msg(page_id);
+                        resolve();
+                    });
+                });
+            };
+
+            var load_thumbnail_all = function (cur) {
+                if (cur <= pdf.numPages) {
+                    load_thumbnail(cur).then( function () {
+                        load_thumbnail_all(cur + 1);
+                    });
+                } else {
+                    local_log("[pdfviewer] open finished (path = " + pdf_path + ")");
+                }
+            }
+            
+            show_pdf_jumpto(pdf, 1).then( function () {
+                load_thumbnail_all(1);
+            });
+
+            $('#pdf_page_list').scrollTop(0);
+        }, function (reason) {
+            abort("can't open pdf: " + reason);
+        });
     });
 }
 
@@ -1723,53 +1791,66 @@ function show_pdf_jumpto(pdf, page_id)
 {
     local_log("[pdfviewer] jump to page (page_id = " + page_id.toString() + ")");
     
-    return new Promise( function (resolve, reject) {
-        if (pdf_page_loading) {
-            local_log("[pdfviewer] jump to page canceled because of loading another page (page_id = " + page_id.toString() + ")");
-            resolve();
-            return;
-        }
-        
-        $(pdf_thumbnail_div_list[selected_pdf_page]).removeClass("eh_selected");
-        $(pdf_thumbnail_div_list[selected_pdf_page = page_id]).addClass("eh_selected");
-
-        pdf_page_loading = true;
-
-        canvas_clearpage();
-        
-        pdf.getPage(page_id).then(function (page) {
-            var space_ratio = 0.03;
-            
-            var scale = 1.0;
-            var viewport = page.getViewport(scale);
-            var wrapper_width = Math.floor(parseInt($("#pdf_page_view_wrapper").css("width")) * (1.0 - space_ratio));
-            var wrapper_height = Math.floor(parseInt($("#pdf_page_view_wrapper").css("height")) * (1.0 - space_ratio));
-            
-            scale = Math.min(wrapper_width / viewport.width, wrapper_height / viewport.height);
-            //show_msg(scale);
-            viewport = page.getViewport(scale);
-
-            // Prepare canvas using PDF page dimensions.
-
-            var canvasdraw = document.getElementById('pdf_page_draw');
-            var canvastemp = document.getElementById('pdf_page_temp');
-            var canvas = document.getElementById('pdf_page_view');
-            var context = canvas.getContext('2d');
-            canvasdraw.height = canvastemp.height = canvas.height = viewport.height;
-            canvasdraw.width = canvastemp.width = canvas.width = viewport.width;
-            
-            // Render PDF page into canvas context.
-            var renderContext = {
-                canvasContext: context,
-                viewport: viewport
-            };
-            
-            page.render(renderContext).then( function () {
-                pdf_page_loading = false;
+    return Promise.all([
+        new Promise( function (resolve, reject) {
+            if (pdf_page_loading) {
+                local_log("[pdfviewer] jump to page canceled because of loading another page (page_id = " + page_id.toString() + ")");
                 resolve();
+                return;
+            }
+            
+            $(pdf_thumbnail_div_list[selected_pdf_page]).removeClass("eh_selected");
+            $(pdf_thumbnail_div_list[selected_pdf_page = page_id]).addClass("eh_selected");
+
+            pdf_page_loading = true;
+
+            if (typeof pdf_note_data[page_id.toString()] === "undefined") {
+                pdf_note_data[page_id.toString()] = {
+                    draw: new_canvas_data(),
+                    note: new_notebox_data(),
+                };
+            }
+            var ndata = pdf_note_data[page_id.toString()];
+            load_notebox_data(ndata.note);
+
+            pdf.getPage(page_id).then(function (page) {
+                var space_ratio = 0.03;
+                
+                var scale = 1.0;
+                var viewport = page.getViewport(scale);
+                var wrapper_width = Math.floor(parseInt($("#pdf_page_view_wrapper").css("width")) * (1.0 - space_ratio));
+                var wrapper_height = Math.floor(parseInt($("#pdf_page_view_wrapper").css("height")) * (1.0 - space_ratio));
+                
+                scale = Math.min(wrapper_width / viewport.width, wrapper_height / viewport.height);
+                //show_msg(scale);
+                viewport = page.getViewport(scale);
+
+                // Prepare canvas using PDF page dimensions.
+
+                var canvasdraw = document.getElementById('pdf_page_draw');
+                var canvastemp = document.getElementById('pdf_page_temp');
+                var canvas = document.getElementById('pdf_page_view');
+                var context = canvas.getContext('2d');
+                canvasdraw.height = canvastemp.height = canvas.height = viewport.height;
+                canvasdraw.width = canvastemp.width = canvas.width = viewport.width;
+                
+                // Render PDF page into canvas context.
+                var renderContext = {
+                    canvasContext: context,
+                    viewport: viewport
+                };
+                
+                page.render(renderContext).then( function () {
+                    // we must load canvas data until page render complete
+                    canvas_loaddata(ndata.draw);
+                    
+                    pdf_page_loading = false;
+                    resolve();
+                });
             });
-        });
-    });
+        }),
+        save_pdf_notes()
+    ]);
 }
 
 
@@ -1831,7 +1912,9 @@ function pdfviewer_show(fitem, coursefolder)
         $("#viewfile_backbtn").unbind("click");
         $("#viewfile_backbtn").click( function () {
             local_log("[pdfviewer] go back to filenav page");
-            show_page("filenav");
+            save_pdf_notes().then( function () {
+                show_page("filenav");
+            });
         });
         show_page("viewfile");
         init_pdf(pdfuri);
@@ -2450,15 +2533,15 @@ function urp_fetch_coursetable(semester_id)
         //Services.cookies.add("jwfw.fudan.edu.cn", "/eams", "semester.id", semester_id, false, true, false, 0x7fffffff);
         $.get("http://jwfw.fudan.edu.cn/eams/courseTableForStd!index.action").done( function (data) {
             // grep ids
-            var ids = data.match(/bg\.form\.addInput\(form,"ids","(\d+)"\);/)[1];
-            if (!ids) { reject("parse error: can't find ids"); return; }
-            
+            var ids_data = data.match(/bg\.form\.addInput\(form,"ids","(\d+)"\);/);
+            if (!ids_data || !ids_data[1]) { reject("parse error: can't find ids"); return; }
+            var ids = ids_data[1];
             $.post("http://jwfw.fudan.edu.cn/eams/courseTableForStd!courseTable.action", {
                 "ignoreHead": "1",
                 "setting.kind": "std",
                 "startWeek": "1",
                 "semester.id": semester_id,
-                "ids": ids, // what's the magic number 311358 ?
+                "ids": ids,
             }, null, "text").done( function (data, textStatus, jqXHR) {
                 // begin parse data
 
@@ -2552,10 +2635,12 @@ function urp_fetch_semesterdata()
                     var sstr = spart[2] + " " + spart[3] + "学期";
                     semesterlist[sid] = sstr;
                 });
-                resolve({
-                    smap: semesterlist,
-                    cursid: cur_semester,
-                });
+                setTimeout(function () {
+                    resolve({
+                        smap: semesterlist,
+                        cursid: cur_semester,
+                    });
+                }, 200);
             }).fail( function (xhr, textStatus, errorThrown) {
                 reject("dataQuery.action failed: " + textStatus + ", " + errorThrown);
             });
