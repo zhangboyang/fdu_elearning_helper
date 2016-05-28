@@ -769,6 +769,18 @@ function show_page(page_name)
 }
 
 
+/*
+    the function is called when unloading whole page (i.e application exit)
+    return value is promise
+*/
+function eh_unload()
+{
+    if (current_page == "viewfile") {
+        return viewfile_leave();
+    }
+    return Promise.resolve(0);
+}
+
 
 
 
@@ -1384,7 +1396,7 @@ function refresh_canvas_parameters()
     canvas_size = { x: canvas.width, y: canvas.height };
 }
 
-function init_canvas() // will be called once in global init function
+function init_canvas()
 {
     $('#pdf_page_front').mousedown( function (e) {
         if (!is_dtype_drawtype(dtype_selected)) return;
@@ -1559,7 +1571,7 @@ $("document").ready( function () {
         dbfolder = OS.Path.toFileURI(ndbfolder);
 
         eh_logfile = OS.Path.join(ndbfolder, "ehlog.txt");
-        
+
         Promise.all([
             OS.File.makeDir(ndocfolder, { ignoreExisting: true }),
             OS.File.makeDir(datafolder, { ignoreExisting: true, from: OS.Constants.Path.profileDir })
@@ -1591,9 +1603,6 @@ $("document").ready( function () {
         });
     });
 });
-
-
-
 
 
 
@@ -1682,6 +1691,13 @@ var pdf_page_loading_status = {
     rtask: undefined // rtask: current render task
 };
 
+
+/*
+    is called when leaving fileview page
+    return value is promise
+    dynamicly generated in pdfviewer_show
+*/
+var viewfile_leave;
 
 /*
     save current notes
@@ -2019,6 +2035,9 @@ function pdfviewer_show(fitem, coursefolder)
                     show_page("filenav");
                 });
             });
+            viewfile_leave = function () {
+                return save_pdf_notes();
+            };
             show_page("viewfile");
             canvas_clearpage();
             init_pdf(pdfuri).then( function () {

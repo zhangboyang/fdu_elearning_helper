@@ -185,6 +185,53 @@ prefservice.getBranch("general.").setCharPref("useragent.override", "elearninghe
 
 
 
+
+// https://developer.mozilla.org/en-US/docs/Mozilla/Tech/XUL/How_to_quit_a_XUL_application
+
+function quit(aForceQuit)
+{
+    var appStartup = Components.classes['@mozilla.org/toolkit/app-startup;1'].
+    getService(Components.interfaces.nsIAppStartup);
+
+    // eAttemptQuit will try to close each XUL window, but the XUL window can cancel the quit
+    // process if there is unsaved data. eForceQuit will quit no matter what.
+    var quitSeverity = aForceQuit ? Components.interfaces.nsIAppStartup.eForceQuit : Components.interfaces.nsIAppStartup.eAttemptQuit;
+    appStartup.quit(quitSeverity);
+}
+
+
+
+window.addEventListener("close", function (event) {
+    try {
+        var doquit = function () {
+            quit(true);
+        };
+        document.getElementById("mybrowser").contentWindow.eh_unload().then(doquit, doquit);
+        event.preventDefault();
+    } catch (e) {
+        // if some error occured, just do nothing
+        // the event.preventDefault() is not called
+        // so the application will quit
+    }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /* set or reset runtime debug options */
 do {
     var dbgon = prefs.getBoolPref("debug");
