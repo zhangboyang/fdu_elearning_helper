@@ -641,7 +641,10 @@ function distsq_p2s(p, a, b)
     var v1 = vsub(b, a), v2 = vsub(p, a), v3 = vsub(p, b);
     if (vdot(v1, v2) < 0) return vlensq(v2);
     else if (vdot(v1, v3) > 0) return vlensq(v3);
-    else return sq(vdet(v1, v2)) / vlensq(v1);
+    else {
+        if (vlensq(v1) == 0) return vlensq(v2); // check if a == b
+        else return sq(vdet(v1, v2)) / vlensq(v1);
+    }
 }
 function dist_p2s(p, a, b) { return Math.sqrt(distsq_p2s(p, a, b)); }
 
@@ -1154,9 +1157,7 @@ function canvas_redraw_single(ctx, dobj, startfrom)
 function canvas_redraw(startfrom)
 {
     if (drawlist) {
-        // get canvas size, for redraw
-        var canvas = document.getElementById('pdf_page_temp');
-        canvas_size = { x: canvas.width, y: canvas.height };
+        refresh_canvas_parameters();
                     
         var st = typeof(startfrom) != "undefined" ? startfrom : 0;
         var canvas = document.getElementById("pdf_page_draw");
@@ -1372,6 +1373,16 @@ function canvas_ct_changed_callback()
 }
 
 
+function refresh_canvas_parameters()
+{
+    // get canvas offset
+    var off = $("#pdf_page_temp").offset();
+    canvas_offset = { x: off.left, y: off.top };
+
+    // get canvas size
+    var canvas = document.getElementById('pdf_page_temp');
+    canvas_size = { x: canvas.width, y: canvas.height };
+}
 
 function init_canvas() // will be called once in global init function
 {
@@ -1380,13 +1391,7 @@ function init_canvas() // will be called once in global init function
         var dtype = get_dtype(dtype_selected);
         e.preventDefault();
         
-        // get canvas offset
-        var off = $("#pdf_page_temp").offset();
-        canvas_offset = { x: off.left, y: off.top };
-
-        // get canvas size
-        var canvas = document.getElementById('pdf_page_temp');
-        canvas_size = { x: canvas.width, y: canvas.height };
+        refresh_canvas_parameters();
 
         is_painting = true;
 
@@ -1403,6 +1408,7 @@ function init_canvas() // will be called once in global init function
         if (dtype == "navigate") {
             show_pdf_switchpage(1);
         } else if (dtype == "select") {
+            refresh_canvas_parameters();
             var mcoord = { x: e.pageX, y: e.pageY };
             canvas_mouseselect(mcoord);
         }
