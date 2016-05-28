@@ -251,7 +251,7 @@ function get_filetype_iconuri(ext)
                     var f = OS.Path.toFileURI(OS.Path.join(datafolder, "fileicons", "known.json"));
                     var arr = new Array();
                     for (var val of filetype_icon_set) arr.push(val);
-                    write_json_to_fileuri(arr, f);
+                    write_json_to_fileuri({ ext: arr }, f);
                 }
             }
             if (!fe) {
@@ -271,7 +271,9 @@ function initp_filetype_icon()
     return new Promise( function (resolve, reject) {
         var f = OS.Path.toFileURI(OS.Path.join(datafolder, "fileicons", "known.json"));
         read_json_from_fileuri(f).then( function (obj) {
-            filetype_icon_set = new Set(obj);
+            var arr = obj.ext;
+            if (arr !== undefined) filetype_icon_set = new Set(arr);
+            else filetype_icon_set = new Set();
             resolve();
         }, function () {
             filetype_icon_set = new Set();
@@ -1022,7 +1024,6 @@ function select_dtype(id)
 }
 
 function reset_dtype()
-
 {
     select_dtype(1);
 }
@@ -1208,13 +1209,13 @@ function canvas_clearsingle(idstr) { canvas_clearcanvas(document.getElementById(
 
 function new_canvas_data()
 {
-    return new Array();
+    return { drawlist: new Array() };
 }
 
 // clear canvas
 function canvas_clearpage()
 {
-    drawlist = new_canvas_data();
+    drawlist = new Array();
     lastdraw = 0;
     canvas_resetselected();
     canvas_clearsingle('pdf_page_draw');
@@ -1224,7 +1225,7 @@ function canvas_clearpage()
 // called when loading a new page
 function canvas_loaddata(data)
 {
-    drawlist = data;
+    drawlist = data.drawlist;
     lastdraw = 0;
     canvas_resetselected();
     canvas_clearsingle('pdf_page_draw');
@@ -1727,13 +1728,14 @@ function init_pdf(pdf_path)
 
         // generate save_pdf_notes() function
         save_pdf_notes = function () {
-            return write_json_to_fileuri(pdf_note_data, ndata_path);
+            return write_json_to_fileuri({ notedata: pdf_note_data }, ndata_path);
         };
         
         // load pdf_note_data first
         new Promise(function (resolve, reject) {
             read_json_from_fileuri(ndata_path).then( function (obj) {
-                pdf_note_data = obj;
+                pdf_note_data = obj.notedata;
+                if (pdf_note_data === undefined) pdf_note_data = {};
                 resolve();
             }, function () {
                 pdf_note_data = {};
@@ -2437,9 +2439,15 @@ function webdav_sync(uuid, coursefolder, syncdatafile, statuslist, report_progre
             var sdstatus = statuslist_appendprogress(statuslist, "正在检查同步状态");
             new Promise(function (resolve, reject) {
                 read_json_from_fileuri(syncdatafile).then( function (obj) {
-                    // read ok, use the data as syncdata
-                    statuslist_update(sdstatus, "上次同步于 " + format_date(new Date(obj.timestamp), "do"), "green");
-                    resolve(obj);
+                    var lobj = obj.lobj;
+                    if (lobj !== undefined) {
+                        // read ok, use the data as syncdata
+                        statuslist_update(sdstatus, "上次同步于 " + format_date(new Date(lobj.timestamp), "do"), "green");
+                        resolve(lobj);
+                    } else {
+                        statuslist_update(sdstatus, "首次同步", "green");
+                        resolve({ flist: [], dlist: [] });
+                    }
                 }, function () {
                     // read failed, create a new syncdata
                     statuslist_update(sdstatus, "首次同步", "green");
@@ -2494,7 +2502,7 @@ function webdav_sync(uuid, coursefolder, syncdatafile, statuslist, report_progre
                                     statuslist_append(statuslist, "同步完成，共有 " + sum + " 个新文件", "green");
                                     lobj.timestamp = new Date().getTime();
                                     console.log(syncdatafile);
-                                    write_json_to_fileuri(lobj, syncdatafile).then( function () {
+                                    write_json_to_fileuri({ lobj: lobj }, syncdatafile).then( function () {
                                         resolve({
                                             lobj: lobj,
                                             sum: sum,
