@@ -1789,12 +1789,20 @@ function init_pdf(pdf_path)
 
                 var preset_canvas_size_flag = false;
                 var preset_canvas_size = function (width, height) {
+                    var arr = new Array();
                     for (var i = 1; i <= pdf.numPages; i++) {
                         var cur_canvas = canvasarray[i];
-                        var cur_canvas_width = parseInt($(cur_canvas).css("width")) - 2;
+                        var cur_canvas_width = cur_canvas.offsetWidth - 2;
                         var scale = cur_canvas_width / width;
-                        cur_canvas.width = cur_canvas_width;
-                        cur_canvas.height = height * scale;
+                        arr[i] = { w: cur_canvas_width, h: height * scale };
+                        // shouldn't update canvas size here
+                        // or we will cause a css-recalc
+                        // then cur_canvas.offsetWidth will be very slow
+                    }
+                    for (var i = 1; i <= pdf.numPages; i++) {
+                        var cur_canvas = canvasarray[i];
+                        cur_canvas.width = arr[i].w;
+                        cur_canvas.height = arr[i].h;
                     }
                 };
                 
