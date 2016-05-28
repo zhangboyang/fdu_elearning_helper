@@ -198,10 +198,11 @@ function local_log(msg)
 {
     if (eh_debug && eh_dbglocallog) {
         var c = new Date();
+        var logfile = eh_logfile;
         return new Promise( function (resolve, reject) {
             console.log("LOCAL LOG: " + msg);
             window.parent.mylog("LOCAL LOG: " + msg);
-            OS.File.open(eh_logfile, { write: true, append: true }).then( function (f) {
+            OS.File.open(logfile, { write: true, append: true }).then( function (f) {
                 var str = "[" + format_date(c, "dtsm") + "] " + msg + "\n";
                 var encoder = new TextEncoder();
                 var array = encoder.encode(str);
@@ -219,7 +220,7 @@ function local_log(msg)
             });
         });
     } else {
-        return 0;
+        return Promise.resolve(0);
     }
 }
 
@@ -2685,6 +2686,7 @@ function elearning_fetch_sitelist()
                 resolve(slist);
             }).fail ( function (xhr, textStatus, errorThrown) {
                 reject("get portal failed: " + textStatus + ", " + errorThrown);
+
             });
     });
 }
@@ -3624,6 +3626,7 @@ function select_docfolder()
             $("#settings_docfolder").val(path);
             set_unicode_pref(prefs, "docfolder", path);
             ndocfolder = path;
+            local_log("change docfolder to " + ndocfolder);
             initp_docfolder().then( function () {
                 initp_createdirs().then( function () {
                     initp_tools().then( function () {

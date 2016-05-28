@@ -593,6 +593,7 @@ ul li {
     margin-top: 10px;
     color: black;
     border-color: #7cb342;
+    width: calc(100% - 14px);
 }
 
 #settingsdescbox strong {
