@@ -40,7 +40,17 @@ function save_prefs()
     prefs.setBoolPref("syncoverwrite", syncoverwrite);
 }
 
-
+// https://developer.mozilla.org/en-US/Add-ons/Code_snippets/Preferences
+function set_unicode_pref(prefs, key, value)
+{
+    var str = Components.classes["@mozilla.org/supports-string;1"].createInstance(Components.interfaces.nsISupportsString);
+    str.data = value;
+    prefs.setComplexValue(key, Components.interfaces.nsISupportsString, str);
+}
+function get_unicode_pref(prefs, key)
+{
+    return prefs.getComplexValue(key, Components.interfaces.nsISupportsString).data;
+}
 
 
 var eh_version; // app version string, a copy of window.parent.xulappinfo.version
@@ -1506,6 +1516,24 @@ function initp_tools()
     return Promise.all(p);
 }
 
+/*
+    set other folder vars using 'ndocfolder'
+*/
+function initp_docfolder()
+{
+    // set other folders
+    docfolder = OS.Path.toFileURI(ndocfolder);
+    ndbfolder = OS.Path.join(ndocfolder, "ehdb");
+    dbfolder = OS.Path.toFileURI(ndbfolder);
+
+    eh_logfile = OS.Path.join(ndbfolder, "ehlog.txt");
+
+    return Promise.all([
+        OS.File.makeDir(ndocfolder, { ignoreExisting: true }),
+        OS.File.makeDir(datafolder, { ignoreExisting: true, from: OS.Constants.Path.profileDir })
+    ]);
+}
+
 $("document").ready( function () {
     $.fx.off = true;
     
@@ -1533,15 +1561,15 @@ $("document").ready( function () {
 
     // configure datafolder first
 
-    datafolder = prefs.getCharPref("datafolder");
+    datafolder = get_unicode_pref(prefs, "datafolder");
     if (datafolder == "") {
         datafolder = OS.Path.join(OS.Constants.Path.profileDir, "ehdata");
-        prefs.setCharPref("datafolder", datafolder);
+        set_unicode_pref(prefs, "datafolder", datafolder);
     }
 
     // use promise to configure docfolder
     new Promise( function (resolve, reject) {
-        ndocfolder = prefs.getCharPref("docfolder");
+        ndocfolder = get_unicode_pref(prefs, "docfolder");
         if (ndocfolder == "") {
             var basearr = [
                 OS.Path.join(OS.Constants.Path.homeDir, "Documents"),
@@ -1553,7 +1581,7 @@ $("document").ready( function () {
                 for (var i = 0; i < fearr.length; i++) {
                     if (fearr[i]) {
                         ndocfolder = OS.Path.join(basearr[i], "eLearning Helper");
-                        prefs.setCharPref("docfolder", ndocfolder);
+                        set_unicode_pref(prefs, "docfolder", ndocfolder);
                         resolve();
                         return;
                     }
@@ -1566,17 +1594,7 @@ $("document").ready( function () {
             resolve();
         }
     }).then( function () {
-        // set other folders
-        docfolder = OS.Path.toFileURI(ndocfolder);
-        ndbfolder = OS.Path.join(ndocfolder, "ehdb");
-        dbfolder = OS.Path.toFileURI(ndbfolder);
-
-        eh_logfile = OS.Path.join(ndbfolder, "ehlog.txt");
-
-        Promise.all([
-            OS.File.makeDir(ndocfolder, { ignoreExisting: true }),
-            OS.File.makeDir(datafolder, { ignoreExisting: true, from: OS.Constants.Path.profileDir })
-        ]).then( function () {
+        initp_docfolder().then( function () {
             init_colorbox();
             init_thicknessbox();
             reset_dtype();
@@ -3564,10 +3582,12 @@ function show_settings()
             $("#settingsdesctitle").text(title).show();
             local_log("[settings] hover (ref = " + ref + ", title = " + title + ")");
         }, resetfunc);
-        $(element).change( function () {
-            local_log("[settings] change (value = " + cch.filter("[data-sdescref='" + ref + "']").children("input").prop("checked") + ", title = " + title + ")");
-            save_settings(cch);
-        });
+        if (ref != "df") {
+            $(element).change( function () {
+                local_log("[settings] change (value = " + cch.filter("[data-sdescref='" + ref + "']").children("input").prop("checked") + ", title = " + title + ")");
+                save_settings(cch);
+            });
+        }
     });
 
     $("#settingssaved").hide();
@@ -3578,6 +3598,7 @@ function load_settings(cch)
     cch.filter("[data-sdescref='ubv']").children("input").prop("checked", usebuiltinviewer);
     cch.filter("[data-sdescref='ubb']").children("input").prop("checked", usebuiltinbrowser);
     cch.filter("[data-sdescref='sow']").children("input").prop("checked", syncoverwrite);
+    cch.filter("[data-sdescref='df']").children("input").val(ndocfolder);
 }
 function save_settings(cch)
 {
@@ -3587,7 +3608,32 @@ function save_settings(cch)
     save_prefs();
     $("#settingssaved").show();
 }
-
+function select_docfolder()
+{
+    var nsIFilePicker = Components.interfaces.nsIFilePicker;
+    var fp = Components.classes["@mozilla.org/filepicker;1"].createInstance(nsIFilePicker);
+    fp.init(window, "请选择文档文件夹", nsIFilePicker.modeGetFolder);
+    var olddf = Components.classes["@mozilla.org/file/local;1"].createInstance(Components.interfaces["nsILocalFile"]);
+    olddf.initWithPath(ndocfolder);
+    fp.displayDirectory = olddf;
+    var rv = fp.show();
+    if (rv == nsIFilePicker.returnOK || rv == nsIFilePicker.returnReplace) {
+        var path = fp.file.path;
+        if (path != ndocfolder) {
+            console.log(path);
+            $("#settings_docfolder").val(path);
+            set_unicode_pref(prefs, "docfolder", path);
+            ndocfolder = path;
+            initp_docfolder().then( function () {
+                initp_createdirs().then( function () {
+                    initp_tools().then( function () {
+                        $("#settingssaved").show();
+                    });
+                });
+            });
+        }
+    }
+}
 
 
 
