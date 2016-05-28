@@ -450,6 +450,7 @@ ul li {
     width: 100%;
     border-style: none;
     resize: none;
+    word-wrap: break-word;
 }
 
 .eh_notebox:focus {
@@ -468,19 +469,22 @@ ul li {
 
 
 #textcolor_dropdown {
-    width: 39px;
     min-width: 39px;
     padding: 2px;
-    display: flex;
-    flex-direction: column;
     text-align: center;
-    justify-content: center;
     overflow: hidden;
+}
+#textcolor_dropdown li {
+    width: 25px;
+    min-height: 0px;
+    margin: 5px;
+    padding: 0px;
 }
 #textcolor_dropdown a {
     width: 25px;
     height: 25px;
-    margin: 5px;
+    min-height: 0px;
+    margin: 0px;
     padding: 0px;
 }
 

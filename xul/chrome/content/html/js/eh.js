@@ -1494,7 +1494,7 @@ function initp_tools()
 }
 
 $("document").ready( function () {
-    //$.fx.off = true;
+    $.fx.off = true;
     
     prefs = window.parent.prefs;
     OS = window.parent.OS;
