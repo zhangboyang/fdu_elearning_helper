@@ -2625,7 +2625,7 @@ function elearning_fetch_sitelist()
 */
 function urp_fetch_coursetable(semester_id)
 {
-    /*return new Promise( function (resolve, reject) {
+    return new Promise( function (resolve, reject) {
         //Services.cookies.add("jwfw.fudan.edu.cn", "/eams", "semester.id", semester_id, false, true, false, 0x7fffffff);
         $.get("http://jwfw.fudan.edu.cn/eams/courseTableForStd!index.action").done( function (data) {
             // grep ids
@@ -2692,61 +2692,7 @@ function urp_fetch_coursetable(semester_id)
         }).fail( function (xhr, textStatus, errorThrown) {
             reject("courseTableForStd!index.action failed: " + textStatus + ", " + errorThrown);
         });
-    });*/
-    return new Promise( function (resolve, reject) {
-                $.get("file:///C:/testdata/ctct.txt", null, null, "text").done( function (data, textStatus, jqXHR) {
-                console.log(data);
-                // begin parse data
-
-                // find range and trim
-                var st = data.indexOf("// function CourseTable in TaskActivity.js");
-                if (st < 0) { reject("parse error: [// function CourseTable in TaskActivity.js] not found"); return; }
-                var ed = data.indexOf("</script>", st);
-                if (ed < 0) { reject("parse error: [</script>] not found"); return; }
-                data = data.substring(st, ed);
-
-                // split each class into array (cstrlist = course string list)
-                var cstrlist = data.split("new TaskActivity");
-
-                var clist = new Array();
-                cstrlist.forEach( function (element, index, array) {
-                    if (index == 0) return; // drop first element (it's trash)
-                    var p = element.indexOf("\n");
-                    if (p < 0) { reject("parse error: [\\n] not found"); return; }
-                    
-                    // split course data
-                    var cdatajsonstr = "[" + element.substring(0, p).match(/\((.*)\)/)[1] + "]"; // get data in '(' and ')'
-                    var cdatajson = $.parseJSON(cdatajsonstr);
-
-                    var cid = cdatajson[2].match(/\((.*)\)/)[1];
-                    var cname = cdatajson[3].replace("(" + cid + ")", "");
-                    var cclassroom = cdatajson[5];
-                    var cteacher = cdatajson[1];
-                    var cavlweek = cdatajson[6];
-
-                    // split course time
-                    var ctime = element.substring(p + 1) // fetch the remaining string
-                        .match(/(index =\d+\*unitCount\+\d+;)/g) // match all string like "index =3*unitCount+7;"
-                        .map(function (str) { return str.match(/(\d+)/g); }) // parse string to array, like ["3", "7"]
-                        .map(function (tup) { return tup.map(function (x) { return parseInt(x) + 1; }); }); // convert to int and add one, like [4, 8]
-
-                    // append to array                    
-                    clist.push({
-                        cid: cid,
-                        cname: cname,
-                        cclassroom: cclassroom,
-                        cteacher: cteacher,
-                        cavlweek: cavlweek,
-                        ctime: ctime,
-                    });
-                });
-
-                console.log(clist);
-                resolve(clist);
-                
-            }).fail( function (xhr, textStatus, errorThrown) {
-                reject("courseTableForStd!courseTable.action failed: " + textStatus + ", " + errorThrown);
-            });});
+    });
 }
 
 
@@ -2765,7 +2711,7 @@ function urp_fetch_coursetable(semester_id)
 */
 function urp_fetch_semesterdata()
 {
-    /*return new Promise( function (resolve, reject) {
+    return new Promise( function (resolve, reject) {
         $.get("http://jwfw.fudan.edu.cn/eams/courseTableForStd!index.action").done( function (data, textStatus, request) {
             // last GET response should set 'semester.id' cookie
             var cur_semester = parseInt(request.getAllResponseHeaders().match(/semester\.id=(\d+)/)[1]);
@@ -2797,32 +2743,7 @@ function urp_fetch_semesterdata()
         }).fail( function (xhr, textStatus, errorThrown) {
             reject("courseTableForStd!index.action failed: " + textStatus + ", " + errorThrown);
         });
-    });*/
-    return new Promise( function (resolve, reject) {
-    $.get("file:///C:/testdata/ctidx.txt", null, null, "text").done( function (data, textStatus, request) {
-    var cur_semester = "202";
-    $.get("file:///C:/testdata/dq.txt", null, null, "text").done( function (data, textStatus, jqXHR) {
-                // althogh we can use eval() to parse, but using eval() is NOT SAFE!!!
-                var semesterlist = new Array();
-                var sarr = data.match(/(\{id:\d+,schoolYear:"\d+-\d+",name:".+?"\})/g);
-                sarr.forEach(function (element, index, array) {
-                    var spart = element.match(/\{id:(\d+),schoolYear:"(\d+-\d+)",name:"(.+?)"\}/);
-                    var sid = parseInt(spart[1]);
-                    if (spart[3] == "2") spart[3] = "春季";
-                    if (spart[3] == "1") spart[3] = "秋季";
-                    var sstr = spart[2] + " " + spart[3] + "学期";
-                    semesterlist[sid] = sstr;
-                });
-                console.log(cur_semester, semesterlist);
-                setTimeout(function () {
-                    resolve({
-                        smap: semesterlist,
-                        cursid: cur_semester,
-                    });
-                }, 200);
-            }).fail( function (xhr, textStatus, errorThrown) {
-                reject("dataQuery.action failed: " + textStatus + ", " + errorThrown);
-            });});});
+    });
 }
 
 
@@ -2840,6 +2761,7 @@ function urp_fetch_semesterdata()
 
 var clist; // course list
 var cdivlist; // div in course table
+
 var cur_semestername; // current semester name
 
 function get_coursefolder(cobj)
@@ -3240,6 +3162,7 @@ function coursetable_enter(cidx, x, y)
             tbodyobj.html("<tr><td></td><td>同步失败</td><td></td></tr>");
             webdav_sync_complete = true;
         });
+
 
 
         
