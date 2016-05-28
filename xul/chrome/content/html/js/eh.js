@@ -1624,8 +1624,8 @@ function new_notebox_data()
 function load_notebox_data(data)
 {
     notebox_data = data;
-    $("#viewfile_notebox").scrollTop(0).html(notebox_data.html);
     window.getSelection().removeAllRanges();
+    $("#viewfile_notebox").blur().scrollTop(0).html(notebox_data.html);
 }
 
 function save_notebox_data()
@@ -1633,6 +1633,11 @@ function save_notebox_data()
     if (notebox_data) {
         notebox_data.html = $("#viewfile_notebox").html();
     }
+}
+
+function clear_notebox()
+{
+     $("#viewfile_notebox").empty();
 }
 
 function init_notebox()
@@ -1651,6 +1656,7 @@ function init_notebox()
     });
 
     document.getElementById('viewfile_notebox').addEventListener("input", save_notebox_data, false);
+
 }
 
 
@@ -1693,10 +1699,11 @@ var save_pdf_notes;
 function init_pdf(pdf_path)
 {
     var cur_task_id = ++pdf_file_task_id;
+    $('#pdf_page_list').empty();
+    clear_notebox();
+    canvas_clearsingle("pdf_page_view");
+    reset_dtype();
     return new Promise(function (resolve, reject) {
-        $('#pdf_page_list').empty();
-        canvas_clearsingle("pdf_page_view");
-        reset_dtype();
 
         local_log("[pdfviewer] open document (path = " + pdf_path + ")");
 
