@@ -1641,6 +1641,7 @@ function load_notebox_data(data)
 function save_notebox_data()
 {
     if (notebox_data) {
+
         notebox_data.html = $("#viewfile_notebox").html();
     }
 }
@@ -1786,6 +1787,17 @@ function init_pdf(pdf_path)
                         .appendTo('#pdf_page_list');
                 }
 
+                var preset_canvas_size_flag = false;
+                var preset_canvas_size = function (width, height) {
+                    for (var i = 1; i <= pdf.numPages; i++) {
+                        var cur_canvas = canvasarray[i];
+                        var cur_canvas_width = parseInt($(cur_canvas).css("width")) - 2;
+                        var scale = cur_canvas_width / width;
+                        cur_canvas.width = cur_canvas_width;
+                        cur_canvas.height = height * scale;
+                    }
+                };
+                
                 var load_thumbnail = function (page_id) {
                     return new Promise( function (resolve, reject) {
                         if (pdf_file_task_id != cur_task_id) { resolve(); return; }
@@ -1795,6 +1807,11 @@ function init_pdf(pdf_path)
                             var viewport = page.getViewport(scale);
                             var cur_canvas = canvasarray[page_id];
                             var cur_canvas_width = parseInt($(cur_canvas).css("width")) - 2;
+
+                            if (!preset_canvas_size_flag) {
+                                preset_canvas_size(viewport.width, viewport.height);
+                                preset_canvas_size_flag = true;
+                            }
                             
                             scale = cur_canvas_width / viewport.width;
                             viewport = page.getViewport(scale);
@@ -3562,6 +3579,7 @@ function save_settings(cch)
     save_prefs();
     $("#settingssaved").show();
 }
+
 
 
 
