@@ -45,11 +45,6 @@ ul li {
 }
 
 
-.btn {
-    padding-top: 2px !important; /* ugly fix for Windows */
-}
-
-
 
 
 .eh_xul_popupmenu {
@@ -556,7 +551,7 @@ ul li {
      border: 2px solid #7cb342;
 }
 .eh_formlabel_checkbox_span {
-	margin-top: -4px;
+	margin-top: -3px;
 	display: inherit;
 }
 

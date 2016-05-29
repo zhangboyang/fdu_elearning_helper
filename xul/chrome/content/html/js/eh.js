@@ -1545,9 +1545,19 @@ function initp_docfolder()
     ]);
 }
 
-$("document").ready( function () {
+function init_style()
+{
+    // add some style rules
     $.fx.off = true;
     
+    if (eh_os == "WINNT") {
+        /* fix button for Windows */
+        $("<style type='text/css'> .btn { padding-top: 2px !important; } </style>").appendTo("head");
+    }
+}
+
+$("document").ready( function () {
+
     prefs = window.parent.prefs;
     OS = window.parent.OS;
     Services = window.parent.Services;
@@ -1611,6 +1621,7 @@ $("document").ready( function () {
             reset_dtype();
             init_canvas();
             init_notebox();
+            init_style();
 
             initp_createdirs().then( function () {
                 // initp_* returns promises
