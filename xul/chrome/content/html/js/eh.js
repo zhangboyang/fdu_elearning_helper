@@ -1633,7 +1633,11 @@ $("document").ready( function () {
 
                     $("#splashdiv").hide();
                     local_log("========= init ok ==========");
-                    
+                    local_log("appversion: " + eh_version);
+                    local_log("ostype: " + eh_os);
+                    local_log("osname: " + window.parent.sysinfo.getProperty("name"));
+                    local_log("osversion: " + window.parent.sysinfo.getProperty("version"));
+        
                     if (el_username == "" || el_password == "" || !el_rememberme) {
                         init_login_page();
                     } else {
