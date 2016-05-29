@@ -448,10 +448,6 @@ ul li {
     word-wrap: break-word;
 }
 
-.eh_notebox:focus {
-    outline: 0px solid transparent;
-}
-
 .eh_notebox:empty::before {
     content: attr(data-placeholder);
     color: #555; 

@@ -1695,7 +1695,7 @@ function init_notebox()
 {
     // make paste become plain paste
     // ref: http://stackoverflow.com/questions/12027137/javascript-trick-for-paste-as-plain-text-in-execcommand
-    document.getElementById('viewfile_notebox').addEventListener("paste", function (e) {
+    /*document.getElementById('viewfile_notebox').addEventListener("paste", function (e) {
         e.preventDefault();
         if (e.clipboardData) {
             content = (e.originalEvent || e).clipboardData.getData('text/plain');
@@ -1704,7 +1704,7 @@ function init_notebox()
             content = window.clipboardData.getData('Text');
             document.selection.createRange().pasteHTML(content);
         }  
-    });
+    });*/
 
     document.getElementById('viewfile_notebox').addEventListener("input", save_notebox_data, false);
 
