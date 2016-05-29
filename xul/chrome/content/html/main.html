@@ -360,7 +360,7 @@
 <div class="yellow eh_sidebar" style="flex: 1 1 auto;">
     <div class="eh_sidebar_title">浏览</div>
 	<div class="yellow lighten-4" style="flex: 1 1 auto; height: 0px;">
-		<div id="pdf_page_list" class="eh_pdf_list">
+		<div id="pdf_page_list" class="eh_pdf_list" tabindex="-1">
             <!-- thumbnail list will be dynamicly generated here -->
 		</div>
 	</div>
@@ -426,7 +426,7 @@
     	<a class="light-green waves-effect waves-light btn darken-3 z-depth-0 eh_toolbar_button_small" onclick="notebox_execcmd('italic', false, undefined);"><i class="material-icons">format_italic</i></a>
     	<a class="light-green waves-effect waves-light btn darken-3 z-depth-0 eh_toolbar_button_small" onclick="notebox_execcmd('underline', false, undefined);"><i class="material-icons">format_underlined</i></a>
     	<a class="light-green waves-effect waves-light btn darken-3 z-depth-0 eh_toolbar_button_small" onclick="notebox_execcmd('undo', false, undefined);"><i class="material-icons">undo</i></a>
-        <a class="light-green waves-effect waves-light dropdown-button btn darken-3 z-depth-0 eh_toolbar_button_small" href='#' data-activates="textcolor_dropdown"><i class="material-icons">format_color_text</i></a>
+        <a class="light-green waves-effect waves-light dropdown-button btn darken-3 z-depth-0 eh_toolbar_button_small" data-activates="textcolor_dropdown"><i class="material-icons">format_color_text</i></a>
         <a class="light-green waves-effect waves-light btn darken-3 z-depth-0 eh_toolbar_button_small" onclick="notebox_execcmd('removeformat', false, undefined);"><i class="material-icons">format_clear</i></a>
     	
         <ul id="textcolor_dropdown" class="dropdown-content" onclick="return false;" onmousedown="return false;">
@@ -437,7 +437,11 @@
         </ul>
     </div>
 	<div class="light-green lighten-4" style="flex: 1 1 auto; height: 0px;">
-		<div style="overflow-y: auto; height: 100%; padding: 10px;">
+		<div style="overflow-y: auto; height: 100%; padding: 10px;" tabindex="-1">
+		    <!--
+		        all scrollable elements before this element should set 'tabindex="-1"'
+		        to avoid arrow keys scroll them
+		    -->
 		    <div id="viewfile_notebox" class="eh_xul_popupmenu eh_notebox" spellcheck="false" data-placeholder="请在此键入笔记" contenteditable="true"></div>
 		</div>
 	</div>
