@@ -296,9 +296,19 @@ function initp_filetype_icon()
 
 function launch_fileuri(fileuri)
 {
-    var file = Components.classes["@mozilla.org/file/local;1"].createInstance(Components.interfaces["nsILocalFile"]);
-    file.initWithPath(OS.Path.fromFileURI(fileuri));
-    file.launch();
+    if (eh_os == "Darwin") {
+        // I don't know why file.launch() doesn't work
+        // so I use the 'open' command line tool
+        var file = Components.classes["@mozilla.org/file/local;1"].createInstance(Components.interfaces["nsILocalFile"]);
+        file.initWithPath("/bin/bash"); // I don't know why using '/usr/bin/open' directly doesn't work
+        var process = Components.classes["@mozilla.org/process/util;1"].createInstance(Components.interfaces.nsIProcess);
+        process.init(file);
+        process.runw(false, ["-c", "exec /usr/bin/open '" + OS.Path.fromFileURI(fileuri) + "'"], 2);
+    } else {
+        var file = Components.classes["@mozilla.org/file/local;1"].createInstance(Components.interfaces["nsILocalFile"]);
+        file.initWithPath(OS.Path.fromFileURI(fileuri));
+        file.launch();
+    }
 
     /*var iosvc = Components.classes["@mozilla.org/network/io-service;1"].getService(Components.interfaces.nsIIOService);
     auri = iosvc.newURI(fileuri, null, null);
@@ -2052,7 +2062,8 @@ function pdfviewer_show(fitem, coursefolder)
                             // start ppt2pdf.vbs to convert
                             local_log("[pdfviewer] PPT2PDF convert start");
                             var file = Components.classes["@mozilla.org/file/local;1"].createInstance(Components.interfaces["nsILocalFile"]);
-                            file.initWithPath("c:\\windows\\system32\\cscript.exe");
+                            var cscript = OS.Path.join(Components.classes["@mozilla.org/process/environment;1"].getService(Components.interfaces.nsIEnvironment).get("SystemRoot"), "system32", "cscript.exe");
+                            file.initWithPath(cscript);
                             var process = Components.classes["@mozilla.org/process/util;1"].createInstance(Components.interfaces.nsIProcess);
                             process.init(file);
                             // process.runw() will crash if argv[] has undefined value in it
