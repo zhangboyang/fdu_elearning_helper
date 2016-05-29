@@ -406,6 +406,13 @@ ul li {
     line-height: 28px;
 }
 
+.eh_toolbar_button_small_text {
+    height: 28px;
+    margin: 2px 3px;
+    padding: 0px 8px;
+    line-height: 28px;
+}
+
 
 .eh_colorbox {
     float: left;

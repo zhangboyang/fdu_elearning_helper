@@ -1034,7 +1034,7 @@ function select_dtype(id)
         [id - 1]
     ).removeClass("darken-3").addClass("lighten-1");
 
-    canvas_resetselected();
+    canvas_clearselection();
 
     
     if (is_dtype_drawtype(id)) {
@@ -1238,7 +1238,7 @@ function canvas_clearpage()
 {
     drawlist = new Array();
     lastdraw = 0;
-    canvas_resetselected();
+    canvas_clearselection();
     canvas_clearsingle('pdf_page_draw');
     canvas_clearsingle('pdf_page_temp');
 }
@@ -1248,7 +1248,7 @@ function canvas_loaddata(data)
 {
     drawlist = data.drawlist;
     lastdraw = 0;
-    canvas_resetselected();
+    canvas_clearselection();
     canvas_clearsingle('pdf_page_draw');
     canvas_clearsingle('pdf_page_temp');
     canvas_redraw();
@@ -1325,11 +1325,11 @@ function canvas_removeselected()
     if (did_selected < 0) return;
     local_log("[draw] remove object (id = " + did_selected + ")");
     drawlist.splice(did_selected, 1);
-    canvas_resetselected();
+    canvas_clearselection();
     lastdraw = 0;
 }
 
-function canvas_resetselected()
+function canvas_clearselection()
 {
     if (did_selected >= 0) {
         $("#viewfile_dtoolbox").hide();
@@ -1347,7 +1347,7 @@ function canvas_mouseselect(mcoord)
 
     var did = canvas_selectobject(ccoord);
     if (did < 0) {
-        canvas_resetselected();
+        canvas_clearselection();
         return;
     }
 
@@ -1552,7 +1552,7 @@ function init_style()
     
     if (eh_os == "WINNT") {
         /* fix button for Windows */
-        $("<style type='text/css'> .btn { padding-top: 2px !important; } </style>").appendTo("head");
+        $("<style type='text/css'> .btn i { padding-top: 2px !important; } </style>").appendTo("head");
     }
 }
 
