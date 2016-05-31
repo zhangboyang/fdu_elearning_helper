@@ -3538,11 +3538,14 @@ function show_about()
 
 function show_debug_tools()
 {
-    local_log("[about] show debug tools");
-    $("#about_licensebox").hide();
-    $("#about_debugbox").show();
-    $("#about_dbgtoolbtn").removeClass("eh_link").text("调试工具已打开");
-    $("#about_debugsbox").scrollTop(0);
+    if (!$("#about_debugbox").is(":visible")) {
+        local_log("[about] show debug tools");
+        $("#about_licensebox").hide();
+        $("#ymttitle").hide();
+        $("#about_debugbox").show();
+        $("#about_dbgtoolbtn").removeClass("eh_link").text("调试工具已在左侧打开");
+        $("#about_debugsbox").scrollTop(0);
+    }
 }
 
 function initp_about()
@@ -3562,6 +3565,20 @@ function initp_about()
         "docfolder: " + ndocfolder + "\n" +
         "datafolder: " + datafolder + "\n" + 
         "logfile: " + eh_logfile + "\n");
+
+    $("#jtxjimage").click( function () {
+        var aobj = $("#ymtaudio")[0];
+        if (aobj.paused) {
+            $("#ymttitle").show();
+            aobj.play();
+        } else {
+            $("#ymttitle").hide();
+            aobj.pause();
+        }
+    });
+    $("#ymtaudio").bind("ended", function () {
+        $("#ymttitle").hide();
+    });
     
     return new Promise( function (resolve, reject) {
         $.get("license.txt", null, null, "text")
