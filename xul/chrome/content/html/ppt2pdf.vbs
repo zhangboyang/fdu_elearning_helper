@@ -50,6 +50,8 @@ Const ppWindowMaximized = 3
 Const ppWindowMinimized = 2
 Const ppWindowNormal = 1
 
+' https://msdn.microsoft.com/zh-cn/library/bb251061%28v=office.12%29.aspx
+Const ppSaveAsPDF = 32
 
 
 '
@@ -94,7 +96,7 @@ outputFile = objFso.GetAbsolutePathName(outputFile)
 'WriteLine "========================================"
 
 WriteLine "正在创建对象 ..."
-Set objPPT = CreateObject( "PowerPoint.Application" )
+Set objPPT = CreateObject("PowerPoint.Application")
 
 objPPT.Visible = True
 
@@ -114,10 +116,13 @@ objPrintOptions.RangeType = ppShowAll
 WriteLine "正在导出 (可能需要较长时间) ..."
 
 ' Reference for this at http://msdn.microsoft.com/en-us/library/office/ff746080.aspx
-objPresentation.ExportAsFixedFormat outputFile, ppFixedFormatTypePDF, ppFixedFormatIntentScreen, msoFalse, ppPrintHandoutHorizontalFirst, ppPrintOutputSlides, msoFalse, objPrintOptions.Ranges(1), ppPrintAll, "PPT2PDF", False, False, False, False, False
+'objPresentation.ExportAsFixedFormat outputFile, ppFixedFormatTypePDF, ppFixedFormatIntentScreen, msoFalse, ppPrintHandoutHorizontalFirst, ppPrintOutputSlides, msoFalse, objPrintOptions.Ranges(1), ppPrintAll, "PPT2PDF", False, False, False, False, False
+
+' WPS compatible
+objPresentation.SaveAs outputFile, ppSaveAsPDF
 
 WriteLine "正在执行关闭命令 ..."
 objPresentation.Close
-ObjPPT.Quit
+objPPT.Quit
 
 WriteLine "转换完成!"
