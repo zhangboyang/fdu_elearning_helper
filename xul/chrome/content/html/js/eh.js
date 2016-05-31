@@ -194,35 +194,55 @@ function create_dir(diruri, baseuri)
 }
 
 
-function local_log(msg)
+/*
+    local log related functions
+*/
+var local_log_queue = new Array();
+var local_log_flush_limit = 10;
+function flush_local_log() // flush log to file, return promise
 {
-    if (eh_debug && eh_dbglocallog) {
-        var c = new Date();
-        var logfile = eh_logfile;
-        return new Promise( function (resolve, reject) {
-            console.log("LOCAL LOG: " + msg);
-            window.parent.mylog("LOCAL LOG: " + msg);
-            OS.File.open(logfile, { write: true, append: true }).then( function (f) {
-                var str = "[" + format_date(c, "dtsm") + "] " + msg + "\n";
-                var encoder = new TextEncoder();
-                var array = encoder.encode(str);
-                f.write(array).then( function (len) {
-                    f.close().then( function () {
-                        resolve(len);
-                    }, function (reason) {
-                        reject("f.close() failed: " + reason);
-                    });
+    if (local_log_queue.length == 0) return Promise.resolve(0);
+    
+    var logdata = "";
+    local_log_queue.forEach( function (str) { logdata += str; } );
+    local_log_queue.length = 0;
+    
+    return new Promise( function (resolve, reject) {
+        OS.File.open(eh_logfile, { write: true, append: true }).then( function (f) {
+            var encoder = new TextEncoder();
+            var bindata = encoder.encode(logdata);
+            f.write(bindata).then( function (len) {
+                f.close().then( function () {
+                    resolve(len);
                 }, function (reason) {
-                    reject("f.write() failed: " + reason);
+                    reject("f.close() failed: " + reason);
                 });
             }, function (reason) {
-                reject("OS.File.open() failed: " + reason);
+                reject("f.write() failed: " + reason);
             });
+        }, function (reason) {
+            reject("OS.File.open() failed: " + reason);
         });
-    } else {
-        return Promise.resolve(0);
+    });
+}
+function local_log(msg) // add log to queue
+{
+    if (eh_debug && eh_dbglocallog) {
+        var str = "[" + format_date(new Date(), "dtsm") + "] " + msg + "\n";
+        local_log_queue.push(str);
+        console.log("LOCAL LOG: " + str);
+        window.parent.mylog("LOCAL LOG: " + str);
+        if (local_log_queue.length >= local_log_flush_limit) {
+            flush_local_log();
+        }
     }
 }
+
+
+
+
+
+
 
 
 function get_filetype_remote_iconuri(ext)
@@ -798,10 +818,13 @@ function show_page(page_name)
 */
 function eh_unload()
 {
+    var array = new Array();
     if (current_page == "viewfile") {
-        return viewfile_leave();
+        array.push(viewfile_leave());
     }
-    return Promise.resolve(0);
+    local_log("==== exit ====");
+    array.push(flush_local_log());
+    return Promise.all(array);
 }
 
 
@@ -1637,6 +1660,7 @@ $("document").ready( function () {
                     local_log("ostype: " + eh_os);
                     local_log("osname: " + window.parent.sysinfo.getProperty("name"));
                     local_log("osversion: " + window.parent.sysinfo.getProperty("version"));
+                    local_log("arch: " + window.parent.sysinfo.getProperty("arch"));
         
                     if (el_username == "" || el_password == "" || !el_rememberme) {
                         init_login_page();
@@ -1685,7 +1709,6 @@ function load_notebox_data(data)
 function save_notebox_data()
 {
     if (notebox_data) {
-
         notebox_data.html = $("#viewfile_notebox").html();
     }
 }
@@ -1710,7 +1733,10 @@ function init_notebox()
         }  
     });*/
 
-    document.getElementById('viewfile_notebox').addEventListener("input", save_notebox_data, false);
+    document.getElementById('viewfile_notebox').addEventListener("input", function () {
+        local_log("[notebox] input event, notebox data length = " + $("#viewfile_notebox").html().length);
+        save_notebox_data();
+    }, false);
 
 }
 
@@ -3122,6 +3148,7 @@ function coursetable_enter(cidx, x, y)
         $("#filenav_syncinprogresstext").show();
         $("#filenav_syncfinishedtext").empty().hide();
         $("#filenav_showsyncdetails").unbind("click").click( function () {
+            local_log("[sync] " + ($("#filenav_syncdetails_fbox").is(":visible") ? "hide" : "show") + " detail");
             $("#filenav_syncdetails_fbox").toggle();
             $("#filenav_syncdetails_box").scrollTop(0);
         });
@@ -3147,7 +3174,7 @@ function coursetable_enter(cidx, x, y)
                 $("#filenav_syncprogress").text(finished.toString() + "/" + total.toString());
             }
         ).then( function (obj) {
-            local_log("[sync] finished (cname = " + cobj.cname + ", uuid = " + sobj.uuid + ")");
+            local_log("[sync] finished (newfile = " + obj.sum.toString() + ", cname = " + cobj.cname + ", uuid = " + sobj.uuid + ")");
             
             $("#filenav_syncinprogresstext").hide();
             if (obj.sum == 0) {
@@ -3223,6 +3250,7 @@ function coursetable_enter(cidx, x, y)
                     $(this).addClass("eh_selected");
                     var actobj = $(document.createElement('span'));
                     $(document.createElement('span')).addClass("eh_link").text("打开文件位置").click( function () {
+                        local_log("[filenav] reveal file (fpath = " + fitem.path + ")");
                         reveal_fileuri(fileuri);
                     }).appendTo(actobj);
                     var detaildiv = $("#filenav_deatils");
@@ -3279,7 +3307,7 @@ function coursetable_enter(cidx, x, y)
         
     } else {
         // no matching site
-        friendly_error("没有匹配的 eLearning 站点");
+        friendly_error("该课程没有 eLearning 站点");
     }
 }
 
@@ -3579,9 +3607,11 @@ function initp_about()
     $("#jtxjimage").click( function () {
         var aobj = $("#ymtaudio")[0];
         if (aobj.paused) {
+            local_log("[about] start YMT playback");
             $("#ymttitle").show();
             aobj.play();
         } else {
+            local_log("[about] pause YMT playback");
             $("#ymttitle").hide();
             aobj.pause();
         }
@@ -3679,11 +3709,13 @@ function select_docfolder()
             $("#settings_docfolder").val(path);
             set_unicode_pref(prefs, "docfolder", path);
             ndocfolder = path;
-            local_log("change docfolder to " + ndocfolder);
-            initp_docfolder().then( function () {
-                initp_createdirs().then( function () {
-                    initp_tools().then( function () {
-                        $("#settingssaved").show();
+            local_log("[settings] change docfolder to " + ndocfolder);
+            flush_local_log().then( function () {
+                initp_docfolder().then( function () {
+                    initp_createdirs().then( function () {
+                        initp_tools().then( function () {
+                            $("#settingssaved").show();
+                        });
                     });
                 });
             });
