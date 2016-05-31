@@ -3519,7 +3519,13 @@ function eh_logout()
 // ======================= about page related function ===================
 
 var aboutpage_lastpage = "";
-function aboutpage_goback() { local_log("[about] goback"); show_page(aboutpage_lastpage); }
+function aboutpage_goback()
+{
+    local_log("[about] goback");
+    var aobj = $("#ymtaudio")[0];
+    if (!aobj.paused) aobj.pause();
+    show_page(aboutpage_lastpage);
+}
 function show_about()
 {
     local_log("[about] enter");
@@ -3540,8 +3546,12 @@ function show_debug_tools()
 {
     if (!$("#about_debugbox").is(":visible")) {
         local_log("[about] show debug tools");
-        $("#about_licensebox").hide();
         $("#ymttitle").hide();
+        try {
+            $("#ymtaudio")[0].currentTime = 0;
+        } catch (e) {
+        }
+        $("#about_licensebox").hide();
         $("#about_debugbox").show();
         $("#about_dbgtoolbtn").removeClass("eh_link").text("调试工具已在左侧打开");
         $("#about_debugsbox").scrollTop(0);
