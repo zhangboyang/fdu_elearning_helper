@@ -100,8 +100,8 @@ Set objPPT = CreateObject("PowerPoint.Application")
 
 objPPT.Visible = True
 
-' may cause PPT to crash
-'objPPT.WindowState = ppWindowMinimized
+' may cause PPT to crash when objPPT.ExportAsFixedFormat
+objPPT.WindowState = ppWindowMinimized
 
 
 WriteLine "正在执行打开命令 (可能需要较长时间) ..."
