@@ -1037,8 +1037,9 @@ function is_dtype_drawtype(id) { return id >= 3; }
 function get_dtype(id)
 {
     var l = [
-        "navigate",
+        //"navigate",
         "select",
+        "eraser",
         "rect",
         "ellipse",
         "line",
@@ -3743,6 +3744,7 @@ function select_docfolder()
 // used in xulmain.js
 function should_popupmenu(element)
 {
+    console.log("popupmenu", element);
     var a = $(".eh_xul_popupmenu");
     for (var i = 0; i < a.length; i++)
         if ($.contains(a[i], element) || a[i] == element)
