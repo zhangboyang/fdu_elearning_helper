@@ -3,7 +3,6 @@ NOTE:
     This license is not applicable to following directories:
         /xul/chrome/content/html/materialize
         /xul/chrome/content/html/pdfjs
-        /xul/chrome/content/html/cryptojs
     Because they have their own licenses.
 ==============================================================================
 
