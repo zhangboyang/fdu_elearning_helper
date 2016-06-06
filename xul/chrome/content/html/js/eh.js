@@ -2224,6 +2224,9 @@ function pdfviewer_issupported(fitem)
 
 // ====================== WebDAV related functions =============================
 
+var sync_id = 0;
+var xhr_objlist = new Array();
+
 /* 
     dav_file_list:
         href: start with /dav/someuuid/...
@@ -2393,6 +2396,7 @@ function webdav_binary_xhr(url, xhrprogresscallback)
         xhr.setRequestHeader("Translate", "f"); // requested by webdav
         xhr.send();
 
+        xhr_objlist.push(xhr);
     });
 }
 
@@ -2430,7 +2434,7 @@ function webdav_create_localpath(localbase, subpath)
     fitem: single object in flist
     localbase: local file uri of current site
 */
-function webdav_download_single(fitem, localbase, xhrprogresscallback)
+function webdav_download_single(fitem, localbase, cur_sync_id, xhrprogresscallback)
 {
     var target_uri = localbase + fitem.path;
     check_path_with_base(target_uri, localbase);
@@ -2441,6 +2445,7 @@ function webdav_download_single(fitem, localbase, xhrprogresscallback)
         //show_msg("url=" + url + " file=" + target_native);
 
         webdav_binary_xhr(url, xhrprogresscallback).then(function (data) { // onsuccess
+            if (cur_sync_id != sync_id) reject("####同步已取消####");
             OS.File.writeAtomic(target_native, data)
                 .then(function () {
                     var lmd = new Date(Date.parse(fitem.lastmodified));
@@ -2473,7 +2478,7 @@ function webdav_download_single(fitem, localbase, xhrprogresscallback)
         fstatus: statuslist item object
         update_count_callback(delta_finished, delta_total)
 */
-function webdav_sync_single(fitem, sdfitem, localbase, fstatus, update_count_callback)
+function webdav_sync_single(fitem, sdfitem, localbase, cur_sync_id, fstatus, update_count_callback)
 {
     var target_uri = localbase + fitem.path;
     check_path_with_base(target_uri, localbase);
@@ -2528,10 +2533,11 @@ function webdav_sync_single(fitem, sdfitem, localbase, fstatus, update_count_cal
         }).then( function (shoulddownload) {
             console.log(fitem.path, shoulddownload);
             if (shoulddownload.flag) {
+                if (cur_sync_id != sync_id) reject("####同步已取消####");
                 //console.log("file not exists, download: " + fitem.path);
                 statuslist_update(fstatus, "准备下载", "blue");
                 update_count_callback(0, 1);
-                webdav_download_single(fitem, localbase, function (e) { // xhrprogresscallback
+                webdav_download_single(fitem, localbase, cur_sync_id, function (e) { // xhrprogresscallback
                     if (e.lengthComputable) {
                         var v = Math.round((e.loaded / e.total) * 100);
                         statuslist_update(fstatus, "下载中 (" + v.toString() + "%)", "blue");
@@ -2618,6 +2624,9 @@ function write_syncdatafile(syncdatafile, lobj)
 */
 function webdav_sync(uuid, coursefolder, syncdatafile, statuslist, report_progress)
 {
+    var cur_sync_id = ++sync_id;
+    xhr_objlist.length = 0;
+    
     return new Promise( function (resolve, reject) {
         // create course folder
         var localbase = docfolder + coursefolder;
@@ -2647,6 +2656,7 @@ function webdav_sync(uuid, coursefolder, syncdatafile, statuslist, report_progre
                 // list dir
                 var lsstatus = statuslist_appendprogress(statuslist, "正在列目录");
                 webdav_listall(uuid).then( function (lobj) {
+                    if (cur_sync_id != sync_id) reject("####同步已取消####");
                     preprocess_lobj(lobj, sdfmap);
                     Promise.all(lobj.dlist.map( function (ditem) { return webdav_create_localpath(localbase, ditem.path); } ))
                         .then( function () {
@@ -2659,7 +2669,7 @@ function webdav_sync(uuid, coursefolder, syncdatafile, statuslist, report_progre
                                     return new Promise( function (resolve, reject) {
                                         var fstatus = statuslist_appendprogress(statuslist, "正在同步 " + fitem.path);
                                         statuslist_update(fstatus, "正在检查", "blue");
-                                        webdav_sync_single(fitem, sdfmap.get(fitem.path), localbase, fstatus,
+                                        webdav_sync_single(fitem, sdfmap.get(fitem.path), localbase, cur_sync_id, fstatus,
                                             function (delta_count, delta_total) { // update_count_callback
                                                 count += delta_count;
                                                 total += delta_total;
@@ -2702,6 +2712,7 @@ function webdav_sync(uuid, coursefolder, syncdatafile, statuslist, report_progre
                                     lobj.timestamp = new Date().getTime();
                                     console.log(syncdatafile);
                                     write_syncdatafile(syncdatafile, lobj).then( function () {
+                                        xhr_objlist.length = 0;
                                         resolve({
                                             lobj: lobj,
                                             sum: sum,
@@ -2727,7 +2738,15 @@ function webdav_sync(uuid, coursefolder, syncdatafile, statuslist, report_progre
 }
 
 
-
+function webdav_cancel_sync()
+{
+    local_log("[sync] aborted");
+    sync_id++;
+    xhr_objlist.forEach( function (xhr) {
+        xhr.abort();
+    });
+    xhr_objlist.length = 0;
+}
 
 
 
@@ -3227,9 +3246,10 @@ function coursetable_enter(cidx, x, y)
             if (webdav_sync_complete) {
                 go_back();
             } else {
-                show_msg("请等待同步完成");
+                webdav_cancel_sync();
+                go_back();
             }
-        });  
+        });
         
         // found matched site
         show_page("filenav");
