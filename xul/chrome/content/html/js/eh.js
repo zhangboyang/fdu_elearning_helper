@@ -14,6 +14,9 @@ var usebuiltinviewer; // use builtin pdfviewer or not
 var page_limit; // pdfviewer page limit
 var usebuiltinbrowser; // use builtin browser or not
 var syncoverwrite; // overwrite files while sync or not
+var syncsizelimit; // size limit for single file, files exceed this limit will be ignored
+var syncignoreext_str; // filename with exts in this list should be ignored, string format, like "exe, zip, rar"
+var syncignoreext; // set format
 
 function load_prefs()
 {
@@ -26,7 +29,12 @@ function load_prefs()
     usebuiltinviewer = prefs.getBoolPref("usebuiltinviewer");
     page_limit = prefs.getIntPref("pagelimit");
     usebuiltinbrowser = prefs.getBoolPref("usebuiltinbrowser");
+
     syncoverwrite = prefs.getBoolPref("syncoverwrite");
+
+    syncsizelimit = prefs.getIntPref("syncsizelimit");
+    syncignoreext_str = prefs.getCharPref("syncignoreext");
+    syncignoreext = new Set(syncignoreext_str.split(",").map( function (str) { return str.trim(); } ));
 }
 
 function save_prefs()
@@ -38,6 +46,10 @@ function save_prefs()
     prefs.setIntPref("pagelimit", page_limit);
     prefs.setBoolPref("usebuiltinbrowser", usebuiltinbrowser);
     prefs.setBoolPref("syncoverwrite", syncoverwrite);
+    prefs.setIntPref("syncsizelimit", syncsizelimit);
+    prefs.setCharPref("syncignoreext", syncignoreext_str);
+    
+    load_prefs(); // load prefs just saved
 }
 
 // https://developer.mozilla.org/en-US/Add-ons/Code_snippets/Preferences
@@ -2560,6 +2572,11 @@ function preprocess_lobj(lobj, sdfmap)
         if (sdfitem === undefined) sdfitem = {};
         fitem.force_no_ignore = (sdfitem.force_no_ignore === true);
         fitem.ignore = false;
+
+        if (fitem.contentlength > syncsizelimit || syncignoreext.has(get_file_ext(fitem.path))) {
+            // if file is too big or file ext is in ignore list
+            fitem.ignore = true;
+        }
     });
 }
 

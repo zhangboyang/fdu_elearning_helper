@@ -10,6 +10,8 @@ pref("elearninghelper.pagelimit", 200); // pdfviewer: page limit
 pref("elearninghelper.usebuiltinbrowser", true); // use builtin browser
 
 pref("elearninghelper.syncoverwrite", true); // syncoverwrite
+pref("elearninghelper.syncsizelimit", 10485760); // size limit for single file
+pref("elearninghelper.syncignoreext", "zip, rar, dmg, 7z, tar, xz, gz, bz2"); // ext ignore list
 
 pref("elearninghelper.datafolder", ""); // datafolder, native style
 pref("elearninghelper.docfolder", ""); // docfolder, native style
