@@ -3647,15 +3647,16 @@ function initp_about()
 function show_settings()
 {
     local_log("[settings] enter");
+    var cch = $("#settingsbox").children("div");
     var ch = $("#settingsdescbox").children("div");
     var resetfunc = function () {
         ch.hide();
         ch.filter("[data-sdescref='empty']").show();
         $("#settingsdesctitle").empty().hide();
+        cch.css("background-color", "");
     };
     resetfunc();
 
-    var cch = $("#settingsbox").children("div");
     cch.unbind('mouseenter mouseleave change');
     load_settings(cch);
     cch.each( function (index, element) {
@@ -3665,6 +3666,7 @@ function show_settings()
             ch.hide();
             ch.filter("[data-sdescref='" + ref + "']").show();
             $("#settingsdesctitle").text(title).show();
+            $(this).css("background-color", "white");
             local_log("[settings] hover (ref = " + ref + ", title = " + title + ")");
         }, resetfunc);
         if (ref != "df") {

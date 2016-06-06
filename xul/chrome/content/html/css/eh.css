@@ -581,7 +581,9 @@ ul li {
 
 
 #settingsbox div {
-    padding: 15px 0px 15px 0px;
+    padding: 20px 15px 15px 15px;
+    margin: 5px;
+    border-radius: 2px;
 }
 #settingsbox span {
     font-size: 16px;
