@@ -440,10 +440,22 @@ function date_offset(d)
                 unit = "周";
                 color = "blue";
             } else if (o < 365 * 24 * 60 * 60 * 1000) {
-                number = (f * (d.getMonth() - c.getMonth()) + 12) % 12;
+                number = 0;
+                var t = new Date(d);
+                while (number <= 36) { // set limit in case of infloop
+                    t.setMonth(t.getMonth() - f);
+                    if (t >= c) break;
+                    number++;
+                }
+                if (number == 0) number = 1;
+                /*if ((t.getTime() - c.getTime()) / (24 * 60 * 60 * 1000) < 15) {
+                    number++; // do some rounding
+                }*/
+                
                 unit = "个月";
                 if (number <= 1) color = "darkgreen";
                 else if (number <= 3) color = "black";
+                else color = "black";
             } else {
                 number = Math.abs(d.getFullYear() - c.getFullYear());
                 unit = "年";
@@ -487,7 +499,7 @@ function format_date(d, fmt)
         if (base != "") {
             return base + " (" + desc.slice(2) + ")";
         } else {
-            return desc;
+            return desc.slice(2);
         }
     } else {
         return base;
@@ -1453,6 +1465,7 @@ function init_canvas()
     var check_and_do_eraser_func = function (e) {
         var dtype = get_dtype(dtype_selected);
         if (dtype == "eraser") {
+            e.preventDefault();
             refresh_canvas_parameters();
             var mcoord = { x: e.pageX, y: e.pageY };
             canvas_mouseselect(mcoord, 5, true);
