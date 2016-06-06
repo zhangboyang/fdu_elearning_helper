@@ -1080,6 +1080,7 @@ function reset_dtype()
 
 // ============= drawing related functions  (in the PDF viewer) ==========
 
+var is_mousedown = false;
 var is_painting = false;
 var canvas_offset; // x: left, y: top
 var canvas_size; // x: width, y: height
@@ -1111,7 +1112,7 @@ var tmp_lastdraw; // index of last draw coord, for redraw_single()
 var lastdraw; // index of last drawn object + 1, for redraw()
 
 
-var did_selected; // id of selected dobj, -1 if none selected
+var did_selected = -1; // id of selected dobj, -1 if none selected
 
 
 // ccoord: canvas coord is related to left, top corner, in px
@@ -1449,7 +1450,19 @@ function refresh_canvas_parameters()
 
 function init_canvas()
 {
+    var check_and_do_eraser_func = function (e) {
+        var dtype = get_dtype(dtype_selected);
+        if (dtype == "eraser") {
+            refresh_canvas_parameters();
+            var mcoord = { x: e.pageX, y: e.pageY };
+            canvas_mouseselect(mcoord, 5, true);
+            canvas_removeselected();
+        }
+    };
     $('#pdf_page_front').mousedown( function (e) {
+        is_mousedown = true;
+        check_and_do_eraser_func(e);
+        
         if (!is_dtype_drawtype(dtype_selected)) return;
         var dtype = get_dtype(dtype_selected);
         e.preventDefault();
@@ -1470,18 +1483,10 @@ function init_canvas()
         local_log("[draw] click (dtype = " + dtype + ")");
         if (dtype == "navigate") {
             show_pdf_switchpage(1);
-        } else if (dtype == "select" || dtype == "eraser") {
+        } else if (dtype == "select") {
             refresh_canvas_parameters();
             var mcoord = { x: e.pageX, y: e.pageY };
-            
-            if (dtype == "select") {
-                canvas_mouseselect(mcoord, 50);
-            } else if (dtype == "eraser") {
-                canvas_mouseselect(mcoord, 10, true);
-                canvas_removeselected();
-            } else {
-                assert(0);
-            }
+            canvas_mouseselect(mcoord, 50);
         }
         e.preventDefault();
     });
@@ -1489,9 +1494,12 @@ function init_canvas()
         if (is_painting) {
             var mcoord = { x: e.pageX, y: e.pageY };
             canvas_addmousedata(mcoord);
+        } else if (is_mousedown) {
+            check_and_do_eraser_func(e);
         }
     });
     $(document).mouseup( function (e) {
+        is_mousedown = false;
         if (is_painting) {
             canvas_clearsingle('pdf_page_temp');
             canvas_shrink_dobj(tmp_dobj);
