@@ -107,7 +107,9 @@ ul li {
 }
 
 
-
+.eh_add_margin_to_child_span span {
+    margin-right: 10px;
+}
 
 
 

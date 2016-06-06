@@ -747,6 +747,7 @@ function assert(x)
 }
 
 
+
 // =============== page switching related functions ======================
 
 
@@ -2482,32 +2483,39 @@ function webdav_sync_single(fitem, sdfitem, localbase, fstatus, update_count_cal
                     }
                 });
             }).then( function (fexists) {
+                fitem.exists = fexists;
                 if (fexists && !syncoverwrite) {
                     // file exists, and user requires no overwrite
-                    resolve(false);
+                    resolve({ flag: false, reason: "文件已存在" });
+                    return;
+                }
+                if (fitem.ignore && !fitem.force_no_ignore) {
+                    // if ignore flag is set, and no override by user
+                    resolve({ flag: false, reason: "忽略" });
                     return;
                 }
                 if (!sdfitem) {
                     // no current file in previous data, download it
-                    resolve(true);
+                    resolve({ flag: true });
                     return;
                 }
                 if (sdfitem.lastmodified != fitem.lastmodified || sdfitem.etag != fitem.etag) {
                     // file changed (etag, lastmodified), download it
-                    resolve(true);
+                    resolve({ flag: true });
                     return;
                 }
                 if (!fexists) {
                     // file not exists (may be deleted), download it
-                    resolve(true);
+                    resolve({ flag: true });
                     return;
                 }
-                resolve(false);
+                resolve({ flag: false, reason: "已是最新" });
             }, function (reason) {
                 reject("can't check file existance: " + reason);
             });
         }).then( function (shoulddownload) {
-            if (shoulddownload) {
+            console.log(fitem.path, shoulddownload);
+            if (shoulddownload.flag) {
                 //console.log("file not exists, download: " + fitem.path);
                 statuslist_update(fstatus, "准备下载", "blue");
                 update_count_callback(0, 1);
@@ -2520,13 +2528,14 @@ function webdav_sync_single(fitem, sdfitem, localbase, fstatus, update_count_cal
                     statuslist_update(fstatus, "下载成功", "green", " (新)", "red");
                     update_count_callback(1, 0);
                     fitem.is_new_file = true;
+                    fitem.exists = true;
                     resolve(1);
                 }, function (reason) { // onerror
                     statuslist_update(fstatus, "下载失败", "red");
                     reject("download single failed: " + reason);
                 });
             } else {
-                statuslist_update(fstatus, "无需下载", "green");
+                statuslist_update(fstatus, shoulddownload.reason, "green");
                 fitem.is_new_file = false;
                 resolve(0);
             }
@@ -2536,6 +2545,37 @@ function webdav_sync_single(fitem, sdfitem, localbase, fstatus, update_count_cal
     });
 }
 
+
+
+/*
+    do some preprocess jobs
+    for example: ignore huge files ...
+
+    sdfmap: Map: path => fitem
+*/
+function preprocess_lobj(lobj, sdfmap)
+{
+    lobj.flist.forEach( function (fitem) {
+        var sdfitem = sdfmap.get(fitem.path);
+        if (sdfitem === undefined) sdfitem = {};
+        fitem.force_no_ignore = (sdfitem.force_no_ignore === true);
+        fitem.ignore = false;
+    });
+}
+
+
+// syncdatafile wrappers
+function read_syncdatafile(syncdatafile)
+{
+    return read_json_from_fileuri(syncdatafile).then( function (obj) {
+        console.log("READ SYNCDATA", obj);
+        return obj.lobj;
+    });
+}
+function write_syncdatafile(syncdatafile, lobj)
+{
+    return write_json_to_fileuri({ lobj: lobj }, syncdatafile);
+}
 
 /*
     sync a whole site
@@ -2569,8 +2609,7 @@ function webdav_sync(uuid, coursefolder, syncdatafile, statuslist, report_progre
             // read previous sync data
             var sdstatus = statuslist_appendprogress(statuslist, "正在检查同步状态");
             new Promise(function (resolve, reject) {
-                read_json_from_fileuri(syncdatafile).then( function (obj) {
-                    var lobj = obj.lobj;
+                read_syncdatafile(syncdatafile).then( function (lobj) {
                     if (lobj !== undefined) {
                         // read ok, use the data as syncdata
                         statuslist_update(sdstatus, "上次同步于 " + format_date(new Date(lobj.timestamp), "do"), "green");
@@ -2591,6 +2630,7 @@ function webdav_sync(uuid, coursefolder, syncdatafile, statuslist, report_progre
                 // list dir
                 var lsstatus = statuslist_appendprogress(statuslist, "正在列目录");
                 webdav_listall(uuid).then( function (lobj) {
+                    preprocess_lobj(lobj, sdfmap);
                     Promise.all(lobj.dlist.map( function (ditem) { return webdav_create_localpath(localbase, ditem.path); } ))
                         .then( function () {
                             statuslist_update(lsstatus, "完成", "green");
@@ -2621,11 +2661,22 @@ function webdav_sync(uuid, coursefolder, syncdatafile, statuslist, report_progre
                                     for (var i = 0; i < dstat.length; i++) {
                                         sum += dstat[i];
                                     }
-                                    if (sum == 0) {
-                                        // we have no new files, we should set fitem.is_new_file to previous status
+
+                                    
+                                    // if no new file, we should set fitem.is_new_file to previous status
+                                    // otherwise, we should mark new files only
+                                    var new_item_flag = false;
+                                    lobj.flist.forEach( function (fitem) {
+                                        var sdfitem = sdfmap.get(fitem.path);
+                                        if (sdfitem === undefined) {
+                                            new_item_flag = true;
+                                            fitem.is_new_file = true;
+                                        }
+                                    });
+
+                                    if (!new_item_flag) {
                                         lobj.flist.forEach( function (fitem) {
                                             var sdfitem = sdfmap.get(fitem.path);
-                                            assert(sdfitem != undefined);
                                             fitem.is_new_file = sdfitem.is_new_file;
                                         });
                                     }
@@ -2633,7 +2684,7 @@ function webdav_sync(uuid, coursefolder, syncdatafile, statuslist, report_progre
                                     statuslist_append(statuslist, "同步完成，共有 " + sum + " 个新文件", "green");
                                     lobj.timestamp = new Date().getTime();
                                     console.log(syncdatafile);
-                                    write_json_to_fileuri({ lobj: lobj }, syncdatafile).then( function () {
+                                    write_syncdatafile(syncdatafile, lobj).then( function () {
                                         resolve({
                                             lobj: lobj,
                                             sum: sum,
@@ -3189,7 +3240,7 @@ function coursetable_enter(cidx, x, y)
         });
         $("#filenav_resync").hide().unbind("click").click( function () {
             local_log("[filenav] resync (cname = " + cobj.cname + ", uuid = " + sobj.uuid + ")");
-            coursetable_enter(cidx, x, y)
+            coursetable_enter(cidx, x, y);
         });
 
         // prepare detail box
@@ -3259,15 +3310,24 @@ function coursetable_enter(cidx, x, y)
                 
                 // filename
                 var fndisp = fitem.path.slice(1);
-                var obj = $(document.createElement('span'))
+                var fnobj = $(document.createElement('span'))
                     .text(fndisp)
                     .addClass("eh_link2");
-                var fntd = $(document.createElement('td')).append(obj).appendTo(rowobj);
+                var fntd = $(document.createElement('td')).append(fnobj).appendTo(rowobj);
 
+                var mark_noignore_and_download_func = function () {
+                    fitem.force_no_ignore = true;
+                    write_syncdatafile(syncdatafile, obj.lobj).then( function () {
+                        coursetable_enter(cidx, x, y);
+                    });
+                };
+                
                 let openoutside = !pdfviewer_issupported(fitem); // should we open this file outside
-                var openfunc = function (e) {
+                var openfunc = function (e) { // user dblclick file
                     console.log(fitem, coursefolder);
-                    if (openoutside) { // user dblclick file
+                    if (!fitem.exists) {
+                        mark_noignore_and_download_func();
+                    } else if (openoutside) {
                         launch_fileuri(fileuri);
                     } else {
                         pdfviewer_show(fitem, coursefolder).catch( function (reason) {
@@ -3283,11 +3343,17 @@ function coursetable_enter(cidx, x, y)
                     //$(this).parent().find("span").filter(".eh_link2").removeClass("eh_link2").addClass("eh_link3");
                     $(this).parent().children("tr").removeClass("eh_selected");
                     $(this).addClass("eh_selected");
-                    var actobj = $(document.createElement('span'));
+                    var actobj = $(document.createElement('span')).addClass("eh_add_margin_to_child_span");
+                    
+                    if (!fitem.exists) {
+                        $(document.createElement('span')).addClass("eh_link").text("下载此文件").click(mark_noignore_and_download_func).appendTo(actobj);
+                    }
+                    
                     $(document.createElement('span')).addClass("eh_link").text("打开文件位置").click( function () {
                         local_log("[filenav] reveal file (fpath = " + fitem.path + ")");
                         reveal_fileuri(fileuri);
                     }).appendTo(actobj);
+                    
                     var detaildiv = $("#filenav_deatils");
                     detaildiv.empty()
                         .append($(create_kvdiv("名称: ", fitem.filename, function () {
@@ -3299,9 +3365,12 @@ function coursetable_enter(cidx, x, y)
                         .append($(create_kvdiv_with_obj("操作: ", actobj)));
                 };
 
-                if (fitem.is_new_file) {
+                var redmsg = "";
+                if (fitem.is_new_file) redmsg += ", 新";
+                if (!fitem.exists) redmsg += ", 尚未下载";
+                if (redmsg != "") {
                     $(document.createElement('span'))
-                        .text(" (新)")
+                        .text(" (" + redmsg.slice(2) + ")")
                         .css("color", "red")
                         .appendTo(fntd);
                 }
