@@ -1280,7 +1280,7 @@ function canvas_loaddata(data)
 
 
 
-/* return distance to object */
+/* return distance (screen distance) to object */
 function canvas_distance2object(dobj, ccoord)
 {
     if (dobj.data.length == 1) {
@@ -1328,8 +1328,9 @@ function canvas_distance2object(dobj, ccoord)
     return -1 if none should be selected
     note: we MUSE use CCOORD
 */
-function canvas_selectobject(ccoord)
+function canvas_selectobject(ccoord, limit)
 {
+    if (limit === undefined) limit = Infinity;
     var ret = -1;
     var mindist = Infinity;
     for (var i = 0; i < drawlist.length; i++) {
@@ -1341,7 +1342,8 @@ function canvas_selectobject(ccoord)
             }
         }
     }
-    return ret;
+    if (mindist > limit) return -1;
+    else return ret;
 }
 
 function canvas_removeselected()
@@ -1364,29 +1366,32 @@ function canvas_clearselection()
 }
 
 /* select object by mouse */
-function canvas_mouseselect(mcoord)
+function canvas_mouseselect(mcoord, limit, change_did_only)
 {
     var ccoord = canvas_m2c(mcoord);
     var ncoord = canvas_c2n(ccoord);
 
-    var did = canvas_selectobject(ccoord);
+    var did = canvas_selectobject(ccoord, limit);
     if (did < 0) {
         canvas_clearselection();
         return;
     }
 
     did_selected = did;
-    local_log("[draw] select object (id = " + did_selected + ")");
 
-    console.log(drawlist[did]);
-    
-    canvas_redrawselected();
+    if (!change_did_only) {
+        local_log("[draw] select object (id = " + did_selected + ")");
 
-    select_color(get_color_id(drawlist[did_selected].color), false);
-    select_thickness(get_thickness_id(drawlist[did_selected].thickness), false);
-    
-    $("#viewfile_dtoolbox").show();
-    $("#viewfile_deditbox").show();
+        console.log(drawlist[did]);
+        
+        canvas_redrawselected();
+
+        select_color(get_color_id(drawlist[did_selected].color), false);
+        select_thickness(get_thickness_id(drawlist[did_selected].thickness), false);
+        
+        $("#viewfile_dtoolbox").show();
+        $("#viewfile_deditbox").show();
+    }
 }
 
 function canvas_redrawselected()
@@ -1465,10 +1470,18 @@ function init_canvas()
         local_log("[draw] click (dtype = " + dtype + ")");
         if (dtype == "navigate") {
             show_pdf_switchpage(1);
-        } else if (dtype == "select") {
+        } else if (dtype == "select" || dtype == "eraser") {
             refresh_canvas_parameters();
             var mcoord = { x: e.pageX, y: e.pageY };
-            canvas_mouseselect(mcoord);
+            
+            if (dtype == "select") {
+                canvas_mouseselect(mcoord, 50);
+            } else if (dtype == "eraser") {
+                canvas_mouseselect(mcoord, 10, true);
+                canvas_removeselected();
+            } else {
+                assert(0);
+            }
         }
         e.preventDefault();
     });
