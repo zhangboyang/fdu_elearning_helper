@@ -1485,6 +1485,23 @@ function init_canvas()
             canvas_removeselected();
         }
     };
+    $('#pdf_page_front').keypress( function (e) {
+        console.log("KEYPRESS", e);
+        var f = 0;
+        switch (e.keyCode) {
+            case 40: case 39: case 34: f = 1; break;
+            case 38: case 37: case 33: f = -1; break;
+            case 0:
+                switch (e.charCode) {
+                    case 32: f = 1; break;
+                }
+                break;
+        }
+        if (f != 0) {
+            local_log("[pdfviewer] switch page by keyboard (keyCode = " + e.keyCode + ", charCode = " + e.charCode + ", f = " + f + ")");
+            show_pdf_switchpage(f);
+        }
+    });
     $('#pdf_page_front').mousedown( function (e) {
         is_mousedown = true;
         check_and_do_eraser_func(e);
@@ -1780,7 +1797,12 @@ function init_notebox()
             document.selection.createRange().pasteHTML(content);
         }  
     });*/
-
+    $("#viewfile_notebox").focusout( function () {
+        $("#pdf_page_front").attr("tabindex", 0);
+    });
+    $("#viewfile_notebox").focusin( function () {
+        $("#pdf_page_front").attr("tabindex", -1);
+    });
     document.getElementById('viewfile_notebox').addEventListener("input", function () {
         local_log("[notebox] input event, notebox data length = " + $("#viewfile_notebox").html().length);
         save_notebox_data();
@@ -2016,7 +2038,7 @@ function show_pdf_jumpto(pdf, page_id)
     */
 
     var cur_task_id = ++pdf_page_loading_task_id;
-    
+    $("#pdf_page_front").attr("tabindex", 0).focus();
     return Promise.all([
         new Promise( function (resolve, reject) {
             if (pdf_page_loading_status.page_id == page_id) {
@@ -3353,6 +3375,7 @@ function coursetable_enter(cidx, x, y)
                 var fntd = $(document.createElement('td')).append(fnobj).appendTo(rowobj);
 
                 var mark_noignore_and_download_func = function () {
+                    local_log("[filenav] mark no ignore (path = " + fitem.path + ")");
                     fitem.force_no_ignore = true;
                     write_syncdatafile(syncdatafile, obj.lobj).then( function () {
                         coursetable_enter(cidx, x, y);
