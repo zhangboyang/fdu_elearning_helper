@@ -8,7 +8,7 @@
     height="700px">
     
 
-    <button id="reloadbtn" label="Reload" oncommand="document.getElementById('ehuibrowser').reload();"/>
+    <button id="reloadbtn" label="Reload" oncommand="document.getElementById('mybrowser').reload();"/>
     
     <script type="application/javascript" src="chrome://elearninghelper/content/xulmain.js"/>
 
@@ -17,22 +17,22 @@
     'chrome,extrachrome,menubar,resizable,scrollbars,status,toolbar');"/>
     <separator/>-->
     <tooltip id="ehuitooltip" page="true"/>
-    <browser tooltip="ehuitooltip" id="ehuibrowser" src="chrome://elearninghelper/content/html/main.html" flex="1" context="mymenu" />
+    <browser tooltip="ehuitooltip" id="mybrowser" src="chrome://elearninghelper/content/html/main.html" flex="1" context="mymenu" />
 
     <!-- the popup menu -->
     <menupopup id="mymenu" onpopupshowing="mymenu_popupshowing(event)">
         <!-- how to write 'oncommand' : http://forums.mozillazine.org/viewtopic.php?f=19&t=2282747 -->
-        <menuitem label="剪切" oncommand="document.getElementById('ehuibrowser').contentWindow.cut_to_clipboard(document.popupNode)"/>
-        <menuitem label="复制" oncommand="document.getElementById('ehuibrowser').contentWindow.copy_to_clipboard(document.popupNode)"/>
-        <menuitem label="粘贴" oncommand="document.getElementById('ehuibrowser').contentWindow.paste_from_clipboard(document.popupNode)"/>
+        <menuitem label="剪切" oncommand="document.getElementById('mybrowser').contentWindow.cut_to_clipboard(document.popupNode)"/>
+        <menuitem label="复制" oncommand="document.getElementById('mybrowser').contentWindow.copy_to_clipboard(document.popupNode)"/>
+        <menuitem label="粘贴" oncommand="document.getElementById('mybrowser').contentWindow.paste_from_clipboard(document.popupNode)"/>
         <menuseparator/>
-        <menuitem label="撤销" oncommand="document.getElementById('ehuibrowser').contentWindow.doc_exec_cmd(document.popupNode, 'undo')"/>
-        <menuitem label="重做" oncommand="document.getElementById('ehuibrowser').contentWindow.doc_exec_cmd(document.popupNode, 'redo')"/>
+        <menuitem label="撤销" oncommand="document.getElementById('mybrowser').contentWindow.doc_exec_cmd(document.popupNode, 'undo')"/>
+        <menuitem label="重做" oncommand="document.getElementById('mybrowser').contentWindow.doc_exec_cmd(document.popupNode, 'redo')"/>
         <menuseparator/>
-        <menuitem label="加粗" oncommand="document.getElementById('ehuibrowser').contentWindow.doc_exec_cmd(document.popupNode, 'bold')"/>
-        <menuitem label="斜体" oncommand="document.getElementById('ehuibrowser').contentWindow.doc_exec_cmd(document.popupNode, 'italic')"/>
-        <menuitem label="下划线" oncommand="document.getElementById('ehuibrowser').contentWindow.doc_exec_cmd(document.popupNode, 'underline')"/>
-        <menuitem label="去除格式" oncommand="document.getElementById('ehuibrowser').contentWindow.doc_exec_cmd(document.popupNode, 'removeformat')"/>
+        <menuitem label="加粗" oncommand="document.getElementById('mybrowser').contentWindow.doc_exec_cmd(document.popupNode, 'bold')"/>
+        <menuitem label="斜体" oncommand="document.getElementById('mybrowser').contentWindow.doc_exec_cmd(document.popupNode, 'italic')"/>
+        <menuitem label="下划线" oncommand="document.getElementById('mybrowser').contentWindow.doc_exec_cmd(document.popupNode, 'underline')"/>
+        <menuitem label="去除格式" oncommand="document.getElementById('mybrowser').contentWindow.doc_exec_cmd(document.popupNode, 'removeformat')"/>
         <!--<menuseparator/>
         <menuitem label="Open"/>
         <menuitem label="Save"/>

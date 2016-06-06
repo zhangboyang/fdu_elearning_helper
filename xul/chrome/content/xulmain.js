@@ -19,7 +19,7 @@ function helloworld()
     alert("helloworld");
     open_calc();
     mylog("hello! logging");
-    document.getElementById("ehuibrowser").contentWindow.helloworld2();
+    document.getElementById("mybrowser").contentWindow.helloworld2();
 }
 
 // sample function for running applications
@@ -54,7 +54,7 @@ function mymenu_popupshowing(event)
     var element = event.target.triggerNode; // get the clicked object
     
     //var isTextArea = element instanceof HTMLTextAreaElement;
-    if (!document.getElementById("ehuibrowser").contentWindow.should_popupmenu(element)) {
+    if (!document.getElementById("mybrowser").contentWindow.should_popupmenu(element)) {
         //alert(element);
         event.preventDefault(); // prevent the menu from appearing
     }
@@ -206,7 +206,7 @@ window.addEventListener("close", function (event) {
         var doquit = function () {
             quit(true);
         };
-        document.getElementById("ehuibrowser").contentWindow.eh_unload().then(doquit, doquit);
+        document.getElementById("mybrowser").contentWindow.eh_unload().then(doquit, doquit);
         event.preventDefault();
     } catch (e) {
         // if some error occured, just do nothing
