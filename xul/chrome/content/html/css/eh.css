@@ -107,7 +107,7 @@ ul li {
 }
 
 
-.eh_add_margin_to_child_span span {
+.eh_add_margin_to_child_link .eh_link:not(:last-child) {
     margin-right: 10px;
 }
 

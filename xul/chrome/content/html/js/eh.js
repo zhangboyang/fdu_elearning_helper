@@ -3263,6 +3263,19 @@ function coursetable_enter(cidx, x, y)
     var sidx = match_cname_sname(cidx);
     if (sidx >= 0) {
         var webdav_sync_complete = false;
+        
+        var resync_func = function (oldsyncdata) {
+            var promise;
+            if (oldsyncdata !== undefined) {
+                promise = write_syncdatafile(syncdatafile, oldsyncdata);
+            } else {
+                promise = Promise.resolve();
+            }
+            promise.then( function () {
+                coursetable_enter(cidx, x, y);
+            });
+        };
+        
         // prepare backbtn
         $("#filenav_backbtn").unbind("click").click( function () {
             if (webdav_sync_complete) {
@@ -3299,8 +3312,10 @@ function coursetable_enter(cidx, x, y)
         });
         $("#filenav_resync").hide().unbind("click").click( function () {
             local_log("[filenav] resync (cname = " + cobj.cname + ", uuid = " + sobj.uuid + ")");
-            coursetable_enter(cidx, x, y);
+            resync_func();
         });
+        $("#filenav_forcedownloadall").hide().unbind("click");
+
 
         // prepare detail box
         $("#filenav_syncdetails_fbox").hide();
@@ -3320,7 +3335,8 @@ function coursetable_enter(cidx, x, y)
             }
         ).then( function (obj) {
             local_log("[sync] finished (newfile = " + obj.sum.toString() + ", cname = " + cobj.cname + ", uuid = " + sobj.uuid + ")");
-            
+
+            // update sync progress
             $("#filenav_syncinprogresstext").hide();
             if (obj.sum == 0) {
                 $("#filenav_syncfinishedtext").text("同步完成").show();
@@ -3332,7 +3348,8 @@ function coursetable_enter(cidx, x, y)
                 launch_fileuri(docfolder + coursefolder);
             });
             $("#filenav_resync").show();
-            
+
+            // sort file list by last-modified date
             obj.lobj.flist.sort( function (a, b) {
                 // sort by last_modified
                 var ta = Date.parse(a.lastmodified);
@@ -3340,16 +3357,25 @@ function coursetable_enter(cidx, x, y)
                 if (ta < tb) return 1;
                 if (tb < ta) return -1;
                 return 0;
-                
-                /*if (a.is_new_file != b.is_new_file) {
-                    return a.is_new_file > b.is_new_file ? -1 : 1;
-                } else {
-                    if (a.path == b.path) return 0;
-                    if (a.path < b.path) return -1;
-                    return 1;
-                }*/
             });
-            
+
+            // check if we have non-exists file
+            var has_non_exists_file_flag = false;
+            obj.lobj.flist.forEach( function (fitem) {
+                if (fitem.exists) has_non_exists_file_flag = true;
+            });
+            if (has_non_exists_file_flag) {
+                $("#filenav_forcedownloadall").show().click( function () {
+                    local_log("[filenav] force download all");
+                    obj.lobj.flist.forEach( function (fitem) {
+                        fitem.force_no_ignore = true;
+                    });
+                    resync_func(obj.lobj);
+                });
+            }
+
+
+            // generate file table
             tbodyobj.empty();
             console.log(obj);
             obj.lobj.flist.forEach( function (element, index, array) {
@@ -3377,9 +3403,7 @@ function coursetable_enter(cidx, x, y)
                 var mark_noignore_and_download_func = function () {
                     local_log("[filenav] mark no ignore (path = " + fitem.path + ")");
                     fitem.force_no_ignore = true;
-                    write_syncdatafile(syncdatafile, obj.lobj).then( function () {
-                        coursetable_enter(cidx, x, y);
-                    });
+                    resync_func(obj.lobj);
                 };
                 
                 let openoutside = !pdfviewer_issupported(fitem); // should we open this file outside
@@ -3403,7 +3427,7 @@ function coursetable_enter(cidx, x, y)
                     //$(this).parent().find("span").filter(".eh_link2").removeClass("eh_link2").addClass("eh_link3");
                     $(this).parent().children("tr").removeClass("eh_selected");
                     $(this).addClass("eh_selected");
-                    var actobj = $(document.createElement('span')).addClass("eh_add_margin_to_child_span");
+                    var actobj = $(document.createElement('span')).addClass("eh_add_margin_to_child_link");
                     
                     if (!fitem.exists) {
                         $(document.createElement('span')).addClass("eh_link").text("下载此文件").click(mark_noignore_and_download_func).appendTo(actobj);
@@ -3454,8 +3478,8 @@ function coursetable_enter(cidx, x, y)
                         })
                     .click(selectfunc)
                     .appendTo(tbodyobj);
-                webdav_sync_complete = true;
             });
+            webdav_sync_complete = true;
         }, function (reason) {
             $("#filenav_syncinprogresstext").hide();
             $("#filenav_syncfinishedtext").text("同步失败").show();
