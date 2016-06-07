@@ -581,9 +581,11 @@ ul li {
 
 
 
-
+#settingsbox {
+    margin: 20px 20px 0px 20px;
+}
 #settingsbox div {
-    padding: 20px 15px 15px 15px;
+    padding: 10px 15px 5px 15px;
     margin: 5px;
     border-radius: 2px;
 }
@@ -631,5 +633,5 @@ ul li {
 
 
 #main_header_links span:not(:first-child) {
-    margin-left: 10px;
+    margin-left: 12px;
 }

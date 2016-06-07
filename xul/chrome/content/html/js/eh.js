@@ -527,6 +527,17 @@ function format_filesize(sz)
     }
     return sz + " 字节";
 }
+function parse_filesize(str)
+{
+    str = str.toUpperCase();
+    var number = parseFloat(str);
+    var unit = 1;
+    if (str.indexOf("G") !== -1) unit = 1024 * 1024 * 1024;
+    else if (str.indexOf("M") !== -1) unit = 1024 * 1024;
+    else if (str.indexOf("K") !== -1) unit = 1024;
+    //console.log("PARSE_FILESIZE", str, number, unit);
+    return Math.floor(number * unit);
+}
 
 /*
     grab the user-friendly part
@@ -3875,12 +3886,16 @@ function load_settings(cch)
     cch.filter("[data-sdescref='ubb']").children("input").prop("checked", usebuiltinbrowser);
     cch.filter("[data-sdescref='sow']").children("input").prop("checked", syncoverwrite);
     cch.filter("[data-sdescref='df']").children("input").val(ndocfolder);
+    cch.filter("[data-sdescref='ssl']").children("input").val(format_filesize(syncsizelimit));
+    cch.filter("[data-sdescref='sie']").children("input").val(syncignoreext_str);
 }
 function save_settings(cch)
 {
     usebuiltinviewer = cch.filter("[data-sdescref='ubv']").children("input").prop("checked");
     usebuiltinbrowser = cch.filter("[data-sdescref='ubb']").children("input").prop("checked");
     syncoverwrite = cch.filter("[data-sdescref='sow']").children("input").prop("checked");
+    syncignoreext_str = cch.filter("[data-sdescref='sie']").children("input").val();
+    syncsizelimit = parse_filesize(cch.filter("[data-sdescref='ssl']").children("input").val());
     save_prefs();
     $("#settingssaved").show();
 }

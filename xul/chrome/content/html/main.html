@@ -93,6 +93,14 @@
 <span>设置存放站点资源的文件夹。</span><br><br>
 <strong>注：</strong>修改此选项后，请自行移动文档文件夹到新的位置。移动过程中若提示有文件重复，直接覆盖即可。
 </div>
+<div data-sdescref="ssl">
+<span>设置站点同步单个文件大小限制，大小大于此数值的文件会在同步时被自动忽略。</span><br><br>
+<strong>注：</strong>自动忽略的文件可以通过双击等方法强制下载。
+</div>
+<div data-sdescref="sie">
+<span>设置站点同步文件扩展名黑名单，扩展名在此黑名单中的文件会在同步时被自动忽略。</span><br><br>
+<strong>注：</strong>自动忽略的文件可以通过双击等方法强制下载。
+</div>
 </div>
 		</div>
 		</div>
@@ -107,13 +115,15 @@
         <div class="light-green lighten-5" style="flex: 1 1 auto; height: 0px;">
             <div style="overflow-y: auto; height: 100%; padding: 10px;">
             <div style="margin-bottom: 10px">
-<div id="settingsbox" style="margin: 25px 20px 0px 20px">
+<div id="settingsbox">
 <div data-sdescref="ubv"><input type="checkbox" class="filled-in eh_login_checkbox" id="settings_usebuiltinviewer"><label class="eh_formlabel" for="settings_usebuiltinviewer"><span class="eh_formlabel_checkbox_span">使用内置文件查看器</span></label></div>
 <div data-sdescref="ubb"><input type="checkbox" class="filled-in eh_login_checkbox" id="settings_usebuiltinbrowser"><label class="eh_formlabel" for="settings_usebuiltinbrowser"><span class="eh_formlabel_checkbox_span">使用内置浏览器</span></label></div>
 <div data-sdescref="sow"><input type="checkbox" class="filled-in eh_login_checkbox" id="settings_syncoverwrite"><label class="eh_formlabel" for="settings_syncoverwrite"><span class="eh_formlabel_checkbox_span">同步时覆盖已存在文件</span></label></div>
+<div data-sdescref="ssl"><label class="eh_formlabel" for="settings_syncsizelimit"><span class="eh_formlabel_checkbox_span">文件同步大小限制</span></label><br><input type="text" class="eh_textinput" id="settings_syncsizelimit"></div>
+<div data-sdescref="sie"><label class="eh_formlabel" for="settings_syncignoreext"><span class="eh_formlabel_checkbox_span">文件同步扩展名黑名单</span></label><br><input type="text" class="eh_textinput" id="settings_syncignoreext"></div>
 <div data-sdescref="df"><label class="eh_formlabel" for="settings_docfolder"><span class="eh_formlabel_checkbox_span">文档文件夹</span></label>&nbsp;&nbsp;<span class="eh_link" onclick="select_docfolder()">修改</span><br><input type="text" class="eh_textinput" id="settings_docfolder" readonly="readonly"></div>
 </div>
-<div id="settingssaved" style="margin: 20px 0px 0px 30px">
+<div id="settingssaved" style="margin: 20px 0px 0px 30px; padding-left: 10px;">
     <span style="color: red; font-size: 16px;">设置已保存</span>
 </div>
             </div>
