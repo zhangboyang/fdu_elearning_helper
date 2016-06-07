@@ -627,3 +627,9 @@ ul li {
     text-align: right;
 }
 
+
+
+
+#main_header_links span:not(:first-child) {
+    margin-left: 10px;
+}

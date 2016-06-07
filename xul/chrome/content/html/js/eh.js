@@ -3258,8 +3258,9 @@ function coursetable_select(cidx, x, y)
     }
 }
 
-function coursetable_enter(cidx, x, y)
+function coursetable_enter(cidx, x, y, is_resync)
 {
+    is_resync = (is_resync === true);
     var sidx = match_cname_sname(cidx);
     if (sidx >= 0) {
         var webdav_sync_complete = false;
@@ -3272,7 +3273,7 @@ function coursetable_enter(cidx, x, y)
                 promise = Promise.resolve();
             }
             promise.then( function () {
-                coursetable_enter(cidx, x, y);
+                coursetable_enter(cidx, x, y, true);
             });
         };
         
@@ -3296,7 +3297,7 @@ function coursetable_enter(cidx, x, y)
         $("#filenav_sitetitle").text(sobj.sname);
 
         // load data
-        $("#filenav_filelist_box").scrollTop(0);
+        if (!is_resync) $("#filenav_filelist_box").scrollTop(0);
         var tbodyobj = $("#filenav_filelist").children("tbody")
             .html("<tr><td></td><td>加载中 ...</td><td></td></tr>");
         
@@ -3362,7 +3363,7 @@ function coursetable_enter(cidx, x, y)
             // check if we have non-exists file
             var has_non_exists_file_flag = false;
             obj.lobj.flist.forEach( function (fitem) {
-                if (fitem.exists) has_non_exists_file_flag = true;
+                if (!fitem.exists) has_non_exists_file_flag = true;
             });
             if (has_non_exists_file_flag) {
                 $("#filenav_forcedownloadall").show().click( function () {
