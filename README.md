@@ -1,13 +1,19 @@
 ﻿# eLearning 助手
 人机交互课程大作业
 
+复旦大学 eLearning 助手，是一个 eLearning 平台的辅助程序，旨在解决 eLearning 平台的诸多设计不合理之处。
+
+# 安装包下载地址
+http://eh.zbyzbyzby.com
+
 ## 界面截图
 ![screenshot1](/screenshot1.png)
 ![screenshot2](/screenshot2.png)
+![screenshot2](/screenshot3.png)
 
 # XULRunner
 
-## 下载地址
+## XULRunner 地址
 http://ftp.mozilla.org/pub/xulrunner/releases/latest/runtimes/
 
 ## 使用方法
