@@ -3,7 +3,7 @@
 
 复旦大学 eLearning 助手，是一个 eLearning 平台的辅助程序，旨在解决 eLearning 平台的诸多设计不合理之处。
 
-# 安装包下载地址
+## 安装包下载地址
 http://eh.zbyzbyzby.com
 
 ## 界面截图
