@@ -9,6 +9,13 @@ pref("javascript.options.strict", false);
 pref("nglayout.debug.disable_xul_cache", false);
 pref("nglayout.debug.disable_xul_fastload", false);
 
+
+// override usagent, for WebDAV
 pref("general.useragent.override", "elearninghelper/unknownversion");
 
 
+
+// downloading options for internel browser
+pref("browser.download.useDownloadDir", false);
+pref("browser.download.useJSTransfer", true);
+pref("browser.helperApps.alwaysAsk.force", true);

@@ -1,1 +1,4 @@
 content elearninghelper file:chrome/content/
+content branding file:chrome/branding/
+content navigator file:chrome/navigator/
+locale branding en-US file:chrome/locale/branding/

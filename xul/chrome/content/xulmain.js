@@ -1,3 +1,5 @@
+
+
 // ========================= useful functions =========================
 
 
@@ -8,9 +10,6 @@ function mylog(s)
     console = Components.classes["@mozilla.org/consoleservice;1"].getService(Components.interfaces.nsIConsoleService);
     console.logStringMessage("[MYLOG] " + s);
 }
-
-
-
 
 
 // sample function for calling functions from xul to html
@@ -66,9 +65,17 @@ function mymenu_popupshowing(event)
 
 
 
-
-
-
+// popup system notifications
+// https://developer.mozilla.org/en-US/Add-ons/Code_snippets/Alerts_and_Notifications
+function popup(title, text) {
+  try {
+    Components.classes['@mozilla.org/alerts-service;1']
+              .getService(Components.interfaces.nsIAlertsService)
+              .showAlertNotification(null, title, text, false, '', null);
+  } catch(e) {
+    // prevents runtime error on platforms that don't implement nsIAlertsService
+  }
+}
 
 
 
@@ -80,6 +87,41 @@ function mymenu_popupshowing(event)
 
 
 // =========================== vars ========================================
+
+
+// https://developer.mozilla.org/en-US/docs/Mozilla/JavaScript_code_modules/Downloads.jsm
+Components.manager.QueryInterface(Components.interfaces.nsIComponentRegistrar)
+                   .registerFactory(Components.ID("{1b4c85df-cbdd-4bb6-b04e-613caece083c}"), "", "@mozilla.org/transfer;1", null);
+Components.utils.import("resource://gre/modules/Downloads.jsm");
+Components.utils.import("resource://gre/modules/osfile.jsm")
+Components.utils.import("resource://gre/modules/Task.jsm");
+
+
+Task.spawn(function () {
+
+  var pn = "ehdownloadprogress";
+  let list = yield Downloads.getList(Downloads.ALL);
+
+  let view = {
+    onDownloadAdded: download => popup("下载开始", download.source.url),
+    onDownloadChanged: function (download) {
+        console.log("changed", download);
+        if (download.succeeded) {
+            popup("下载完成", download.source.url);
+        }
+    },
+    onDownloadRemoved: download => console.log("Removed", download)
+  };
+
+  yield list.addView(view);
+
+}).then(null, Components.utils.reportError);
+
+
+
+
+
+
 
 /*
     appinfo and runtime
@@ -176,6 +218,36 @@ var prefs = prefservice.getBranch("elearninghelper.");
 prefservice.getBranch("general.").setCharPref("useragent.override", "elearninghelper/" + xulappinfo.version);
 
 
+
+
+
+
+
+// save / restore window sizes
+
+function set_window_size(left, top, width, height)
+{
+    window.moveTo(left, top);
+    window.resizeTo(width, height);
+}
+function save_window_size()
+{
+    if (window.windowState === 3) { // normal state
+        prefs.setIntPref("screenX", window.screenX);
+        prefs.setIntPref("screenY", window.screenY);
+        prefs.setIntPref("width", window.outerWidth);
+        prefs.setIntPref("height", window.outerHeight);
+    }
+}
+setInterval("save_window_size()", 1000);
+window.addEventListener("resize", save_window_size, false);
+window.addEventListener("close", save_window_size, false);
+set_window_size(
+    prefs.getIntPref("screenX", window.screenX),
+    prefs.getIntPref("screenY", window.screenY),
+    prefs.getIntPref("width", window.outerWidth),
+    prefs.getIntPref("height", window.outerHeight)
+);
 
 
 

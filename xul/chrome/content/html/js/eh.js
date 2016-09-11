@@ -3251,7 +3251,7 @@ function coursetable_select(cidx, x, y)
     $(create_kvdiv("开课周: ", make_avlweek_string(cobj.cavlweek))).appendTo(detailobj);
 
     if (sidx >= 0) {
-        var actobj = $(document.createElement('span'));
+        var actobj = $(document.createElement('span')).addClass("eh_add_margin_to_child_link");
         $(document.createElement('span')).addClass("eh_link").text("打开课程文件夹").click( function () {
             var diruri = docfolder + get_coursefolder(cobj);
             check_path_with_base(diruri, docfolder);
@@ -3263,6 +3263,12 @@ function coursetable_select(cidx, x, y)
                     friendly_error("请先进入该站点一次，以进行首次同步。");
                 }
             });
+        }).appendTo(actobj);
+
+
+        $(document.createElement('span')).addClass("eh_link").text("在浏览器中打开").click( function () {
+            var sobj = slist[sidx];
+            open_site_in_browser(sobj.uuid);
         }).appendTo(actobj);
 
         detailobj.append($(create_kvdiv_with_obj("操作: ", actobj)));
@@ -3990,10 +3996,23 @@ function doc_exec_cmd(element, cmd)
 
 function open_in_browser(url, opt)
 {
-    console.log("OPEN IN BROWSER", url, opt);
-    //FIXME
+    var flag = usebuiltinbrowser;
+    if (opt !== undefined && opt.use === "builtin") flag = true;
+    if (opt !== undefined && opt.use === "external") flag = false;
+
+    if (flag) {
+        window.open(url, '_blank', 'resizable,scrollbars')
+        
+    } else {
+        console.log("OPEN IN EXRERNAL BROWSER", url, opt); // FIXME
+    }
 }
 
+
+function open_site_in_browser(uuid)
+{
+    open_in_browser("http://elearning.fudan.edu.cn/portal/site/" + uuid);
+}
 /*
     onclick handler on eh_link spans
 */

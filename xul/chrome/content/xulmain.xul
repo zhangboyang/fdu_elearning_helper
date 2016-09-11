@@ -4,8 +4,7 @@
 <window title="eLearning 助手"
     xmlns:html="http://www.w3.org/1999/xhtml"
     xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
-    width="1200px"
-    height="700px">
+>
     
 
     <button id="reloadbtn" label="Reload" oncommand="document.getElementById('mybrowser').reload();"/>
