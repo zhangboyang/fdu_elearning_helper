@@ -4,6 +4,10 @@ var OS; // it's a copy of window.parent.OS
 var Services; // it's a copy of window.parent.Services
 var prefs; // it's a copy of window.parent.prefs
 
+// https://developer.mozilla.org/en-US/docs/Mozilla/Tech/XPCOM/Reference/Interface/nsIPromptService
+var prompts = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
+                        .getService(Components.interfaces.nsIPromptService);
+
 
 // prefs
 var eh_debug, eh_dbglocallog;
@@ -1730,6 +1734,10 @@ $("document").ready( function () {
                     initp_about()
                 ]).then ( function () {
 
+                    // read some configs
+                    load_user_coursemap();
+
+                    
                     $("#splashdiv").hide();
                     local_log("========= init ok ==========");
                     local_log("appversion: " + eh_version);
@@ -3054,6 +3062,7 @@ function urp_fetch_semesterdata()
 var clist; // course list
 var cdivlist; // div in course table
 
+var user_coursemap = {}; // user defined course->site map
 var cur_semestername; // current semester name
 
 function get_coursefolder(cobj)
@@ -3115,6 +3124,7 @@ function coursetable_load(clist_input)
             if (cidx >= 0 && y > 1 && cidx == ctable[x][y - 1]) continue;
             var tdobj = $(document.createElement('td'));
             if (cidx >= 0) {
+                var sidx = match_cname_sname(cidx);
                 var y2;
                 for (y2 = y + 1; y2 <= maxy && ctable[x][y2] == cidx; y2++);
                 var tdrowspan = y2 - y;
@@ -3132,6 +3142,7 @@ function coursetable_load(clist_input)
                      })
                      .mousedown(preventdefaultfunc)
                      .css("cursor", "pointer");
+                if (sidx < 0) tdobj.addClass("no_matched_site");
                 $(cdivlist[cidx] = document.createElement('div'))
                     .append($(document.createElement('span'))
                             .text(clist[cidx].cname)
@@ -3218,8 +3229,9 @@ function coursetable_select(cidx, x, y)
         $(element).removeClass("eh_selected_sub");
     });
 
-
+    
     var cobj = clist[cidx];
+    
     var ctimelist = new Array();    
     clist.forEach( function (element, index, array) {
         if (element.cid == cobj.cid) { // there might be multiple object have same cid
@@ -3279,6 +3291,31 @@ function coursetable_enter(cidx, x, y, is_resync)
 {
     is_resync = (is_resync === true);
     var sidx = match_cname_sname(cidx);
+    if (sidx < 0) {
+    console.log(clist, slist);
+//        friendly_error("该课程没有 eLearning 站点");
+        var check = {value: false};
+        var flags = prompts.BUTTON_POS_0 * prompts.BUTTON_TITLE_IS_STRING +
+                    prompts.BUTTON_POS_1 * prompts.BUTTON_TITLE_IS_STRING;
+        var button = prompts.confirmEx(null, "无法找到匹配的站点", "没有找到该课程对应的 eLearning 站点，这可能是因为：\n  (1) 该课程没有使用 eLearning，此情况下您将无法使用“资源”功能。或者\n  (2) 由于站点名称特殊，程序自动匹配失败，此情况下您可以手动选择一个站点。\n请选择您遇到的情况。",
+                                       flags, "我要手动选择一个站点", "该课程没有使用 eLearning", "", null, check);
+        if (button == 0) {
+            var items = [], uuids = [];
+            slist.forEach( function (sobj) {
+                items.push(sobj.sname);
+                uuids.push(sobj.uuid);
+            });
+            var selected = {};
+            var result = prompts.select(null, "请选择一个站点", "请选择课程 " + clist[cidx].cname + " (" + clist[cidx].cid + ") 对应的 eLearning 站点", items.length,
+                                        items, selected);
+            if (result) {
+                user_coursemap[clist[cidx].cid] = uuids[selected.value];
+                save_user_coursemap(); // save course=>site map
+                coursetable_load(clist); // reload course table
+                sidx = match_cname_sname(cidx);
+            }
+        }
+    }
     if (sidx >= 0) {
         var webdav_sync_complete = false;
         
@@ -3507,13 +3544,6 @@ function coursetable_enter(cidx, x, y, is_resync)
             tbodyobj.html("<tr><td></td><td>同步失败</td><td></td></tr>");
             webdav_sync_complete = true;
         });
-
-
-
-        
-    } else {
-        // no matching site
-        friendly_error("该课程没有 eLearning 站点");
     }
 }
 
@@ -3527,9 +3557,17 @@ function coursetable_enter(cidx, x, y, is_resync)
 */
 function match_cname_sname(cidx)
 {
-    var sidx;
-    for (sidx = 0; sidx < slist.length; sidx++) {
-        if (slist[sidx].sname.indexOf(clist[cidx].cid) >= 0) break; // class id is in site name
+    var sidx = slist.length;
+
+    if (user_coursemap[clist[cidx].cid] != undefined) { // check userdefined map first
+        for (sidx = 0; sidx < slist.length; sidx++) {
+            if (slist[sidx].uuid === user_coursemap[clist[cidx].cid]) break;
+        }
+    }
+    if (sidx >= slist.length) {
+        for (sidx = 0; sidx < slist.length; sidx++) {
+            if (slist[sidx].sname.indexOf(clist[cidx].cid) >= 0) break; // class id is in site name
+        }
     }
     if (sidx >= slist.length) { // if non-match, use another method
         for (sidx = 0; sidx < slist.length; sidx++) {
@@ -3545,6 +3583,21 @@ function match_cname_sname(cidx)
 }
 
 
+
+
+function load_user_coursemap()
+{
+    var user_coursemap_path = dbfolder + "/usercoursemap.json";
+    read_json_from_fileuri(user_coursemap_path).then( function (new_user_coursemap) {
+        user_coursemap = new_user_coursemap.coursemap;
+    });
+}
+
+function save_user_coursemap()
+{
+    var user_coursemap_path = dbfolder + "/usercoursemap.json";
+    write_json_to_fileuri({ coursemap: user_coursemap }, user_coursemap_path);
+}
 
 
 

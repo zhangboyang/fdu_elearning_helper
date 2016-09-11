@@ -248,6 +248,9 @@ ul li {
     font-weight: bold;
 }
 
+.eh_coursetable .no_matched_site span {
+    color: gray;
+}
 
 
 
