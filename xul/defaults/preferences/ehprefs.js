@@ -23,11 +23,11 @@ pref("elearninghelper.dbgjsconsole", false); // open jsconsole on start
 
 pref("elearninghelper.screenX", 0);
 pref("elearninghelper.screenY", 0);
-pref("elearninghelper.width", 1200);
+pref("elearninghelper.width", 1100);
 pref("elearninghelper.height", 700);
 
 pref("elearninghelper.browser_screenX", 0);
 pref("elearninghelper.browser_screenY", 0);
-pref("elearninghelper.browser_width", 1200);
+pref("elearninghelper.browser_width", 1100);
 pref("elearninghelper.browser_height", 700);
 

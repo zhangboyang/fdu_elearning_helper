@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-stylesheet href="chrome://global/skin" type="text/css"?>
 
-<xul:window title="浏览器" xmlns:xul="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+<xul:window title="浏览器" xmlns:xul="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul" width="1100" height="700">
 
     <xul:script type="application/javascript" src="chrome://navigator/content/navigator.js"/>
 

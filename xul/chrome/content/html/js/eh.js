@@ -2700,6 +2700,7 @@ function webdav_sync(uuid, coursefolder, syncdatafile, statuslist, report_progre
                     if (cur_sync_id != sync_id) reject("####同步已取消####");
                     preprocess_lobj(lobj, sdfmap);
                     Promise.all(lobj.dlist.map( function (ditem) { return webdav_create_localpath(localbase, ditem.path); } ))
+
                         .then( function () {
                             statuslist_update(lsstatus, "完成", "green");
                             // directory created, start downloading files
@@ -3600,6 +3601,22 @@ function save_user_coursemap()
 }
 
 
+// ==================== site list related functions ======================
+
+
+function sitelist_load(new_slist)
+{
+    slist = new_slist;
+    console.log(slist);
+}
+
+
+
+
+
+
+
+
 
 
 
@@ -3633,7 +3650,7 @@ function init_main_page()
             progressobj.text("获取站点数据");
             local_log("[maininit] fetch sitelist");
             elearning_fetch_sitelist().then( function (slist_input) {
-                slist = slist_input; // save fetched slite to global var
+                sitelist_load(slist_input); // save fetched slite to global var
                 // slist fetched OK, we should query for course table
                 progressobj.text("获取学期数据");
                 local_log("[maininit] fetch semester data");
