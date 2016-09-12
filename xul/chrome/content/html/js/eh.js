@@ -4135,7 +4135,9 @@ function open_in_browser(url, opt)
 
 function open_site_in_browser(uuid)
 {
-    open_in_browser("http://elearning.fudan.edu.cn/portal/site/" + uuid);
+    uis_login().then( function () {
+        open_in_browser("http://elearning.fudan.edu.cn/portal/site/" + uuid);
+    });
 }
 /*
     onclick handler on eh_link spans

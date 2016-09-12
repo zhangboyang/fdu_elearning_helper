@@ -19,3 +19,4 @@ pref("general.useragent.override", "elearninghelper/unknownversion");
 pref("browser.download.useDownloadDir", false);
 pref("browser.download.useJSTransfer", true);
 pref("browser.helperApps.alwaysAsk.force", true);
+
