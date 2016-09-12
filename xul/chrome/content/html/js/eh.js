@@ -2331,34 +2331,42 @@ function webdav_parsename(path, is_dir)
 }
 
 
-/*
-    retrieve file list by given site uuid
 
+
+
+/*
+    retrieve file list by given subdir
+    
     return value is a promise
     return object is
     {
+        subhref: [href of subdir],
         flist: [file list],
         dlist: [dir list],
     }
-*/ 
-function webdav_listall(uuid)
+*/
+function webdav_listsubdir(subdir)
 {
+    if (!subdir.startsWith('/')) subdir = "/" + subdir;
+    if (!subdir.endsWith('/')) subdir = subdir + "/";
+    
     return new Promise( function (resolve, reject) {
         // send WebDAV PROPFIND request
         $.ajax({
             type: "PROPFIND",
-            url: "http://elearning.fudan.edu.cn/dav/" + uuid,
+            url: "http://elearning.fudan.edu.cn" + subdir,
             context: document.body,
             dataType: "xml",
             username: el_username,
             password: el_password,
-            headers: {  "Depth": "infinity",
+            headers: {  "Depth": "1",
                         //"Authorization": "Basic " + btoa(el_username + ":" + el_password), // sometimes fails
                      },
             success:    function (xml, status) {
 
                             var dlist = new Array();
                             var flist = new Array();
+                            var subhref = new Array();
                             
                             $(xml).children("D\\:multistatus").children("D\\:response").each( function (index, element) {
 
@@ -2383,13 +2391,19 @@ function webdav_listall(uuid)
                                 };
 
                                 if (is_dir) {
+                                    if (href != subdir && href + "/" != subdir && "/" + href != subdir) {
+                                        subhref.push(href);
+                                    }
                                     dlist.push(cur);
                                 } else {
                                     flist.push(cur);
                                 }
                             });
 
+                            console.log(dlist, flist);
+
                             resolve({
+                                subhref: subhref,
                                 dlist: dlist,
                                 flist: flist,
                             });
@@ -2399,6 +2413,45 @@ function webdav_listall(uuid)
             },
         });
     });
+}
+/*
+    retrieve file list by given subdir, recursively
+    return value is a promise
+    return object is
+    {
+        flist: [file list],
+        dlist: [dir list],
+    }
+*/
+function webdav_listsubdir_recursive(subdir)
+{
+    return new Promise( function (resolve, reject) {
+        webdav_listsubdir(subdir).then( function (lsobj) {
+            var resultobj = { dlist: lsobj.dlist, flist: lsobj.flist };
+            Promise.all(lsobj.subhref.map(webdav_listsubdir_recursive)).then( function (subresults) {
+                subresults.forEach( function (sub_resultobj) {
+                    resultobj.dlist.push(...sub_resultobj.dlist);
+                    resultobj.flist.push(...sub_resultobj.flist);
+                });
+                resolve(resultobj);
+            }, reason => reject(reason));
+        }, reason => reject(reason));
+    });
+}
+
+/*
+    retrieve file list by given site uuid
+
+    return value is a promise
+    return object is
+    {
+        flist: [file list],
+        dlist: [dir list],
+    }
+*/ 
+function webdav_listall(uuid)
+{
+    return webdav_listsubdir_recursive("/dav/" + uuid);
 }
 
 
@@ -2700,6 +2753,7 @@ function webdav_sync(uuid, coursefolder, syncdatafile, statuslist, report_progre
                     if (cur_sync_id != sync_id) reject("####同步已取消####");
                     preprocess_lobj(lobj, sdfmap);
                     Promise.all(lobj.dlist.map( function (ditem) { return webdav_create_localpath(localbase, ditem.path); } ))
+
 
                         .then( function () {
                             statuslist_update(lsstatus, "完成", "green");
