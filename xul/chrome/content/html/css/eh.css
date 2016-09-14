@@ -265,6 +265,42 @@ ul li {
 
 
 
+.eh_sitelist table {
+	text-align: left;
+	table-layout: fixed;
+	border-collapse: separate;
+	border-spacing: 2px;
+	/*height: 100%;*/
+	width: 100%;
+    cursor: default;
+}
+
+.eh_sitelist tr td {
+    font-size: 15px;
+    text-align: left;
+    border-radius: 0px;
+	background-color: #dcedc8;
+	overflow: hidden;
+	white-space:nowrap;
+	word-break:keep-all;
+	padding: 0px 4px;
+}
+
+.eh_sitelist tr td:nth-child(1) {
+    text-align: center;
+    width: 30px;
+}
+
+.eh_sitelist tr:hover td {
+    background-color: #CDE5B2;
+}
+
+.eh_sitelist .eh_selected td {
+    background-color: #aed581 !important;
+}
+
+
+
 
 
 /*.eh_filetable th {

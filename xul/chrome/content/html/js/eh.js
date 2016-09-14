@@ -112,7 +112,23 @@ function preventdefaultfunc (e) { e.preventDefault(); };
 
 
 
+var filename_ilchar = "*|\\:\"<>?/"; // FIXME: is this enough?
 
+/*
+    change special chars (like *|\:"<>?/) to '_'
+*/
+function escape_filename(filename)
+{
+    var ret = "";
+    for (var i = 0; i < filename.length; i++) {
+        if (filename_ilchar.indexOf(filename.charAt(i)) >= 0) {
+            ret += "_";
+        } else {
+            ret += filename.charAt(i);
+        }
+    }
+    return ret;
+}
 
 /*
     check if filename is legal
@@ -121,10 +137,8 @@ function preventdefaultfunc (e) { e.preventDefault(); };
 */
 function check_filename(filename)
 {
-    // FIXME: is this enough?
-    var ilchar = "*|\\:\"<>?/";
-    for (var i = 0; i < ilchar.length; i++) {
-        if (filename.indexOf(ilchar.charAt(i)) >= 0) {
+    for (var i = 0; i < filename_ilchar.length; i++) {
+        if (filename.indexOf(filename_ilchar.charAt(i)) >= 0) {
             throw "illegal filename: " + filename;
         }
     }
@@ -281,76 +295,116 @@ function local_log(msg) // add log to queue
 
 
 
+// ======================= icon relerated functions =========================
 
 
-
-function get_filetype_remote_iconuri(ext)
+function get_elearning_remote_iconuri(iconname)
 {
-    switch (ext.toLowerCase()) {
-        case "ppt": case "pptx": return "http://elearning.fudan.edu.cn/library/image/sakai/ppt.gif";
-        case "doc": case "docx": return "http://elearning.fudan.edu.cn/library/image/sakai/word.gif";
-        case "xls": case "xlsx": return "http://elearning.fudan.edu.cn/library/image/sakai/excel.gif";
-        case "pdf": return "http://elearning.fudan.edu.cn/library/image/sakai/pdf.gif";
-        case "jpg": case "jpeg": case "png": case "gif": case "bmp": case "tif": case "tiff":
-            return "http://elearning.fudan.edu.cn/library/image/sakai/image.gif";
-        case "zip": case "rar": case "dmg": case "7z": case "tar": case "xz": case "gz": case "bz2":
-            return "http://elearning.fudan.edu.cn/library/image/sakai/compressed.gif";
-        case "txt": case "c": case "cpp": case "h": case "java": case "py": case "sh": case "sql":
-            return "http://elearning.fudan.edu.cn/library/image/sakai/text.gif";
-        case "htm": case "html": case "js": case "css": case "json":
-            return "http://elearning.fudan.edu.cn/library/image/sakai/html.gif";
-        case "exe": case "jar": case "class": case "o": case "a":
-            return "http://elearning.fudan.edu.cn/library/image/sakai/binary.gif";
-        default: return "http://elearning.fudan.edu.cn/library/image/sakai/generic.gif";
+    if (iconname.startsWith("filetype-")) {
+        switch (iconname.substring(9).toLowerCase()) {
+            case "ppt": case "pptx": return "http://elearning.fudan.edu.cn/library/image/sakai/ppt.gif";
+            case "doc": case "docx": return "http://elearning.fudan.edu.cn/library/image/sakai/word.gif";
+            case "xls": case "xlsx": return "http://elearning.fudan.edu.cn/library/image/sakai/excel.gif";
+            case "pdf": return "http://elearning.fudan.edu.cn/library/image/sakai/pdf.gif";
+            case "jpg": case "jpeg": case "png": case "gif": case "bmp": case "tif": case "tiff":
+                return "http://elearning.fudan.edu.cn/library/image/sakai/image.gif";
+            case "zip": case "rar": case "dmg": case "7z": case "tar": case "xz": case "gz": case "bz2":
+                return "http://elearning.fudan.edu.cn/library/image/sakai/compressed.gif";
+            case "txt": case "c": case "cpp": case "h": case "java": case "py": case "sh": case "sql":
+                return "http://elearning.fudan.edu.cn/library/image/sakai/text.gif";
+            case "htm": case "html": case "js": case "css": case "json":
+                return "http://elearning.fudan.edu.cn/library/image/sakai/html.gif";
+            case "exe": case "jar": case "class": case "o": case "a":
+                return "http://elearning.fudan.edu.cn/library/image/sakai/binary.gif";
+            default: return "http://elearning.fudan.edu.cn/library/image/sakai/generic.gif";
+        }
     }
+
+    if (iconname == "famfamfam") {
+        return "http://elearning.fudan.edu.cn/library/image/silk/fff-sprites/images/famfamfam.png";
+    }
+
+    console.log("icon not found: ", iconname);
+    return "http://elearning.fudan.edu.cn/library/image/sakai/generic.gif"; // fallback
 }
 
-var filetype_icon_set;
-function get_filetype_iconuri(ext)
+var elearning_icon_set;
+function get_elearning_iconuri(iconname)
 {
-    var remoteuri = get_filetype_remote_iconuri(ext);
+    var remoteuri = get_elearning_remote_iconuri(iconname);
     var filename = get_basename(remoteuri);
-    var filepath = OS.Path.join(datafolder, "fileicons", filename);
-    if (filetype_icon_set.has(ext)) {
+    var filepath = OS.Path.join(datafolder, "elearningicons", filename);
+    if (elearning_icon_set.has(iconname)) {
         return OS.Path.toFileURI(filepath);
     } else {
         OS.File.exists(filepath).then( function (fe) {
-            var addtoset = function (ext) {
-                if (!filetype_icon_set.has(ext)) {
-                    filetype_icon_set.add(ext);
-                    var f = OS.Path.toFileURI(OS.Path.join(datafolder, "fileicons", "known.json"));
+            var addtoset = function (iconname) {
+                if (!elearning_icon_set.has(iconname)) {
+                    elearning_icon_set.add(iconname);
+                    var f = OS.Path.toFileURI(OS.Path.join(datafolder, "elearningicons", "known.json"));
                     var arr = new Array();
-                    for (var val of filetype_icon_set) arr.push(val);
-                    write_json_to_fileuri({ ext: arr }, f);
+                    for (var val of elearning_icon_set) arr.push(val);
+                    write_json_to_fileuri({ iconname: arr }, f);
                 }
             }
             if (!fe) {
                 install_file(remoteuri, filepath).then( function () {
-                    addtoset(ext);
+                    addtoset(iconname);
                 });
             } else {
-                addtoset(ext);
+                addtoset(iconname);
             }
         });
         
         return remoteuri; // because we can't wait for promise, so we just return remoteuri
     }
 }
-function initp_filetype_icon()
+
+function initp_elearning_icon()
 {
     return new Promise( function (resolve, reject) {
-        var f = OS.Path.toFileURI(OS.Path.join(datafolder, "fileicons", "known.json"));
+        var f = OS.Path.toFileURI(OS.Path.join(datafolder, "elearningicons", "known.json"));
         read_json_from_fileuri(f).then( function (obj) {
             var arr = obj.ext;
-            if (arr !== undefined) filetype_icon_set = new Set(arr);
-            else filetype_icon_set = new Set();
+            if (arr !== undefined) elearning_icon_set = new Set(arr);
+            else elearning_icon_set = new Set();
             resolve();
         }, function () {
-            filetype_icon_set = new Set();
+            elearning_icon_set = new Set();
             resolve();
         });
     });
 }
+
+function get_filetype_iconuri(ext)
+{
+    return get_elearning_iconuri("filetype-" + ext);
+}
+
+function create_sakai_icon_span(iconname)
+{
+    var ret = $(document.createElement('span'));
+    var pos;
+    switch (iconname) {
+        case "icon-sakai-syllabus": pos = [-90, -414]; break;
+        default: pos = [-36, -0]; break;
+    }
+    ret.css("background-position", pos[0].toString() + "px " + pos[1].toString() + "px");
+    ret.css("background-image", "url(\"" + get_elearning_iconuri("famfamfam") + "\")");
+    ret.css("background-color", "transparent");
+    ret.css("background-repeat", "no-repeat");
+    ret.css("display", "inline-block");
+    ret.css("height", "16px");
+    ret.css("width", "16px");
+    ret.css("vertical-align", "middle");
+    return ret;
+}
+
+
+
+
+
+
 
 
 function launch_fileuri(fileuri)
@@ -1637,7 +1691,7 @@ function initp_createdirs()
 {
     var p = new Array();
     p.push(OS.File.makeDir(OS.Path.join(datafolder, "tools"), { ignoreExisting: true, from: datafolder }));
-    p.push(OS.File.makeDir(OS.Path.join(datafolder, "fileicons"), { ignoreExisting: true, from: datafolder }));
+    p.push(OS.File.makeDir(OS.Path.join(datafolder, "elearningicons"), { ignoreExisting: true, from: datafolder }));
     p.push(OS.File.makeDir(OS.Path.join(ndbfolder, "syncdata"), { ignoreExisting: true, from: ndocfolder }));
     return Promise.all(p);
 }
@@ -1752,14 +1806,14 @@ $("document").ready( function () {
             initp_createdirs().then( function () {
                 // initp_* returns promises
                 Promise.all([
-                    initp_filetype_icon(),
+                    initp_elearning_icon(),
                     initp_tools(),
                     initp_about()
                 ]).then ( function () {
 
                     // read some configs
                     load_user_coursemap();
-
+                    load_sitepathmap();
                     
                     $("#splashdiv").hide();
                     local_log("========= init ok ==========");
@@ -1880,6 +1934,7 @@ var pdf_page_loading_status = {
     is called when leaving fileview page
     return value is promise
     dynamicly generated in pdfviewer_show
+
 
 */
 var viewfile_leave;
@@ -2870,6 +2925,237 @@ function webdav_cancel_sync()
 
 
 
+function enter_resource_section(sobj, coursefolder, is_resync)
+{
+    is_resync = (is_resync === true);
+    var webdav_sync_complete = false;
+    
+    var resync_func = function (oldsyncdata) {
+        var promise;
+        if (oldsyncdata !== undefined) {
+            promise = write_syncdatafile(syncdatafile, oldsyncdata);
+        } else {
+            promise = Promise.resolve();
+        }
+        promise.then( function () {
+            enter_resource_section(sobj, coursefolder, true);
+        });
+    };
+    
+    // prepare backbtn
+    $("#filenav_backbtn").unbind("click").click( function () {
+        if (webdav_sync_complete) {
+            go_back();
+        } else {
+            webdav_cancel_sync();
+            go_back();
+        }
+    });
+    
+    show_page("filenav");
+
+    
+    let syncdatafile = get_syncdatafile(sobj);
+    $("#filenav_sitetitle").text(sobj.sname);
+
+    // load data
+    if (!is_resync) $("#filenav_filelist_box").scrollTop(0);
+    var tbodyobj = $("#filenav_filelist").children("tbody")
+        .html("<tr><td></td><td>加载中 ...</td><td></td></tr>");
+    
+    // prepare for status bar
+    $("#filenav_deatils").empty().html("提示：<ul><li>单击文件可以查看详细信息</li><li>双击文件来打开</li></ul>");;
+    $("#filenav_syncprogress").empty();
+    $("#filenav_syncinprogresstext").show();
+    $("#filenav_syncfinishedtext").empty().hide();
+    $("#filenav_showsyncdetails").unbind("click").click( function () {
+        local_log("[sync] " + ($("#filenav_syncdetails_fbox").is(":visible") ? "hide" : "show") + " detail");
+        $("#filenav_syncdetails_fbox").toggle();
+        $("#filenav_syncdetails_box").scrollTop(0);
+    });
+    $("#filenav_resync").hide().unbind("click").click( function () {
+        local_log("[filenav] resync (uuid = " + sobj.uuid + ")");
+        resync_func();
+    });
+    $("#filenav_forcedownloadall").hide().unbind("click");
+
+
+    // prepare detail box
+    $("#filenav_syncdetails_fbox").hide();
+    var statuslist = create_statuslist();
+    $("#filenav_syncdetails").empty().append($(statuslist));
+    $("#filenav_showfiles").hide();
+
+
+
+     
+    local_log("[sync] start (uuid = " + sobj.uuid + ")");
+
+    webdav_sync(sobj.uuid, coursefolder, syncdatafile, statuslist,
+        function (finished, total) { // report_progress
+            // update status bar
+            $("#filenav_syncprogress").text(finished.toString() + "/" + total.toString());
+        }
+    ).then( function (obj) {
+        local_log("[sync] finished (newfile = " + obj.sum.toString() + ", uuid = " + sobj.uuid + ")");
+
+        // update sync progress
+        $("#filenav_syncinprogresstext").hide();
+        if (obj.sum == 0) {
+            $("#filenav_syncfinishedtext").text("同步完成").show();
+        } else {
+            $("#filenav_syncfinishedtext").text("同步完成，共 " + obj.sum.toString() + " 个新文件").show();
+        }
+        $("#filenav_showfiles").show().unbind("click").click( function () { // open course folder
+            local_log("[filenav] open course folder (coursefolder = " + coursefolder + ")");
+            launch_fileuri(docfolder + coursefolder);
+        });
+        $("#filenav_resync").show();
+
+        // sort file list by last-modified date
+        obj.lobj.flist.sort( function (a, b) {
+            // sort by last_modified
+            var ta = Date.parse(a.lastmodified);
+            var tb = Date.parse(b.lastmodified);
+            if (ta < tb) return 1;
+            if (tb < ta) return -1;
+            return 0;
+        });
+
+        // check if we have non-exists file
+        var has_non_exists_file_flag = false;
+        obj.lobj.flist.forEach( function (fitem) {
+            if (!fitem.exists) has_non_exists_file_flag = true;
+        });
+        if (has_non_exists_file_flag) {
+            $("#filenav_forcedownloadall").show().click( function () {
+                local_log("[filenav] force download all");
+                obj.lobj.flist.forEach( function (fitem) {
+                    fitem.force_no_ignore = true;
+                });
+                resync_func(obj.lobj);
+            });
+        }
+
+
+        // generate file table
+        tbodyobj.empty();
+        console.log(obj);
+        obj.lobj.flist.forEach( function (element, index, array) {
+            let fitem = element;
+            let fileuri = docfolder + coursefolder + fitem.path;
+            
+            var rowobj = $(document.createElement('tr'))
+
+            // image
+            var icontd = $(document.createElement('td')).append(
+                $(document.createElement('img'))
+                    .attr("src", get_filetype_iconuri(get_file_ext(fitem.filename)))
+                    .attr("width", "16")
+                    .attr("height", "16")
+                    .css("margin", "4px 3px")
+            ).appendTo(rowobj);
+            
+            // filename
+            var fndisp = fitem.path.slice(1);
+            var fnobj = $(document.createElement('span'))
+                .text(fndisp)
+                .addClass("eh_link2");
+            var fntd = $(document.createElement('td')).append(fnobj).appendTo(rowobj);
+
+            var mark_noignore_and_download_func = function () {
+                local_log("[filenav] mark no ignore (path = " + fitem.path + ")");
+                fitem.force_no_ignore = true;
+                resync_func(obj.lobj);
+            };
+            
+            let openoutside = !pdfviewer_issupported(fitem); // should we open this file outside
+            var openfunc = function (e) { // user dblclick file
+                console.log(fitem, coursefolder);
+                if (!fitem.exists) {
+                    mark_noignore_and_download_func();
+                } else if (openoutside) {
+                    launch_fileuri(fileuri);
+                } else {
+                    pdfviewer_show(fitem, coursefolder).catch( function (reason) {
+                        show_error("无法用内置查看器打开: " + get_friendly_part(reason));
+                        launch_fileuri(fileuri);
+                    });
+                }
+            };
+            var selectfunc = function (e) { // user select file
+                local_log("[filenav] select file (fpath = " + fitem.path + ")");
+                
+                //$(this).parent().parent().find("span").filter(".eh_link3").removeClass("eh_link3").addClass("eh_link2");
+                //$(this).parent().find("span").filter(".eh_link2").removeClass("eh_link2").addClass("eh_link3");
+                $(this).parent().children("tr").removeClass("eh_selected");
+                $(this).addClass("eh_selected");
+                var actobj = $(document.createElement('span')).addClass("eh_add_margin_to_child_link");
+                
+                if (!fitem.exists) {
+                    $(document.createElement('span')).addClass("eh_link").text("下载此文件").click(mark_noignore_and_download_func).appendTo(actobj);
+                }
+                
+                $(document.createElement('span')).addClass("eh_link").text("打开文件位置").click( function () {
+                    local_log("[filenav] reveal file (fpath = " + fitem.path + ")");
+                    reveal_fileuri(fileuri);
+                }).appendTo(actobj);
+                
+                var detaildiv = $("#filenav_deatils");
+                detaildiv.empty()
+                    .append($(create_kvdiv("名称: ", fitem.filename, function () {
+                                local_log("[filenav] open file by click link (fpath = " + fitem.path + ")");
+                                openfunc();
+                            })))
+                    .append($(create_kvdiv("修改时间: ", format_date(new Date(Date.parse(fitem.lastmodified)), "dto"))))
+                    .append($(create_kvdiv("大小: ", format_filesize(fitem.contentlength))))
+                    .append($(create_kvdiv_with_obj("操作: ", actobj)));
+            };
+
+            var redmsg = "";
+            if (fitem.is_new_file) redmsg += ", 新";
+            if (!fitem.exists) redmsg += ", 尚未下载";
+            if (redmsg != "") {
+                $(document.createElement('span'))
+                    .text(" (" + redmsg.slice(2) + ")")
+                    .css("color", "red")
+                    .appendTo(fntd);
+            }
+
+            // lastmodified
+            var lastmodifiedoffset = date_offset(new Date(Date.parse(fitem.lastmodified)));
+            if (lastmodifiedoffset.str != "") {
+                $(document.createElement('td')).append(
+                    $(document.createElement('span')).text(format_date(new Date(Date.parse(fitem.lastmodified)), "d") + "  ")
+                ).append(
+                    $(document.createElement('span'))
+                        .text(" (" + lastmodifiedoffset.str + ")")
+                        .css("color", lastmodifiedoffset.color)
+                ).appendTo(rowobj);
+            }
+
+            rowobj.mousedown(preventdefaultfunc)
+                .dblclick(openfunc)
+                .dblclick( function () {
+                        local_log("[filenav] open file by double click (fpath = " + fitem.path + ")");
+                    })
+                .click(selectfunc)
+                .appendTo(tbodyobj);
+        });
+        webdav_sync_complete = true;
+    }, function (reason) {
+        $("#filenav_syncinprogresstext").hide();
+        $("#filenav_syncfinishedtext").text("同步失败").show();
+        statuslist_append(statuslist, "同步失败: " + get_friendly_part(reason), "red");
+        local_log("[sync] failed (reason = " + get_friendly_part(reason) + ")");
+        $("#filenav_resync").show();
+        tbodyobj.html("<tr><td></td><td>同步失败</td><td></td></tr>");
+        webdav_sync_complete = true;
+    });
+}
+
+
+
 
 
 
@@ -3109,6 +3395,7 @@ function urp_fetch_semesterdata()
                     if (spart[3] == "1") spart[3] = "秋季";
                     var sstr = spart[2] + " " + spart[3] + "学期";
                     semesterlist[sid] = sstr;
+
                 });
                 setTimeout(function () {
                     resolve({
@@ -3149,12 +3436,45 @@ var ctable; // ctable[1...5][1...14], coursetime (x, y) => cidx
 var user_coursemap = {}; // user defined course->site map
 var cur_semestername; // current semester name
 
-function get_coursefolder(cobj)
+var reselect_coursetable_func; // function for reselecting selected course
+
+
+var sitepathmap = {};
+function get_sitepath(sobj)
 {
-    check_filename(cur_semestername);
-    check_filename(cobj.cname);
-    return "/" + cur_semestername + "/" + cobj.cname;
+    return sitepathmap[sobj.uuid];
 }
+function set_sitepath(sobj, path)
+{
+    sitepathmap[sobj.uuid] = path;
+    save_sitepathmap();
+}
+function get_coursefolder(cobj, sobj)
+{
+    var p = get_sitepath(sobj);
+    if (p !== undefined) return p;
+    
+    var a = escape_filename(cur_semestername);
+    var b = escape_filename(cobj.cname);
+    check_filename(a);
+    check_filename(b);
+    p = "/" + a + "/" + b;
+    set_sitepath(sobj, p);
+    return p;
+}
+function get_sitefolder(sobj)
+{
+    var p = get_sitepath(sobj);
+    if (p !== undefined) return p;
+    
+    var b = escape_filename(sobj.sname);
+    check_filename(b);
+    p = "/其他/" + b;
+    set_sitepath(sobj, p);
+    return p;
+}
+
+
 function get_syncdatafile(sobj)
 {
     check_filename(sobj.uuid);
@@ -3173,6 +3493,11 @@ function get_syncdatafile(sobj)
 
 function coursetable_load(clist_input)
 {
+    reselect_coursetable_func = function () {
+        $("#main_course_details").html("提示：<ul><li>单击课程可以查看课程详细信息</li><li>双击课程可以进入课程文件列表</li></ul>");
+        update_mainpage_assignments_announcements(null);
+    };
+    
     // copy clist_input to clist
     clist = clist_input;
 
@@ -3240,7 +3565,7 @@ function coursetable_load(clist_input)
 
     $("#main_coursetable").empty().append(tobj);
 
-    $("#main_course_details").html("提示：<ul><li>单击课程可以查看课程详细信息</li><li>双击课程可以进入课程文件列表</li></ul>");
+    reselect_coursetable_func();
 }
 
 /*
@@ -3307,6 +3632,14 @@ function make_avlweek_string(avlweek)
 
 function coursetable_select(cidx, x, y)
 {
+    let cidx_cb = cidx;
+    let x_cb = x;
+    let y_cb = y;
+
+    reselect_coursetable_func = function () {
+        coursetable_select(cidx_cb, x_cb, y_cb);
+    }
+
     // deselect all
     cdivlist.forEach( function (element, index, array) {
         $(element).removeClass("eh_selected");
@@ -3330,22 +3663,10 @@ function coursetable_select(cidx, x, y)
     
     var detailobj = $("#main_course_details").empty();
 
-    let cidx_cb = cidx;
-    let x_cb = x;
-    let y_cb = y;
-        
-    if (sidx >= 0) {
-        $(create_kvdiv("名称: ", cobj.cname + " (" + cobj.cid + ")", function () {
-            local_log("[mainpage] enter course site by clicking link (cidx = " + cidx.toString() + ")");
-            coursetable_enter(cidx_cb, x_cb, y_cb);
-        })).appendTo(detailobj);
-    } else {
-        $(create_kvdiv("名称: ", cobj.cname + " (" + cobj.cid + ")", function () {
-            local_log("[mainpage] enter course site by clicking link (cidx = " + cidx.toString() + ")");
-            coursetable_manual_match(clist[cidx_cb]);
-            coursetable_select(cidx_cb, x_cb, y_cb);
-        })).appendTo(detailobj);
-    }
+    $(create_kvdiv("名称: ", cobj.cname + " (" + cobj.cid + ")", function () {
+        local_log("[mainpage] enter course site by clicking link (cidx = " + cidx.toString() + ")");
+        coursetable_enter(cidx_cb, x_cb, y_cb);
+    })).appendTo(detailobj);
     $(create_kvdiv("教师: ", cobj.cteacher)).appendTo(detailobj);
     $(create_kvdiv("时间: ", make_ctime_str(ctimelist))).appendTo(detailobj);
 
@@ -3357,38 +3678,39 @@ function coursetable_select(cidx, x, y)
     $(create_kvdiv("开课周: ", make_avlweek_string(cobj.cavlweek))).appendTo(detailobj);
 
     if (sidx >= 0) {
-        var actobj = $(document.createElement('span')).addClass("eh_add_margin_to_child_link");
-
-        let cidx_cb = cidx;
-        let x_cb = x;
-        let y_cb = y;
-        $(document.createElement('span')).addClass("eh_link").text("查看资源").click( function () {
-            local_log("[mainpage] enter course site by clicking link below (cidx = " + cidx.toString() + ")");
-            coursetable_enter(cidx_cb, x_cb, y_cb);
-        }).appendTo(actobj);
-
-        
-        $(document.createElement('span')).addClass("eh_link").text("打开课程文件夹").click( function () {
-            var diruri = docfolder + get_coursefolder(cobj);
-            check_path_with_base(diruri, docfolder);
-            local_log("[mainpage] open course folder: " + diruri);
-            OS.File.exists(OS.Path.fromFileURI(diruri)).then( function (fe) {
-                if (fe) {
-                    launch_fileuri(diruri);
-                } else {
-                    friendly_error("请先进入该站点一次，以进行首次同步。");
-                }
-            });
-        }).appendTo(actobj);
-
-
-        $(document.createElement('span')).addClass("eh_link").text("在浏览器中打开").click( function () {
-            var sobj = slist[sidx];
-            open_site_in_browser(sobj.uuid);
-        }).appendTo(actobj);
-    
-        detailobj.append($(create_kvdiv_with_obj("操作: ", actobj)));
+        detailobj.append(make_action_obj( function () {
+                local_log("[mainpage] enter course site by clicking link below (cidx = " + cidx.toString() + ")");
+                coursetable_enter(cidx_cb, x_cb, y_cb);
+            }, docfolder + get_coursefolder(cobj, slist[sidx]), slist[sidx]));
     }
+
+    update_mainpage_assignments_announcements(slist[sidx]);
+}
+
+function make_action_obj(resource_func, resource_localuri, sobj)
+{
+    var actobj = $(document.createElement('span')).addClass("eh_add_margin_to_child_link");
+
+    $(document.createElement('span')).addClass("eh_link").text("查看资源").click(resource_func).appendTo(actobj);
+    
+    $(document.createElement('span')).addClass("eh_link").text("打开课程文件夹").click( function () {
+        var diruri = resource_localuri;
+        check_path_with_base(diruri, docfolder);
+        local_log("[mainpage] open course folder: " + diruri);
+        OS.File.exists(OS.Path.fromFileURI(diruri)).then( function (fe) {
+            if (fe) {
+                launch_fileuri(diruri);
+            } else {
+                friendly_error("请先进入该站点一次，以进行首次同步。");
+            }
+        });
+    }).appendTo(actobj);
+
+    $(document.createElement('span')).addClass("eh_link").text("在浏览器中打开").click( function () {
+        open_site_in_browser(sobj.uuid);
+    }).appendTo(actobj);
+
+    return $(create_kvdiv_with_obj("操作: ", actobj));
 }
 
 function coursetable_manual_match(cobj)
@@ -3425,238 +3747,9 @@ function coursetable_enter(cidx, x, y)
     if (sidx >= 0) {
         let cobj = clist[cidx];
         let sobj = slist[sidx];
-        let coursefolder = get_coursefolder(cobj);
-        enter_resource_section(sobj, coursefolder, sobj);
+        let coursefolder = get_coursefolder(cobj, sobj);
+        enter_resource_section(sobj, coursefolder, false);
     }
-}
-
-function enter_resource_section(sobj, coursefolder, is_resync)
-{
-    is_resync = (is_resync === true);
-    var webdav_sync_complete = false;
-    
-    var resync_func = function (oldsyncdata) {
-        var promise;
-        if (oldsyncdata !== undefined) {
-            promise = write_syncdatafile(syncdatafile, oldsyncdata);
-        } else {
-            promise = Promise.resolve();
-        }
-        promise.then( function () {
-            enter_resource_section(sobj, coursefolder, true);
-        });
-    };
-    
-    // prepare backbtn
-    $("#filenav_backbtn").unbind("click").click( function () {
-        if (webdav_sync_complete) {
-            go_back();
-        } else {
-            webdav_cancel_sync();
-            go_back();
-        }
-    });
-    
-    show_page("filenav");
-
-    
-    let syncdatafile = get_syncdatafile(sobj);
-    $("#filenav_sitetitle").text(sobj.sname);
-
-    // load data
-    if (!is_resync) $("#filenav_filelist_box").scrollTop(0);
-    var tbodyobj = $("#filenav_filelist").children("tbody")
-        .html("<tr><td></td><td>加载中 ...</td><td></td></tr>");
-    
-    // prepare for status bar
-    $("#filenav_deatils").empty().html("提示：<ul><li>单击文件可以查看详细信息</li><li>双击文件来打开</li></ul>");;
-    $("#filenav_syncprogress").empty();
-    $("#filenav_syncinprogresstext").show();
-    $("#filenav_syncfinishedtext").empty().hide();
-    $("#filenav_showsyncdetails").unbind("click").click( function () {
-        local_log("[sync] " + ($("#filenav_syncdetails_fbox").is(":visible") ? "hide" : "show") + " detail");
-        $("#filenav_syncdetails_fbox").toggle();
-        $("#filenav_syncdetails_box").scrollTop(0);
-    });
-    $("#filenav_resync").hide().unbind("click").click( function () {
-        local_log("[filenav] resync (uuid = " + sobj.uuid + ")");
-        resync_func();
-    });
-    $("#filenav_forcedownloadall").hide().unbind("click");
-
-
-    // prepare detail box
-    $("#filenav_syncdetails_fbox").hide();
-    var statuslist = create_statuslist();
-    $("#filenav_syncdetails").empty().append($(statuslist));
-    $("#filenav_showfiles").hide();
-
-
-
-     
-    local_log("[sync] start (uuid = " + sobj.uuid + ")");
-
-    webdav_sync(sobj.uuid, coursefolder, syncdatafile, statuslist,
-        function (finished, total) { // report_progress
-            // update status bar
-            $("#filenav_syncprogress").text(finished.toString() + "/" + total.toString());
-        }
-    ).then( function (obj) {
-        local_log("[sync] finished (newfile = " + obj.sum.toString() + ", uuid = " + sobj.uuid + ")");
-
-        // update sync progress
-        $("#filenav_syncinprogresstext").hide();
-        if (obj.sum == 0) {
-            $("#filenav_syncfinishedtext").text("同步完成").show();
-        } else {
-            $("#filenav_syncfinishedtext").text("同步完成，共 " + obj.sum.toString() + " 个新文件").show();
-        }
-        $("#filenav_showfiles").show().unbind("click").click( function () { // open course folder
-            local_log("[filenav] open course folder (coursefolder = " + coursefolder + ")");
-            launch_fileuri(docfolder + coursefolder);
-        });
-        $("#filenav_resync").show();
-
-        // sort file list by last-modified date
-        obj.lobj.flist.sort( function (a, b) {
-            // sort by last_modified
-            var ta = Date.parse(a.lastmodified);
-            var tb = Date.parse(b.lastmodified);
-            if (ta < tb) return 1;
-            if (tb < ta) return -1;
-            return 0;
-        });
-
-        // check if we have non-exists file
-        var has_non_exists_file_flag = false;
-        obj.lobj.flist.forEach( function (fitem) {
-            if (!fitem.exists) has_non_exists_file_flag = true;
-        });
-        if (has_non_exists_file_flag) {
-            $("#filenav_forcedownloadall").show().click( function () {
-                local_log("[filenav] force download all");
-                obj.lobj.flist.forEach( function (fitem) {
-                    fitem.force_no_ignore = true;
-                });
-                resync_func(obj.lobj);
-            });
-        }
-
-
-        // generate file table
-        tbodyobj.empty();
-        console.log(obj);
-        obj.lobj.flist.forEach( function (element, index, array) {
-            let fitem = element;
-            let fileuri = docfolder + coursefolder + fitem.path;
-            
-            var rowobj = $(document.createElement('tr'))
-
-            // image
-            var icontd = $(document.createElement('td')).append(
-                $(document.createElement('img'))
-                    .attr("src", get_filetype_iconuri(get_file_ext(fitem.filename)))
-                    .attr("width", "16")
-                    .attr("height", "16")
-                    .css("margin", "4px 3px")
-            ).appendTo(rowobj);
-            
-            // filename
-            var fndisp = fitem.path.slice(1);
-            var fnobj = $(document.createElement('span'))
-                .text(fndisp)
-                .addClass("eh_link2");
-            var fntd = $(document.createElement('td')).append(fnobj).appendTo(rowobj);
-
-            var mark_noignore_and_download_func = function () {
-                local_log("[filenav] mark no ignore (path = " + fitem.path + ")");
-                fitem.force_no_ignore = true;
-                resync_func(obj.lobj);
-            };
-            
-            let openoutside = !pdfviewer_issupported(fitem); // should we open this file outside
-            var openfunc = function (e) { // user dblclick file
-                console.log(fitem, coursefolder);
-                if (!fitem.exists) {
-                    mark_noignore_and_download_func();
-                } else if (openoutside) {
-                    launch_fileuri(fileuri);
-                } else {
-                    pdfviewer_show(fitem, coursefolder).catch( function (reason) {
-                        show_error("无法用内置查看器打开: " + get_friendly_part(reason));
-                        launch_fileuri(fileuri);
-                    });
-                }
-            };
-            var selectfunc = function (e) { // user select file
-                local_log("[filenav] select file (fpath = " + fitem.path + ")");
-                
-                //$(this).parent().parent().find("span").filter(".eh_link3").removeClass("eh_link3").addClass("eh_link2");
-                //$(this).parent().find("span").filter(".eh_link2").removeClass("eh_link2").addClass("eh_link3");
-                $(this).parent().children("tr").removeClass("eh_selected");
-                $(this).addClass("eh_selected");
-                var actobj = $(document.createElement('span')).addClass("eh_add_margin_to_child_link");
-                
-                if (!fitem.exists) {
-                    $(document.createElement('span')).addClass("eh_link").text("下载此文件").click(mark_noignore_and_download_func).appendTo(actobj);
-                }
-                
-                $(document.createElement('span')).addClass("eh_link").text("打开文件位置").click( function () {
-                    local_log("[filenav] reveal file (fpath = " + fitem.path + ")");
-                    reveal_fileuri(fileuri);
-                }).appendTo(actobj);
-                
-                var detaildiv = $("#filenav_deatils");
-                detaildiv.empty()
-                    .append($(create_kvdiv("名称: ", fitem.filename, function () {
-                                local_log("[filenav] open file by click link (fpath = " + fitem.path + ")");
-                                openfunc();
-                            })))
-                    .append($(create_kvdiv("修改时间: ", format_date(new Date(Date.parse(fitem.lastmodified)), "dto"))))
-                    .append($(create_kvdiv("大小: ", format_filesize(fitem.contentlength))))
-                    .append($(create_kvdiv_with_obj("操作: ", actobj)));
-            };
-
-            var redmsg = "";
-            if (fitem.is_new_file) redmsg += ", 新";
-            if (!fitem.exists) redmsg += ", 尚未下载";
-            if (redmsg != "") {
-                $(document.createElement('span'))
-                    .text(" (" + redmsg.slice(2) + ")")
-                    .css("color", "red")
-                    .appendTo(fntd);
-            }
-
-            // lastmodified
-            var lastmodifiedoffset = date_offset(new Date(Date.parse(fitem.lastmodified)));
-            if (lastmodifiedoffset.str != "") {
-                $(document.createElement('td')).append(
-                    $(document.createElement('span')).text(format_date(new Date(Date.parse(fitem.lastmodified)), "d") + "  ")
-                ).append(
-                    $(document.createElement('span'))
-                        .text(" (" + lastmodifiedoffset.str + ")")
-                        .css("color", lastmodifiedoffset.color)
-                ).appendTo(rowobj);
-            }
-
-            rowobj.mousedown(preventdefaultfunc)
-                .dblclick(openfunc)
-                .dblclick( function () {
-                        local_log("[filenav] open file by double click (fpath = " + fitem.path + ")");
-                    })
-                .click(selectfunc)
-                .appendTo(tbodyobj);
-        });
-        webdav_sync_complete = true;
-    }, function (reason) {
-        $("#filenav_syncinprogresstext").hide();
-        $("#filenav_syncfinishedtext").text("同步失败").show();
-        statuslist_append(statuslist, "同步失败: " + get_friendly_part(reason), "red");
-        local_log("[sync] failed (reason = " + get_friendly_part(reason) + ")");
-        $("#filenav_resync").show();
-        tbodyobj.html("<tr><td></td><td>同步失败</td><td></td></tr>");
-        webdav_sync_complete = true;
-    });
 }
 
 
@@ -3702,29 +3795,114 @@ function load_user_coursemap()
     var user_coursemap_path = dbfolder + "/usercoursemap.json";
     read_json_from_fileuri(user_coursemap_path).then( function (new_user_coursemap) {
         user_coursemap = new_user_coursemap.coursemap;
+        if (user_coursemap === undefined) user_coursemap = {};
+    }, function (reason) {
+        console.log("using new coursemap: " + reason);
     });
 }
-
 function save_user_coursemap()
 {
     var user_coursemap_path = dbfolder + "/usercoursemap.json";
     write_json_to_fileuri({ coursemap: user_coursemap }, user_coursemap_path);
 }
 
+function load_sitepathmap()
+{
+    var sitepathmap_path = dbfolder + "/sitepathmap.json";
+    read_json_from_fileuri(sitepathmap_path).then( function (new_sitepathmap) {
+        sitepathmap = new_sitepathmap.sitepathmap;
+        if (sitepathmap === undefined) sitepathmap = {};
+    }, function (reason) {
+        console.log("using new sitepathmap: " + reason);
+    });
+}
+function save_sitepathmap()
+{
+    var sitepathmap_path = dbfolder + "/sitepathmap.json";
+    write_json_to_fileuri({ sitepathmap: sitepathmap }, sitepathmap_path);
+}
+
 
 // ==================== site list related functions ======================
 
+var sitelist_reselect_func;
+
+function sitelist_enter(sobj)
+{
+    enter_resource_section(sobj, get_sitefolder(sobj), false);
+}
+
+function sitelist_select(sidx)
+{
+    $($("#main_sitelist").find("tr").removeClass("eh_selected")[sidx]).addClass("eh_selected");
+    
+    sitelist_reselect_func = function () {
+        sitelist_select(sidx);
+    };
+    var sobj = slist[sidx];
+    var detailobj = $("#main_course_details").empty();
+    
+    $(create_kvdiv("名称: ", sobj.sname, function () {
+        sitelist_enter(sobj);
+    })).appendTo(detailobj);
+
+    $(create_kvdiv("UUID: ", sobj.uuid)).appendTo(detailobj);
+
+    detailobj.append(make_action_obj( function () {
+        sitelist_enter(sobj);
+    }, docfolder + get_sitefolder(sobj), sobj));
+
+    update_mainpage_assignments_announcements(sobj);
+}
 
 function sitelist_load(new_slist)
 {
     slist = new_slist;
     //console.log(slist);
+    
+    sitelist_reselect_func = function () {
+        $("#main_course_details").html("提示：<ul><li>单击站点可以查看站点详细信息</li><li>双击站点可以进入站点文件列表</li></ul>");
+        update_mainpage_assignments_announcements(null);
+    };
+
+    var slistobj = $("#main_sitelist").empty();
+    var tobj = $("<table></table>");
+
+    var sidx;
+    for (sidx = 0; sidx < slist.length; sidx++) {
+        let sidx_cb = sidx;
+        let sobj = slist[sidx];
+        var trobj = $(document.createElement('tr')).click( function () {
+                sitelist_select(sidx_cb);
+            }).dblclick( function () {
+                sitelist_enter(sobj);
+            });
+        $(document.createElement('td')).append(create_sakai_icon_span("icon-sakai-syllabus").css("margin", "4px 3px")).appendTo(trobj);
+        $(document.createElement('td')).text(sobj.sname).appendTo(trobj);
+        trobj.appendTo(tobj);
+    }
+
+    tobj.appendTo(slistobj);
+    
+    sitelist_reselect_func();
 }
 
 
 
 
 
+function update_mainpage_assignments_announcements(sobj)
+{
+    if (sobj === null) {
+        $("#main_assignments").empty().text("请选择一个课程");
+        $("#main_announcements").empty().text("请选择一个课程");
+        return;
+    }
+    
+    console.log("update AA", sobj);
+    $("#main_assignments").empty().text(sobj.sname);
+    $("#main_announcements").empty().text(sobj.sname);
+}
 
 
 
@@ -3732,6 +3910,29 @@ function sitelist_load(new_slist)
 
 
 // ===================== main page related function ========================
+
+var main_list_status = 0; // 0 for coursetable, 1 for sitelist
+
+function switch_sitelist_coursetable(new_status)
+{
+    if (new_status === 0 || new_status === 1) {
+        main_list_status = new_status;
+    } if (new_status !== -1) {
+        main_list_status = (main_list_status === 1 ? 0 : 1);
+    }
+    
+    if (main_list_status == 0) { // show coursetable
+        $("#main_coursetable_status").text("课程表");
+        $("#main_coursetable").show();
+        $("#main_sitelist").hide();
+        reselect_coursetable_func();
+    } else { // show sitelist
+        $("#main_coursetable_status").text("站点");
+        $("#main_coursetable").hide();
+        $("#main_sitelist").show();
+        sitelist_reselect_func();
+    }
+}
 
 function init_main_page()
 {
@@ -3774,6 +3975,7 @@ function init_main_page()
                         // load clist data
                         local_log("[maininit] init OK");
                         coursetable_load(clist);
+                        switch_sitelist_coursetable(-1);
                         //show_msg("load clist OK");
                     }, function (reason) {
                         abort("can't fetch urp coursetable");

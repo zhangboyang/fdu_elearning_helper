@@ -169,20 +169,18 @@
         <div class="eh_flexbox_fill_remaining_wrapper_lr"><div id="main_mid" class="eh_page_main" style="display: flex; flex-direction: row;">
         <div style="flex: 0 1 auto; width: 50%"><div style="height: 100%; width: 100%; padding: 10px 5px 10px 10px; display: flex; flex-direction: column;">
 <div class="cyan eh_sidebar" style="flex: 1 0 auto; padding: 0px 2px 2px 2px;">
-    <div class="eh_sidebar_title">通知</div>
+    <div class="eh_sidebar_title">作业</div>
 	<div class="cyan lighten-5" style="flex: 1 1 auto; height: 0px;">
-		<div style="overflow-y: auto; height: 100%;"><div style="padding: 10px;">
-		    功能尚未实现
-		    <!-- CALENDAR START -->
-		    <!--<div class="cyan lighten-4" style="height: 80px; width: 80px; border: 2px solid black; margin: 5px; padding: 5px; float: left;" onclick="show_page('calendar')">ICS PA3</div>-->
+		<div style="overflow-y: auto; height: 100%;"><div id="main_assignments" style="padding: 10px;">
+		    加载中 ...
 		</div></div>
     </div>
 </div>
 <div class="lime eh_sidebar" style="flex: 1 0 auto; padding: 0px 2px 2px 2px; margin-top: 10px">
-    <div class="eh_sidebar_title">作业</div>
+    <div class="eh_sidebar_title">通知</div>
 	<div class="lime lighten-5" style="flex: 1 1 auto; height: 0px;">
-		<div style="overflow-y: auto; height: 100%;"><div style="padding: 10px;">
-		    功能尚未实现
+		<div style="overflow-y: auto; height: 100%;"><div id="main_announcements" style="padding: 10px;">
+		    加载中 ...
 		</div></div>
     </div>
 </div>
@@ -192,14 +190,16 @@
 
 <div class="light-green eh_sidebar" style="display: flex; flex-direction: column; padding: 0px 2px 2px 2px; height: 100%">
     <div class="eh_sidebar_title" style="display: flex; flex-direction: row;">
-        <div style="flex-grow: 1">课程表</div>
-        <div style="flex-grow: 1">站点</div>
-        <div style="flex-shrink: 1" class="eh_link">切换</div>
+        <div style="flex-grow: 1" id="main_coursetable_status">课程表</div>
+        <div style="flex-shrink: 1" class="eh_link" onclick="switch_sitelist_coursetable()">切换</div>
     </div>
 	<div class="light-green lighten-5" style="flex: 1 1 auto; height: 0px;">
 		<div style="overflow-y: auto; height: 100%; padding: 10px;">
-<div class="eh_coursetable" id="main_coursetable" style="margin-bottom: 10px">
+<div class="eh_coursetable" id="main_coursetable" style="margin-bottom: 10px; display: none">
 <!-- course table -->
+</div>
+<div class="eh_sitelist" id="main_sitelist" style="margin-bottom: 10px; display: none">
+<!-- site list -->
 </div>
 		</div>
 	</div>
