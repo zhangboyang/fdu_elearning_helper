@@ -2634,7 +2634,7 @@ function webdav_sync_single(fitem, sdfitem, localbase, cur_sync_id, fstatus, upd
                     resolve({ flag: true });
                     return;
                 }
-                if (sdfitem.lastmodified != fitem.lastmodified || sdfitem.etag != fitem.etag) {
+                if (sdfitem.lastmodified != fitem.lastmodified) {
                     // file changed (etag, lastmodified), download it
                     resolve({ flag: true });
                     return;
