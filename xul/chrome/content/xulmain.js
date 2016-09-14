@@ -68,6 +68,7 @@ function mymenu_popupshowing(event)
 // popup system notifications
 // https://developer.mozilla.org/en-US/Add-ons/Code_snippets/Alerts_and_Notifications
 function popup(title, text) {
+  console.log("POPUP ", title, text);
   try {
     Components.classes['@mozilla.org/alerts-service;1']
               .getService(Components.interfaces.nsIAlertsService)
