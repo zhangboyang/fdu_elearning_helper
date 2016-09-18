@@ -387,6 +387,8 @@ function create_sakai_icon_span(iconname)
     var pos;
     switch (iconname) {
         case "icon-sakai-syllabus": pos = [-90, -414]; break;
+        case "icon-sakai-assignment-grades": pos = [-324, -324]; break;
+        case "icon-sakai-iframe-site": pos = [-162, -252]; break;
         default: pos = [-36, -0]; break;
     }
     ret.css("background-position", pos[0].toString() + "px " + pos[1].toString() + "px");
@@ -569,6 +571,7 @@ function date_offset(d)
 */
 function format_date(d, fmt)
 {
+    if (d.getTime() == 0) return "未知";
     var base = "";
     if (fmt.indexOf("d") !== -1) base += " " + d.getFullYear().toString() + "/" + (d.getMonth() + 1).toString() + "/" + d.getDate().toString();
     if (fmt.indexOf("t") !== -1) {
@@ -597,6 +600,27 @@ function format_date(d, fmt)
     } else {
         return base;
     }
+}
+
+function parse_elearning_date(datestr)  // FIXME: check meaning of 12:00AM and 12:00PM
+{
+//    datestr = "2016-5-24 下午12:00";
+    var chs = datestr.match(/(\d+)-(\d+)-(\d+) (上午|下午)(\d+):(\d+)/);
+    if (chs != null) {
+        var ret = new Date();
+        ret.setFullYear(parseInt(chs[1]), parseInt(chs[2]) - 1, parseInt(chs[3]));
+        ret.setHours(parseInt(chs[5]) % 12 + (chs[4] == "上午" ? 0 : 12), parseInt(chs[6]), 0, 0);
+        //console.log(datestr, chs, ret.toString());
+        return ret;
+    }
+    var eng = datestr.match(/(.+ \d\d\d\d) (\d+):(\d+) (am|pm)/);
+    if (eng != null) {
+        var ret = new Date(eng[1]);
+        ret.setHours(parseInt(eng[2]) % 12 + (eng[4] == "am" ? 0 : 12), parseInt(eng[3]), 0, 0);
+        //console.log(datestr, eng, ret.toString());
+        return ret;
+    }
+    return new Date(0);
 }
 
 function format_filesize(sz)
@@ -3221,8 +3245,6 @@ function uis_login()
 
 function elearning_login()
 {
-
-
     return new Promise( function (resolve, reject) {
         $.get("http://elearning.fudan.edu.cn/portal/login", null, null, "text")
             .done( function (data, textStatus, jqXHR) {
@@ -3240,6 +3262,108 @@ function elearning_login()
 }
 
 
+
+
+
+function elearning_fetch_siteannouncements(sobj)
+{
+    return new Promise( function (resolve, reject) {
+    
+        resolve({ announcements: [] });
+    });
+}
+
+function parse_assignment_object(aobj)
+{
+    aobj["opendate"] = parse_elearning_date(aobj.opendatestr);
+    aobj["duedate"] = parse_elearning_date(aobj.duedatestr);
+    aobj["status"] = aobj.statusstr;
+}
+
+function elearning_fetch_siteassignment(sobj)
+{
+    return new Promise( function (resolve, reject) {
+        $.get(sobj.assignment_url, null, null, "html") // FIXME: check page limit!
+            .done( function (data) {
+                var alist = new Array();
+                $($.parseHTML(data)).find("[name='listAssignmentsForm'] table").find("tr").each( function (index, element) { // for each <TR>
+                    var aobj = {
+                        title: "unknown",
+                        statusstr: "unknown",
+                        opendatestr: "unknown",
+                        duedatestr: "unknown",
+                    };
+                    
+                    $(element).children("td").each( function (index, element) { // for each <TD>
+                        var tdobj = $(element);
+                        switch (tdobj.attr("headers")) {
+                            case "title": aobj.title = tdobj.find("a").text().trim(); break;
+                            case "status": aobj.statusstr = tdobj.text().trim(); break;
+                            case "openDate": aobj.opendatestr = tdobj.text().trim(); break;
+                            case "dueDate": aobj.duedatestr = tdobj.find("span").text().trim(); break;
+                        }
+                    });
+                    
+                    if (aobj.title != "unknown") {
+                        parse_assignment_object(aobj);
+                        alist.push(aobj);
+                    }
+                });
+                
+                resolve({ assignment: alist });
+            }).fail( function (xhr, textStatus, errorThrown) {
+                // fallback, do not throw error
+                console.log("xhr failed: " + textStatus);
+                resolve({ have_assignment: false });
+            });
+    });
+}
+
+function elearning_fetch_sitedetails(sitem)
+{
+    var sobj = {
+        sname: sitem.sname,
+        uuid: sitem.uuid,
+        have_assignment: false,
+        assignment_url: "",
+        have_announcements: false,
+        announcements_url: "",
+    };
+    return new Promise( function (resolve, reject) {
+        $.get("http://elearning.fudan.edu.cn/portal/pda/" + sitem.uuid, null, null, "html")
+            .done( function (data) {
+                var plist = new Array();
+                var lilist = $($.parseHTML(data)).find("#pda-portlet-page-menu").children("li");
+                
+                var assignment_liobj = lilist.filter(".icon-sakai-assignment-grades-item");
+                if (assignment_liobj.length) {
+                    // found a 'assignment' item
+                    sobj.have_assignment = true;
+                    sobj.assignment_url = assignment_liobj.find("a").attr("href");
+                    plist.push(elearning_fetch_siteassignment(sobj));
+                };
+
+                var announcements_liobj = lilist.filter(".icon-sakai-announcements-item");
+                if (announcements_liobj.length) {
+                    sobj.have_announcements = true;
+                    sobj.announcements_url = announcements_liobj.find("a").attr("href");
+                    plist.push(elearning_fetch_siteannouncements(sobj));
+                }
+                Promise.all(plist).then( function (result) {
+                    result.forEach(result_item => Object.assign(sobj, result_item));
+                    console.log(sobj);
+                    resolve(sobj);
+                }, function (reason) {
+                    reject("detail promise failed: " + reason);
+                });
+            }).fail( function (xhr, textStatus, errorThrown) {
+                // fallback, do not throw error
+                console.log("xhr failed: " + textStatus);
+                resolve(sobj);
+            });
+    });
+}
+
 /*
     fetch site list from elearing (use mobile version elearning)
     return value is a promise
@@ -3251,7 +3375,7 @@ function elearning_fetch_sitelist()
         $.get("http://elearning.fudan.edu.cn/portal/pda", null, null, "html")
             .done( function (data) {
                 var slist = new Array();
-                $(data).find("#pda-portlet-site-menu").children("li").each(function (index, element) {
+                $($.parseHTML(data)).find("#pda-portlet-site-menu").children("li").each(function (index, element) {
                     var slink = $(element).find("a");
                     
                     var sname = slink.attr("title");
@@ -3263,10 +3387,11 @@ function elearning_fetch_sitelist()
                     });
                 });
 
-                resolve(slist);
+                Promise.all(slist.map(elearning_fetch_sitedetails))
+                    .then( slist_with_details => resolve(slist_with_details), reason => reject("can't fetch details: " + reason));
+
             }).fail ( function (xhr, textStatus, errorThrown) {
                 reject("get portal failed: " + textStatus + ", " + errorThrown);
-
             });
     });
 }
@@ -3877,7 +4002,7 @@ function sitelist_load(new_slist)
             }).dblclick( function () {
                 sitelist_enter(sobj);
             });
-        $(document.createElement('td')).append(create_sakai_icon_span("icon-sakai-syllabus").css("margin", "4px 3px")).appendTo(trobj);
+        $(document.createElement('td')).append(create_sakai_icon_span("icon-sakai-iframe-site").css("margin", "4px 3px")).appendTo(trobj);
         $(document.createElement('td')).text(sobj.sname).appendTo(trobj);
         trobj.appendTo(tobj);
     }
@@ -3891,17 +4016,36 @@ function sitelist_load(new_slist)
 
 
 
-function update_mainpage_assignments_announcements(sobj)
+function update_mainpage_assignments_announcements(saaobj)
 {
-    if (sobj === null) {
-        $("#main_assignments").empty().text("请选择一个课程");
+    if (saaobj === null || saaobj == undefined) {
+        $("#main_assignments_list").empty().text("请选择一个课程");
         $("#main_announcements").empty().text("请选择一个课程");
         return;
     }
     
-    console.log("update AA", sobj);
-    $("#main_assignments").empty().text(sobj.sname);
-    $("#main_announcements").empty().text(sobj.sname);
+    console.log("update AA", saaobj);
+
+    if (saaobj.have_assignment) {
+        var tobj = $("<table><!--<tr><th></th><th>作业标题</th><th>状态</th><th>开始</th><th>截止</th></tr>--></table>");
+        saaobj.assignment.forEach( function (aobj) {
+            var trobj = $(document.createElement('tr'));
+            $(document.createElement('td')).append(create_sakai_icon_span("icon-sakai-assignment-grades").css("margin", "4px 3px")).appendTo(trobj);
+            $(document.createElement('td')).text(aobj.title).appendTo(trobj);
+            $(document.createElement('td')).text(aobj.status).appendTo(trobj);
+//            $(document.createElement('td')).text(format_date(aobj.opendate, "dto")).appendTo(trobj);
+            $(document.createElement('td')).text(format_date(aobj.duedate, "dto")).appendTo(trobj);
+            trobj.appendTo(tobj);
+        });
+        if (saaobj.assignment.length == 0) {
+            $("<tr><td></td><td>暂无作业</td><td></td><!--<td></td>--><td></td></tr>").appendTo(tobj);
+        }
+
+        $("#main_assignments_list").empty().append(tobj);
+    } else {
+        $("#main_assignments_list").empty().text("此站点没有启用“作业”功能");
+    }
+    $("#main_announcements").empty().text(saaobj.sname);
 }
 
 
@@ -4122,6 +4266,11 @@ function eh_logout()
     el_password = "";
     save_prefs();
     init_login_page();
+
+    // we should exit program when logout
+    // because there is no way to logout WebDAV
+
+    // FIXME
 }
 
 
@@ -4391,13 +4540,17 @@ function open_in_browser(url, opt)
     }
 }
 
-
-function open_site_in_browser(uuid)
+function open_elearning_url(url)
 {
     uis_login().then( function () {
-        open_in_browser("http://elearning.fudan.edu.cn/portal/site/" + uuid);
+        open_in_browser(url);
     });
 }
+function open_site_in_browser(uuid)
+{
+    open_elearning_url("http://elearning.fudan.edu.cn/portal/site/" + uuid);
+}
+
 /*
     onclick handler on eh_link spans
 */

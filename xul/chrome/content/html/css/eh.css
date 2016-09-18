@@ -281,8 +281,8 @@ ul li {
     border-radius: 0px;
 	background-color: #dcedc8;
 	overflow: hidden;
-	white-space:nowrap;
-	word-break:keep-all;
+	white-space: nowrap;
+	word-break: keep-all;
 	padding: 0px 4px;
 }
 
@@ -298,6 +298,78 @@ ul li {
 .eh_sitelist .eh_selected td {
     background-color: #aed581 !important;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+.eh_assignments table {
+	text-align: left;
+	table-layout: fixed;
+	border-collapse: separate;
+	border-spacing: 2px;
+	/*height: 100%;*/
+	width: 100%;
+    cursor: default;
+}
+
+.eh_assignments tr th {
+    font-size: 15px;
+    text-align: left;
+    border-radius: 0px;
+	background-color: #80deea;
+	overflow: hidden;
+	white-space: nowrap;
+	word-break: keep-all;
+	padding: 0px 4px;
+	height: 24px;
+}
+
+.eh_assignments tr td {
+    font-size: 15px;
+    text-align: left;
+    border-radius: 0px;
+	background-color: #b2ebf2;
+	overflow: hidden;
+	white-space: nowrap;
+	word-break: keep-all;
+	padding: 0px 4px;
+	height: 24px;
+}
+
+.eh_assignments tr td:nth-child(1) {
+    width: 30px;
+}
+.eh_assignments tr td:nth-child(3) {
+    width: 80px;
+}
+.eh_assignments tr td:nth-child(4) {
+    width: 225px;
+}
+.eh_assignments tr td:nth-child(1) {
+    text-align: center;
+}
+.eh_assignments tr:hover td {
+    background-color: #80deea;
+}
+.eh_assignments .eh_selected td {
+    background-color: #80deea !important;
+}
+
+
+
+
+
+
+
+
 
 
 
