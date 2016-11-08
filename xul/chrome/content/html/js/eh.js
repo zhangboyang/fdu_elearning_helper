@@ -3416,13 +3416,13 @@ function elearning_fetch_sitelist()
 function urp_fetch_coursetable(semester_id)
 {
     return new Promise( function (resolve, reject) {
-        //Services.cookies.add("jwfw.fudan.edu.cn", "/eams", "semester.id", semester_id, false, true, false, 0x7fffffff);
-        $.get("http://jwfw.fudan.edu.cn/eams/courseTableForStd!index.action").done( function (data) {
+        //Services.cookies.add("www.urp.fudan.edu.cn:92", "/eams", "semester.id", semester_id, false, true, false, 0x7fffffff);
+        $.get("http://www.urp.fudan.edu.cn:92/eams/courseTableForStd!index.action").done( function (data) {
             // grep ids
             var ids_data = data.match(/bg\.form\.addInput\(form,"ids","(\d+)"\);/);
             if (!ids_data || !ids_data[1]) { reject("parse error: can't find ids"); return; }
             var ids = ids_data[1];
-            $.post("http://jwfw.fudan.edu.cn/eams/courseTableForStd!courseTable.action", {
+            $.post("http://www.urp.fudan.edu.cn:92/eams/courseTableForStd!courseTable.action", {
                 "ignoreHead": "1",
                 "setting.kind": "std",
                 "startWeek": "1",
@@ -3502,12 +3502,12 @@ function urp_fetch_coursetable(semester_id)
 function urp_fetch_semesterdata()
 {
     return new Promise( function (resolve, reject) {
-        $.get("http://jwfw.fudan.edu.cn/eams/courseTableForStd!index.action").done( function (data, textStatus, request) {
+        $.get("http://www.urp.fudan.edu.cn:92/eams/courseTableForStd!index.action").done( function (data, textStatus, request) {
             // last GET response should set 'semester.id' cookie
             var cur_semester = parseInt(request.getAllResponseHeaders().match(/semester\.id=(\d+)/)[1]);
             
             // send POST to get semester list
-            $.post("http://jwfw.fudan.edu.cn/eams/dataQuery.action", {
+            $.post("http://www.urp.fudan.edu.cn:92/eams/dataQuery.action", {
                 "dataType": "semesterCalendar",
             }, null, "text").done( function (data, textStatus, jqXHR) {
                 // althogh we can use eval() to parse, but using eval() is NOT SAFE!!!
