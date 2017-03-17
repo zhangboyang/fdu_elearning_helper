@@ -3210,31 +3210,40 @@ var slist;
 function uis_login()
 {
     return new Promise( function (resolve, reject) {
-        $.get("https://uis.fudan.edu.cn/authserver/login").done( function (data, textStatus, jqXHR) {
-            var postdata = {};
-            $($.parseHTML(data)).find("input[type='hidden']").each( function(index, element) {
-                postdata[$(this).attr("name")] = $(this).attr("value");
-            });
-            postdata["username"] = el_username;
-            postdata["password"] = el_password;
-            console.log(postdata);
-            $.post("https://uis.fudan.edu.cn/authserver/login", postdata, null, "text").done( function (data, textStatus, jqXHR) {
-                console.log(data);
-                if (data.indexOf("/authserver/userSetting.do") > -1) {
-                    //show_msg("Login to UIS - OK!");
-                    resolve();
-                } else if (data.indexOf("您提供的用户名或者密码有误") > -1) {
-                    reject("####用户名或密码错误####UIS login check failed");
-                } else if (data.indexOf("请输入验证码") > -1) {
-                    reject("####请在浏览器里成功登录一次 UIS，再使用 eLearning Helper 登录。####captcha required");
-                } else {
-                    reject("UIS login check failed");
-                }
+        // FIXME: 20170317
+        // this is a workaround for cert issue of uis.fudan.edu.cn
+        // access 'https://mail.fudan.edu.cn' to get the cert of *.fudan.edu.cn
+        // then do uis login process
+        $.get("https://mail.fudan.edu.cn/").done( function (data, textStatus, jqXHR) {
+        
+            $.get("https://uis.fudan.edu.cn/authserver/login").done( function (data, textStatus, jqXHR) {
+                var postdata = {};
+                $($.parseHTML(data)).find("input[type='hidden']").each( function(index, element) {
+                    postdata[$(this).attr("name")] = $(this).attr("value");
+                });
+                postdata["username"] = el_username;
+                postdata["password"] = el_password;
+                console.log(postdata);
+                $.post("https://uis.fudan.edu.cn/authserver/login", postdata, null, "text").done( function (data, textStatus, jqXHR) {
+                    console.log(data);
+                    if (data.indexOf("/authserver/userSetting.do") > -1) {
+                        //show_msg("Login to UIS - OK!");
+                        resolve();
+                    } else if (data.indexOf("您提供的用户名或者密码有误") > -1) {
+                        reject("####用户名或密码错误####UIS login check failed");
+                    } else if (data.indexOf("请输入验证码") > -1) {
+                        reject("####请在浏览器里成功登录一次 UIS，再使用 eLearning Helper 登录。####captcha required");
+                    } else {
+                        reject("UIS login check failed");
+                    }
+                }).fail( function (xhr, textStatus, errorThrown) {
+                    reject("####网络连接失败####UIS login failed: " + textStatus + ", " + errorThrown);
+                });
             }).fail( function (xhr, textStatus, errorThrown) {
-                reject("####网络连接失败####UIS login failed: " + textStatus + ", " + errorThrown);
+                reject("####网络连接失败####can't fetch UIS login page");
             });
         }).fail( function (xhr, textStatus, errorThrown) {
-            reject("can't fetch UIS login page");
+            reject("####网络连接失败####can't fetch fudan-email login page");
         });
     });
 }
