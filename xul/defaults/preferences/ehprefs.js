@@ -4,7 +4,7 @@ pref("elearninghelper.username", ""); // elearning username
 pref("elearninghelper.password", ""); // elearning password
 pref("elearninghelper.rememberme", true); // set if we should remember password
 
-pref("elearninghelper.usebuiltinviewer", true); // use builtin pdfviewer
+pref("elearninghelper.usebuiltinviewer", false); // use builtin pdfviewer
 pref("elearninghelper.pagelimit", 200); // pdfviewer: page limit
 
 pref("elearninghelper.usebuiltinbrowser", true); // use builtin browser
