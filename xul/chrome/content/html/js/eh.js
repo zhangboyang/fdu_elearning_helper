@@ -3210,29 +3210,32 @@ var slist;
 function uis_login()
 {
     return new Promise( function (resolve, reject) {
-        $.post("https://uis2.fudan.edu.cn/amserver/UI/Login", {
-                    "IDToken0": "",
-                    "IDToken1": el_username,
-                    "IDToken2": el_password,
-                    "IDButton": "Submit",
-                    "goto": "",
-                    "encoded": "false",
-                    "inputCode": "",
-                    "gx_charset": "UTF-8",
-                }, null, "text").done( function (data, textStatus, jqXHR) {
-                    if (data.indexOf("Please Wait While Redirecting to console") > -1) {
-                        //show_msg("Login to UIS - OK!");
-                        resolve();
-                    } else if (data.indexOf("用户名或密码错误") > -1) {
-                        reject("####用户名或密码错误####UIS login check failed");
-                    } else if (data.indexOf("验证码错误") > -1) {
-                        reject("captcha required");
-                    } else {
-                        reject("UIS login check failed");
-                    }
-                }).fail( function (xhr, textStatus, errorThrown) {
-                    reject("####网络连接失败####UIS login failed: " + textStatus + ", " + errorThrown);
-                });
+        $.get("https://uis.fudan.edu.cn/authserver/login").done( function (data, textStatus, jqXHR) {
+            var postdata = {};
+            $($.parseHTML(data)).find("input[type='hidden']").each( function(index, element) {
+                postdata[$(this).attr("name")] = $(this).attr("value");
+            });
+            postdata["username"] = el_username;
+            postdata["password"] = el_password;
+            console.log(postdata);
+            $.post("https://uis.fudan.edu.cn/authserver/login", postdata, null, "text").done( function (data, textStatus, jqXHR) {
+                console.log(data);
+                if (data.indexOf("/authserver/userSetting.do") > -1) {
+                    //show_msg("Login to UIS - OK!");
+                    resolve();
+                } else if (data.indexOf("您提供的用户名或者密码有误") > -1) {
+                    reject("####用户名或密码错误####UIS login check failed");
+                } else if (data.indexOf("请输入验证码") > -1) {
+                    reject("####请在浏览器里成功登录一次 UIS，再使用 eLearning Helper 登录。####captcha required");
+                } else {
+                    reject("UIS login check failed");
+                }
+            }).fail( function (xhr, textStatus, errorThrown) {
+                reject("####网络连接失败####UIS login failed: " + textStatus + ", " + errorThrown);
+            });
+        }).fail( function (xhr, textStatus, errorThrown) {
+            reject("can't fetch UIS login page");
+        });
     });
 }
 
@@ -3329,6 +3332,11 @@ function elearning_fetch_sitedetails(sitem)
         have_announcements: false,
         announcements_url: "",
     };
+
+// FIXME
+// details is disabled !!!
+return Promise.resolve(sobj);
+
     return new Promise( function (resolve, reject) {
         $.get("http://elearning.fudan.edu.cn/portal/pda/" + sitem.uuid, null, null, "html")
             .done( function (data) {
@@ -4121,6 +4129,7 @@ function init_main_page()
                         coursetable_load(clist);
                         switch_sitelist_coursetable(-1);
                         //show_msg("load clist OK");
+                        progressobj.hide();
                     }, function (reason) {
                         abort("can't fetch urp coursetable");
                     })

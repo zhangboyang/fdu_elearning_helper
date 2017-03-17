@@ -3,6 +3,11 @@
 // ========================= useful functions =========================
 
 
+function eh_reload()
+{
+    document.getElementById('mybrowser').reload();
+}
+
 // log to js console
 function mylog(s)
 {

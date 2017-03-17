@@ -37,6 +37,7 @@
         <p><label class="eh_formlabel" for="loginusername">学号</label><br><input type="text" id="loginusername" class="eh_textinput eh_login_textinput"></p>
         <p><label class="eh_formlabel" for="loginpassword">密码</label><br><input type="password" id="loginpassword" class="eh_textinput eh_login_textinput"></p>
         <p style="margin-top: 20px"><input type="checkbox" class="filled-in eh_login_checkbox" id="loginrememberme"><label class="eh_formlabel" for="loginrememberme"><span class="eh_formlabel_checkbox_span">记住我</span></label></p>
+        <!--<p style="margin-top: 30px"><img src="https://uis.fudan.edu.cn/authserver/captcha.html" /><br><input type="text" id="logincaptcha" class="eh_textinput eh_login_textinput"></p>-->
         <p style="margin-top: 20px"><div id="loginerrmsg" style="color: red"></div><button id="loginbtn" class="light-green btn darken-2 z-depth-0 eh_login_submitbutton" onclick="eh_login()">登录</button></p>
 	</div>
 </div>
@@ -158,6 +159,7 @@
         <div class="eh_header_title blue-text text-darken-4">欢迎使用 eLearning 助手</div>
         <div style="-moz-box-flex: 1;"></div>
         <div id="main_header_links" class="eh_header_actionbox blue-text text-darken-4"><!--
+            --><span onclick="window.parent.eh_reload()">刷新</span><!--
             --><span onclick="show_settings()">设置</span><!--
             --><span onclick="eh_logout()">登出</span><!--
             --><span onclick="show_about()">关于本程序</span><!--
@@ -167,7 +169,8 @@
     <div class="eh_flexbox_fill_remaining_wrapper_ud"><div id="main_content" class="eh_page_content">
         <div id="main_left" style="display: none;"></div>
         <div class="eh_flexbox_fill_remaining_wrapper_lr"><div id="main_mid" class="eh_page_main" style="display: flex; flex-direction: row;">
-        <div style="flex: 0 1 auto; width: 50%"><div style="height: 100%; width: 100%; padding: 10px 5px 10px 10px; display: flex; flex-direction: column;">
+        <!-- remove "display: none;" to enable homework -->
+        <div style="flex: 0 1 auto; width: 50%; display: none;"><div style="height: 100%; width: 100%; padding: 10px 5px 10px 10px; display: flex; flex-direction: column;">
 <div class="cyan eh_sidebar" style="flex: 1 0 auto; padding: 0px 2px 2px 2px;">
     <div class="eh_sidebar_title">作业</div>
 	<div class="cyan lighten-5" style="flex: 1 1 auto; height: 0px;">
@@ -187,7 +190,7 @@
     </div>
 </div>
         </div></div>
-        <div class="eh_flexbox_fill_remaining_wrapper_lr"><div style="height: 100%; width: 100%; padding: 10px 10px 10px 5px;">
+        <div class="eh_flexbox_fill_remaining_wrapper_lr"><div style="height: 100%; width: 100%; padding: 10px 10px 10px 10px;"><!-- last padding shall be 5 if homework is enabled -->
 
 
 <div class="light-green eh_sidebar" style="display: flex; flex-direction: column; padding: 0px 2px 2px 2px; height: 100%">
@@ -197,6 +200,7 @@
     </div>
 	<div class="light-green lighten-5" style="flex: 1 1 auto; height: 0px;">
 		<div style="overflow-y: auto; height: 100%; padding: 10px;">
+<div id="main_loadprogress" style="text-align: center"></div>
 <div class="eh_coursetable" id="main_coursetable" style="margin-bottom: 10px; display: none">
 <!-- course table -->
 </div>
