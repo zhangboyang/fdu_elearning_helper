@@ -112,23 +112,40 @@ function preventdefaultfunc (e) { e.preventDefault(); };
 
 
 
+function replace_special_char(str, chlist)
+{
+    var ret = "";
+    for (var i = 0; i < str.length; i++) {
+        if (chlist.indexOf(str.charAt(i)) >= 0) {
+            ret += "_";
+        } else {
+            ret += str.charAt(i);
+        }
+    }
+    return ret;
+}
+
 var filename_ilchar = "*|\\:\"<>?/"; // FIXME: is this enough?
+var path_ilchar = "*|:\"<>?";
 
 /*
     change special chars (like *|\:"<>?/) to '_'
 */
 function escape_filename(filename)
 {
-    var ret = "";
-    for (var i = 0; i < filename.length; i++) {
-        if (filename_ilchar.indexOf(filename.charAt(i)) >= 0) {
-            ret += "_";
-        } else {
-            ret += filename.charAt(i);
-        }
-    }
-    return ret;
+    return replace_special_char(filename, filename_ilchar);
 }
+
+/*
+    remove illegal chars in path
+*/
+function escape_path(str)
+{
+    return replace_special_char(str, path_ilchar);
+}
+
+
+
 
 /*
     check if filename is legal
@@ -157,13 +174,6 @@ function check_path_with_base(fileuri, baseuri)
     }
 }
 
-/*
-    remove illegal chars in path
-*/
-function remove_illegal_chars_for_path(str)
-{
-    return str.replace(/:/g, '_');
-}
 
 
 /*
@@ -707,6 +717,7 @@ function create_kvdiv(kstr, vstr, vfunc)
             [0];
     }
 }
+
 
 
 function create_kvdiv_with_obj(kstr, vobj)
@@ -2623,7 +2634,7 @@ function webdav_create_localpath(localbase, subpath)
 {
     if (subpath == "/") return;
 
-    var target_uri = localbase + remove_illegal_chars_for_path(subpath);
+    var target_uri = localbase + escape_path(subpath);
     check_path_with_base(target_uri, localbase);
     var target_native = OS.Path.fromFileURI(target_uri);
     var base_native = OS.Path.fromFileURI(localbase);
@@ -2644,7 +2655,7 @@ function webdav_create_localpath(localbase, subpath)
 */
 function webdav_download_single(fitem, localbase, cur_sync_id, xhrprogresscallback)
 {
-    var target_uri = localbase + remove_illegal_chars_for_path(fitem.path);
+    var target_uri = localbase + escape_path(fitem.path);
     check_path_with_base(target_uri, localbase);
     return new Promise( function (resolve, reject) {
         var url = "https://elearning.fudan.edu.cn" + fitem.href;
@@ -2688,7 +2699,7 @@ function webdav_download_single(fitem, localbase, cur_sync_id, xhrprogresscallba
 */
 function webdav_sync_single(fitem, sdfitem, localbase, cur_sync_id, fstatus, update_count_callback)
 {
-    var target_uri = localbase + remove_illegal_chars_for_path(fitem.path);
+    var target_uri = localbase + escape_path(fitem.path);
     check_path_with_base(target_uri, localbase);
     return new Promise( function (resolve, reject) {
         // check whether we should download this file
@@ -2837,7 +2848,7 @@ function webdav_sync(uuid, coursefolder, syncdatafile, statuslist, report_progre
     
     return new Promise( function (resolve, reject) {
         // create course folder
-        var localbase = docfolder + remove_illegal_chars_for_path(coursefolder);
+        var localbase = docfolder + escape_path(coursefolder);
         check_path_with_base(localbase, docfolder);
         webdav_create_localpath(docfolder, coursefolder).then( function () {
             // read previous sync data
@@ -3043,7 +3054,7 @@ function enter_resource_section(sobj, coursefolder, is_resync)
         }
         $("#filenav_showfiles").show().unbind("click").click( function () { // open course folder
             local_log("[filenav] open course folder (coursefolder = " + coursefolder + ")");
-            launch_fileuri(docfolder + coursefolder);
+            launch_fileuri(docfolder + escape_path(coursefolder));
         });
         $("#filenav_resync").show();
 
@@ -3078,7 +3089,7 @@ function enter_resource_section(sobj, coursefolder, is_resync)
         console.log(obj);
         obj.lobj.flist.forEach( function (element, index, array) {
             let fitem = element;
-            let fileuri = docfolder + coursefolder + fitem.path;
+            let fileuri = docfolder + escape_path(coursefolder) + escape_path(fitem.path);
             
             var rowobj = $(document.createElement('tr'))
 
@@ -3874,7 +3885,7 @@ function coursetable_manual_match(cobj)
                 prompts.BUTTON_POS_1 * prompts.BUTTON_TITLE_IS_STRING;
     var button = prompts.confirmEx(null, "无法找到匹配的站点", "没有找到该课程对应的 eLearning 站点，这可能是因为：\n  (1) 该课程没有使用 eLearning，此情况下您将无法使用相关功能。或者\n  (2) 由于站点名称特殊，程序自动匹配失败，此情况下您可以手动选择一个站点。\n请选择您遇到的情况。",
                                    flags, "我要手动选择一个站点", "该课程没有使用 eLearning", "", null, check);
-    if (button != 0) return 0;
+    if (button != 0) return false;
     var items = [], uuids = [];
     slist.forEach( function (sobj) {
         items.push(sobj.sname);
@@ -3882,12 +3893,13 @@ function coursetable_manual_match(cobj)
     });
     var selected = {};
     var result = prompts.select(null, "请选择一个站点", "请从列表中选择课程 " + cobj.cname + " (" + cobj.cid + ") 对应的 eLearning 站点。", items.length, items, selected);
-    if (result) {
+    if (result && prompts.confirm(null, "确认", "您确定要将课程\n    " + cobj.cname + " (" + cobj.cid + ")\n对应的 eLearning 站点设为\n    " + items[selected.value] + "\n吗？\n\n注意：此操作一旦确认则无法撤销！！！")) {
         user_coursemap[cobj.cid] = uuids[selected.value];
         save_user_coursemap(); // save course=>site map
         coursetable_load(clist); // reload course table
+        return true;
     }
-    return result;
+    return false;
 }
 
 function coursetable_enter(cidx, x, y)
@@ -4468,6 +4480,7 @@ function load_settings(cch)
     cch.filter("[data-sdescref='sie']").children("input").val(syncignoreext_str);
 }
 function save_settings(cch)
+
 {
     usebuiltinviewer = cch.filter("[data-sdescref='ubv']").children("input").prop("checked");
     usebuiltinbrowser = cch.filter("[data-sdescref='ubb']").children("input").prop("checked");
