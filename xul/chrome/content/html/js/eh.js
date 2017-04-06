@@ -157,6 +157,14 @@ function check_path_with_base(fileuri, baseuri)
     }
 }
 
+/*
+    remove illegal chars in path
+*/
+function remove_illegal_chars_for_path(str)
+{
+    return str.replace(/:/g, '_');
+}
+
 
 /*
     write string to file
@@ -2612,7 +2620,7 @@ function webdav_create_localpath(localbase, subpath)
 {
     if (subpath == "/") return;
 
-    var target_uri = localbase + subpath;
+    var target_uri = localbase + remove_illegal_chars_for_path(subpath);
     check_path_with_base(target_uri, localbase);
     var target_native = OS.Path.fromFileURI(target_uri);
     var base_native = OS.Path.fromFileURI(localbase);
@@ -2633,7 +2641,7 @@ function webdav_create_localpath(localbase, subpath)
 */
 function webdav_download_single(fitem, localbase, cur_sync_id, xhrprogresscallback)
 {
-    var target_uri = localbase + fitem.path;
+    var target_uri = localbase + remove_illegal_chars_for_path(fitem.path);
     check_path_with_base(target_uri, localbase);
     return new Promise( function (resolve, reject) {
         var url = "https://elearning.fudan.edu.cn" + fitem.href;
@@ -2677,7 +2685,7 @@ function webdav_download_single(fitem, localbase, cur_sync_id, xhrprogresscallba
 */
 function webdav_sync_single(fitem, sdfitem, localbase, cur_sync_id, fstatus, update_count_callback)
 {
-    var target_uri = localbase + fitem.path;
+    var target_uri = localbase + remove_illegal_chars_for_path(fitem.path);
     check_path_with_base(target_uri, localbase);
     return new Promise( function (resolve, reject) {
         // check whether we should download this file
@@ -2826,7 +2834,7 @@ function webdav_sync(uuid, coursefolder, syncdatafile, statuslist, report_progre
     
     return new Promise( function (resolve, reject) {
         // create course folder
-        var localbase = docfolder + coursefolder;
+        var localbase = docfolder + remove_illegal_chars_for_path(coursefolder);
         check_path_with_base(localbase, docfolder);
         webdav_create_localpath(docfolder, coursefolder).then( function () {
             // read previous sync data
@@ -3110,6 +3118,7 @@ function enter_resource_section(sobj, coursefolder, is_resync)
             var selectfunc = function (e) { // user select file
                 local_log("[filenav] select file (fpath = " + fitem.path + ")");
                 
+
                 //$(this).parent().parent().find("span").filter(".eh_link3").removeClass("eh_link3").addClass("eh_link2");
                 //$(this).parent().find("span").filter(".eh_link2").removeClass("eh_link2").addClass("eh_link3");
                 $(this).parent().children("tr").removeClass("eh_selected");
@@ -3223,9 +3232,9 @@ function uis_login()
                 });
                 postdata["username"] = el_username;
                 postdata["password"] = el_password;
-                console.log(postdata);
+                //console.log(postdata);
                 $.post("https://uis.fudan.edu.cn/authserver/login", postdata, null, "text").done( function (data, textStatus, jqXHR) {
-                    console.log(data);
+                    //console.log(data);
                     if (data.indexOf("/authserver/userSetting.do") > -1) {
                         //show_msg("Login to UIS - OK!");
                         resolve();
