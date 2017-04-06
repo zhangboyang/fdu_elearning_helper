@@ -4332,9 +4332,9 @@ function show_about()
     // remember where we come from
     aboutpage_lastpage = current_page;
     
-    $("#about_licensebox").show();
+    $("#about_licensebox").hide();
     $("#about_debugbox").hide();
-    $("#about_dbgtoolbtn").addClass("eh_link").text("打开调试工具");
+    $("#about_mainbox").show();
 
     show_page("about");
     $("#about_licensesbox").scrollTop(0);
@@ -4344,19 +4344,24 @@ function show_about()
 
 function show_debug_tools()
 {
-    if (!$("#about_debugbox").is(":visible")) {
-        local_log("[about] show debug tools");
-        $("#ymttitle").hide();
-        try {
-            $("#ymtaudio")[0].currentTime = 0;
-        } catch (e) {
-        }
-        $("#about_licensebox").hide();
-        $("#about_debugbox").show();
-        $("#about_dbgtoolbtn").removeClass("eh_link").text("调试工具已在左侧打开");
-        $("#about_debugsbox").scrollTop(0);
+    local_log("[about] show debug tools");
+    $("#ymttitle").hide();
+    try {
+        $("#ymtaudio")[0].currentTime = 0;
+    } catch (e) {
     }
+    $("#about_mainbox").hide();
+    $("#about_debugbox").show();
+    $("#about_debugsbox").scrollTop(0);
 }
+
+
+function show_license()
+{
+    $("#about_mainbox").hide();
+    $("#about_licensebox").show();
+}
+
 
 function initp_about()
 {
