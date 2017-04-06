@@ -708,6 +708,7 @@ function create_kvdiv(kstr, vstr, vfunc)
     }
 }
 
+
 function create_kvdiv_with_obj(kstr, vobj)
 {
     return $(document.createElement('div'))
@@ -4576,6 +4577,10 @@ function open_in_browser(url, opt)
         
     } else {
         console.log("OPEN IN EXRERNAL BROWSER", url, opt); // FIXME
+        var iosvc = Components.classes["@mozilla.org/network/io-service;1"].getService(Components.interfaces.nsIIOService);
+        var auri = iosvc.newURI(url, null, null);
+        var psvc = Components.classes["@mozilla.org/uriloader/external-protocol-service;1"].getService(Components.interfaces.nsIExternalProtocolService);
+        psvc.loadUrl(auri);
     }
 }
 
@@ -4595,6 +4600,7 @@ function open_site_in_browser(uuid)
 */
 function fake_link_handler(obj, opt)
 {
-    var url = $(obj).text();
+    var url = $(obj).attr("data-url");
+    url = url ? url : $(obj).text();
     open_in_browser(url, opt);
 }
