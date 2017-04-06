@@ -302,30 +302,30 @@ function get_elearning_remote_iconuri(iconname)
 {
     if (iconname.startsWith("filetype-")) {
         switch (iconname.substring(9).toLowerCase()) {
-            case "ppt": case "pptx": return "http://elearning.fudan.edu.cn/library/image/sakai/ppt.gif";
-            case "doc": case "docx": return "http://elearning.fudan.edu.cn/library/image/sakai/word.gif";
-            case "xls": case "xlsx": return "http://elearning.fudan.edu.cn/library/image/sakai/excel.gif";
-            case "pdf": return "http://elearning.fudan.edu.cn/library/image/sakai/pdf.gif";
+            case "ppt": case "pptx": return "https://elearning.fudan.edu.cn/library/image/sakai/ppt.gif";
+            case "doc": case "docx": return "https://elearning.fudan.edu.cn/library/image/sakai/word.gif";
+            case "xls": case "xlsx": return "https://elearning.fudan.edu.cn/library/image/sakai/excel.gif";
+            case "pdf": return "https://elearning.fudan.edu.cn/library/image/sakai/pdf.gif";
             case "jpg": case "jpeg": case "png": case "gif": case "bmp": case "tif": case "tiff":
-                return "http://elearning.fudan.edu.cn/library/image/sakai/image.gif";
+                return "https://elearning.fudan.edu.cn/library/image/sakai/image.gif";
             case "zip": case "rar": case "dmg": case "7z": case "tar": case "xz": case "gz": case "bz2":
-                return "http://elearning.fudan.edu.cn/library/image/sakai/compressed.gif";
+                return "https://elearning.fudan.edu.cn/library/image/sakai/compressed.gif";
             case "txt": case "c": case "cpp": case "h": case "java": case "py": case "sh": case "sql":
-                return "http://elearning.fudan.edu.cn/library/image/sakai/text.gif";
+                return "https://elearning.fudan.edu.cn/library/image/sakai/text.gif";
             case "htm": case "html": case "js": case "css": case "json":
-                return "http://elearning.fudan.edu.cn/library/image/sakai/html.gif";
+                return "https://elearning.fudan.edu.cn/library/image/sakai/html.gif";
             case "exe": case "jar": case "class": case "o": case "a":
-                return "http://elearning.fudan.edu.cn/library/image/sakai/binary.gif";
-            default: return "http://elearning.fudan.edu.cn/library/image/sakai/generic.gif";
+                return "https://elearning.fudan.edu.cn/library/image/sakai/binary.gif";
+            default: return "https://elearning.fudan.edu.cn/library/image/sakai/generic.gif";
         }
     }
 
     if (iconname == "famfamfam") {
-        return "http://elearning.fudan.edu.cn/library/image/silk/fff-sprites/images/famfamfam.png";
+        return "https://elearning.fudan.edu.cn/library/image/silk/fff-sprites/images/famfamfam.png";
     }
 
     console.log("icon not found: ", iconname);
-    return "http://elearning.fudan.edu.cn/library/image/sakai/generic.gif"; // fallback
+    return "https://elearning.fudan.edu.cn/library/image/sakai/generic.gif"; // fallback
 }
 
 var elearning_icon_set;
@@ -2457,7 +2457,7 @@ function webdav_listsubdir(subdir)
         // send WebDAV PROPFIND request
         $.ajax({
             type: "PROPFIND",
-            url: "http://elearning.fudan.edu.cn" + subdir,
+            url: "https://elearning.fudan.edu.cn" + subdir,
             context: document.body,
             dataType: "xml",
             username: el_username,
@@ -2636,7 +2636,7 @@ function webdav_download_single(fitem, localbase, cur_sync_id, xhrprogresscallba
     var target_uri = localbase + fitem.path;
     check_path_with_base(target_uri, localbase);
     return new Promise( function (resolve, reject) {
-        var url = "http://elearning.fudan.edu.cn" + fitem.href;
+        var url = "https://elearning.fudan.edu.cn" + fitem.href;
         var target_native = OS.Path.fromFileURI(target_uri);
         
         //show_msg("url=" + url + " file=" + target_native);
@@ -3258,7 +3258,7 @@ function uis_login()
 function elearning_login()
 {
     return new Promise( function (resolve, reject) {
-        $.get("http://elearning.fudan.edu.cn/portal/login", null, null, "text")
+        $.get("https://elearning.fudan.edu.cn/portal/login", null, null, "text")
             .done( function (data, textStatus, jqXHR) {
                 //console.log(data);
                 if (data.indexOf(el_username) > -1) {
@@ -3347,7 +3347,7 @@ function elearning_fetch_sitedetails(sitem)
 return Promise.resolve(sobj);
 
     return new Promise( function (resolve, reject) {
-        $.get("http://elearning.fudan.edu.cn/portal/pda/" + sitem.uuid, null, null, "html")
+        $.get("https://elearning.fudan.edu.cn/portal/pda/" + sitem.uuid, null, null, "html")
             .done( function (data) {
                 var plist = new Array();
                 var lilist = $($.parseHTML(data)).find("#pda-portlet-page-menu").children("li");
@@ -3389,7 +3389,7 @@ return Promise.resolve(sobj);
 function elearning_fetch_sitelist()
 {
     return new Promise( function (resolve, reject) {
-        $.get("http://elearning.fudan.edu.cn/portal/pda", null, null, "html")
+        $.get("https://elearning.fudan.edu.cn/portal/pda", null, null, "html")
             .done( function (data) {
                 var slist = new Array();
                 $($.parseHTML(data)).find("#pda-portlet-site-menu").children("li").each(function (index, element) {
@@ -4174,8 +4174,8 @@ function init_main_page()
 // temporary for testing purpose
 function test()
 {
-    //webdav_sync("http://elearning.fudan.edu.cn", "http://elearning.fudan.edu.cn/dav/0b63d236-4fe9-4fbd-9e6b-365a250eeb2c"); // li san shu xue
-    //webdav_sync("http://elearning.fudan.edu.cn", "http://elearning.fudan.edu.cn/dav/24ea24fd-0c39-49de-adbe-641d1cf4a499"); // shu ju ku
+    //webdav_sync("https://elearning.fudan.edu.cn", "https://elearning.fudan.edu.cn/dav/0b63d236-4fe9-4fbd-9e6b-365a250eeb2c"); // li san shu xue
+    //webdav_sync("https://elearning.fudan.edu.cn", "https://elearning.fudan.edu.cn/dav/24ea24fd-0c39-49de-adbe-641d1cf4a499"); // shu ju ku
 
     /*webdav_binary_xhr("http://adfkljdsjkf.com/asdf").then(function (data) {
         console.log(data.toString());
@@ -4566,7 +4566,7 @@ function open_elearning_url(url)
 }
 function open_site_in_browser(uuid)
 {
-    open_elearning_url("http://elearning.fudan.edu.cn/portal/site/" + uuid);
+    open_elearning_url("https://elearning.fudan.edu.cn/portal/site/" + uuid);
 }
 
 /*
