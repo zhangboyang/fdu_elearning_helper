@@ -1791,6 +1791,8 @@ $("document").ready( function () {
         $("#dbgwarningbox").hide();
     }
 
+    $("#main_coursetable_switchbtn").hide();
+
 
     // configure datafolder first
 
@@ -4115,6 +4117,9 @@ function init_main_page()
     show_page("main");
     remove_all_cookies();
 
+    $("#main_coursetable_switchbtn").hide();
+    $("#main_course_details").hide();
+
     /* load data from network:
         slist
         semesterdata
@@ -4148,6 +4153,8 @@ function init_main_page()
                         switch_sitelist_coursetable(-1);
                         //show_msg("load clist OK");
                         progressobj.hide();
+                        $("#main_coursetable_switchbtn").show();
+                        $("#main_course_details").show();
                     }, function (reason) {
                         abort("can't fetch urp coursetable");
                     })
