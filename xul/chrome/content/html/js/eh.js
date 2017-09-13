@@ -855,7 +855,7 @@ function dist_p2s(p, a, b) { return Math.sqrt(distsq_p2s(p, a, b)); }
 
 function do_output(str)
 {
-    Materialize.toast(str, 10000);
+    Materialize.toast($('<div/>').text(str).html(), 10000);
     console.log(str);
 }
 
@@ -3455,9 +3455,11 @@ function elearning_fetch_sitelist()
 */
 function urp_fetch_coursetable(semester_id)
 {
+    //console.log("urp_fetch_coursetable()", semester_id);
     return new Promise( function (resolve, reject) {
         //Services.cookies.add("www.urp.fudan.edu.cn:92", "/eams", "semester.id", semester_id, false, true, false, 0x7fffffff);
         $.get("http://www.urp.fudan.edu.cn:92/eams/courseTableForStd!index.action").done( function (data) {
+            //console.log("courseTableForStd!index.action", data);
             // grep ids
             var ids_data = data.match(/bg\.form\.addInput\(form,"ids","(\d+)"\);/);
             if (!ids_data || !ids_data[1]) { reject("parse error: can't find ids"); return; }
@@ -3469,6 +3471,7 @@ function urp_fetch_coursetable(semester_id)
                 "semester.id": semester_id,
                 "ids": ids,
             }, null, "text").done( function (data, textStatus, jqXHR) {
+                //console.log("courseTableForStd!courseTable.action", data);
                 // begin parse data
 
                 // find range and trim
@@ -3513,7 +3516,8 @@ function urp_fetch_coursetable(semester_id)
                         ctime: ctime,
                     });
                 });
-                
+
+                //console.log(clist);
                 resolve(clist);
                 
             }).fail( function (xhr, textStatus, errorThrown) {
@@ -3543,34 +3547,51 @@ function urp_fetch_semesterdata()
 {
     return new Promise( function (resolve, reject) {
         $.get("http://www.urp.fudan.edu.cn:92/eams/courseTableForStd!index.action").done( function (data, textStatus, request) {
-            // last GET response should set 'semester.id' cookie
-            var cur_semester = parseInt(request.getAllResponseHeaders().match(/semester\.id=(\d+)/)[1]);
-            
-            // send POST to get semester list
-            $.post("http://www.urp.fudan.edu.cn:92/eams/dataQuery.action", {
-                "dataType": "semesterCalendar",
-            }, null, "text").done( function (data, textStatus, jqXHR) {
-                // althogh we can use eval() to parse, but using eval() is NOT SAFE!!!
-                var semesterlist = new Array();
-                var sarr = data.match(/(\{id:\d+,schoolYear:"\d+-\d+",name:".+?"\})/g);
-                sarr.forEach(function (element, index, array) {
-                    var spart = element.match(/\{id:(\d+),schoolYear:"(\d+-\d+)",name:"(.+?)"\}/);
-                    var sid = parseInt(spart[1]);
-                    if (spart[3] == "2") spart[3] = "春季";
-                    if (spart[3] == "1") spart[3] = "秋季";
-                    var sstr = spart[2] + " " + spart[3] + "学期";
-                    semesterlist[sid] = sstr;
 
-                });
-                setTimeout(function () {
-                    resolve({
-                        smap: semesterlist,
-                        cursid: cur_semester,
+            var f = function (data, textStatus, request) {
+                // last GET response should set 'semester.id' cookie
+                var cur_semester = parseInt(request.getAllResponseHeaders().match(/semester\.id=(\d+)/)[1]);
+                
+                // send POST to get semester list
+                $.post("http://www.urp.fudan.edu.cn:92/eams/dataQuery.action", {
+                    "dataType": "semesterCalendar",
+                }, null, "text").done( function (data, textStatus, jqXHR) {
+                    // althogh we can use eval() to parse, but using eval() is NOT SAFE!!!
+                    var semesterlist = new Array();
+                    var sarr = data.match(/(\{id:\d+,schoolYear:"\d+-\d+",name:".+?"\})/g);
+                    sarr.forEach(function (element, index, array) {
+                        var spart = element.match(/\{id:(\d+),schoolYear:"(\d+-\d+)",name:"(.+?)"\}/);
+                        var sid = parseInt(spart[1]);
+                        if (spart[3] == "2") spart[3] = "春季";
+                        if (spart[3] == "1") spart[3] = "秋季";
+                        var sstr = spart[2] + " " + spart[3] + "学期";
+                        semesterlist[sid] = sstr;
+
                     });
-                }, 200);
-            }).fail( function (xhr, textStatus, errorThrown) {
-                reject("dataQuery.action failed: " + textStatus + ", " + errorThrown);
-            });
+                    setTimeout(function () {
+                        resolve({
+                            smap: semesterlist,
+                            cursid: cur_semester,
+                        });
+                    }, 200);
+                }).fail( function (xhr, textStatus, errorThrown) {
+                    reject("dataQuery.action failed: " + textStatus + ", " + errorThrown);
+                });
+            };
+
+            if (data.indexOf("当前用户存在重复登录的情况") >= 0) {
+                //console.log("data", data);
+                var newurl = $($.parseHTML(data)).filter('a').attr("href");
+                //console.log("newurl", newurl);
+                //return;
+                $.get(newurl).done( function (data, textStatus, request) {
+                    f(data, textStatus, request);
+                }).fail(function (xhr, textStatus, errorThrown) {
+                    reject("courseTableForStd!index.action 2nd failed: " + textStatus + ", " + errorThrown);
+                });
+            } else {
+                f(data, textStatus, request);
+            }
         }).fail( function (xhr, textStatus, errorThrown) {
             reject("courseTableForStd!index.action failed: " + textStatus + ", " + errorThrown);
         });
@@ -3658,6 +3679,7 @@ function get_syncdatafile(sobj)
 
 function coursetable_load(clist_input)
 {
+    console.log("coursetable_load()", clist_input);
     reselect_coursetable_func = function () {
         $("#main_course_details").html("提示：<ul><li>单击课程可以查看课程详细信息</li><li>双击课程可以进入课程文件列表</li></ul>");
         update_mainpage_assignments_announcements(null);
@@ -3683,7 +3705,9 @@ function coursetable_load(clist_input)
     // construct course table
     clist.forEach( function (element, index, array) {
         element.ctime.forEach( function (ct) {
-            ctable[ct[0]][ct[1]] = index;
+            if ((1 <= ct[0] && ct[0] <= ctable_maxx) && (0 <= ct[1] && ct[1] <= ctable_maxy)) {
+                ctable[ct[0]][ct[1]] = index;
+            }
         });
     });
 
