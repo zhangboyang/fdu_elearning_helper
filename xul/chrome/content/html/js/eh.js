@@ -3237,7 +3237,7 @@ function uis_login()
         // this is a workaround for cert issue of uis.fudan.edu.cn
         // access 'https://mail.fudan.edu.cn' to get the cert of *.fudan.edu.cn
         // then do uis login process
-        $.get("https://mail.fudan.edu.cn/").done( function (data, textStatus, jqXHR) {
+        //$.get("https://mail.fudan.edu.cn/").done( function (data, textStatus, jqXHR) {
         
             $.get("https://uis.fudan.edu.cn/authserver/login").done( function (data, textStatus, jqXHR) {
                 var postdata = {};
@@ -3265,9 +3265,9 @@ function uis_login()
             }).fail( function (xhr, textStatus, errorThrown) {
                 reject("####网络连接失败####can't fetch UIS login page");
             });
-        }).fail( function (xhr, textStatus, errorThrown) {
-            reject("####网络连接失败####can't fetch fudan-email login page");
-        });
+        //}).fail( function (xhr, textStatus, errorThrown) {
+        //    reject("####网络连接失败####can't fetch fudan-email login page");
+        //});
     });
 }
 
